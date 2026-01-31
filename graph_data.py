@@ -251,6 +251,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
     reference_auto_opacity = float(graph_cfg.get("reference_auto_opacity", 1.0))
+    kanji_hubs = bool(graph_cfg.get("kanji_hubs", True))
 
     logger.dbg("build_graph start")
     nodes: dict[str, dict[str, Any]] = {}
@@ -493,140 +494,225 @@ def build_graph(col: Collection) -> dict[str, Any]:
         radical_mid = str(kg.get("radical_note_type") or "")
         radical_field = str(kg.get("radical_field") or "")
 
-        kanji_map, radical_map, _ = _build_kanji_maps(
-            col,
-            kanji_mid,
-            kanji_field,
-            kanji_alt_field,
-            radical_mid,
-            radical_field,
-            allowed_nids,
-        )
-        logger.dbg(
-            "kanji_gate maps",
-            "kanji=",
-            len(kanji_map),
-            "radical=",
-            len(radical_map),
-        )
+        if kanji_hubs:
+            kanji_chars: set[str] = set()
+            component_pairs: list[tuple[str, str]] = []
+            radical_pairs: list[tuple[str, str]] = []
 
-        # map components per kanji note
-        if kanji_mid and components_field:
-            for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
-                try:
-                    note = col.get_note(nid)
-                except Exception:
-                    continue
-                if components_field not in note:
-                    continue
-                comps = _extract_kanji(str(note[components_field] or ""))
-                for ch in comps:
-                    for comp_nid in kanji_map.get(ch, []):
-                        ensure_node(
-                            str(nid),
-                            label=_note_label(note, label_fields.get(str(note.mid))),
-                            kind="kanji",
-                            note_type_id=str(note.mid),
-                            note_type=_note_type_name(col, int(note.mid)),
-                            extra=_note_extra(note),
-                        )
-                        try:
-                            comp_note = col.get_note(comp_nid)
-                        except Exception:
-                            comp_note = None
-                        ensure_node(
-                            str(comp_nid),
-                            label=_note_label(comp_note, label_fields.get(str(comp_note.mid))) if comp_note else ch,
-                            kind="kanji",
-                            note_type_id=str(comp_note.mid) if comp_note else None,
-                            note_type=_note_type_name(col, int(comp_note.mid))
-                            if comp_note
-                            else "Kanji",
-                            extra=_note_extra(comp_note) if comp_note else None,
-                        )
-                        add_edge(str(nid), str(comp_nid), "kanji", kind="component", value=ch)
+            if kanji_mid and kanji_field:
+                for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    vals: list[str] = []
+                    if kanji_field in note:
+                        vals.append(str(note[kanji_field] or ""))
+                    if kanji_alt_field and kanji_alt_field in note:
+                        vals.append(str(note[kanji_alt_field] or ""))
+                    src_chars: list[str] = []
+                    for v in vals:
+                        src_chars.extend(_extract_kanji(v))
+                    if not src_chars:
+                        continue
+                    for ch in src_chars:
+                        kanji_chars.add(ch)
+                    if components_field and components_field in note:
+                        comps = _extract_kanji(str(note[components_field] or ""))
+                        for src in src_chars:
+                            for comp in comps:
+                                component_pairs.append((src, comp))
+                    if kanji_rad_field and kanji_rad_field in note:
+                        rads = _extract_kanji(str(note[kanji_rad_field] or ""))
+                        for src in src_chars:
+                            for rad in rads:
+                                radical_pairs.append((src, rad))
 
-        # kanji -> radical
-        if kanji_mid and kanji_rad_field and radical_mid and radical_field:
-            for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
-                try:
-                    note = col.get_note(nid)
-                except Exception:
-                    continue
-                if kanji_rad_field not in note:
-                    continue
-                rads = _extract_kanji(str(note[kanji_rad_field] or ""))
-                for ch in rads:
-                    for r_nid in radical_map.get(ch, []):
-                        ensure_node(
-                            str(nid),
-                            label=_note_label(note, label_fields.get(str(note.mid))),
-                            kind="kanji",
-                            note_type_id=str(note.mid),
-                            note_type=_note_type_name(col, int(note.mid)),
-                            extra=_note_extra(note),
-                        )
-                        try:
-                            rnote = col.get_note(r_nid)
-                        except Exception:
-                            rnote = None
-                        ensure_node(
-                            str(r_nid),
-                            label=_note_label(rnote, label_fields.get(str(rnote.mid))) if rnote else ch,
-                            kind="radical",
-                            note_type_id=str(rnote.mid) if rnote else None,
-                            note_type=_note_type_name(col, int(rnote.mid))
-                            if rnote
-                            else "Radical",
-                            extra=_note_extra(rnote) if rnote else None,
-                        )
-                        add_edge(str(nid), str(r_nid), "kanji", kind="radical", value=ch)
+            logger.dbg("kanji_gate hubs", "kanji=", len(kanji_chars), "components=", len(component_pairs), "radicals=", len(radical_pairs))
 
-        # vocab -> kanji
-        vocab_cfg = kg.get("vocab_note_types") or {}
-        for nt_id, vcfg in vocab_cfg.items():
-            if not isinstance(vcfg, dict):
-                continue
-            field = str(vcfg.get("furigana_field") or "").strip()
-            if not field:
-                continue
-            for nid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
-                try:
-                    note = col.get_note(nid)
-                except Exception:
+            def ensure_kanji_hub(ch: str) -> str:
+                hub_id = f"kanji:{ch}"
+                ensure_node(hub_id, label=ch, kind="kanji_hub")
+                return hub_id
+
+            def ensure_rad_hub(ch: str) -> str:
+                hub_id = f"radical:{ch}"
+                ensure_node(hub_id, label=ch, kind="radical_hub")
+                return hub_id
+
+            # components edges between kanji hubs
+            for src, comp in component_pairs:
+                add_edge(ensure_kanji_hub(src), ensure_kanji_hub(comp), "kanji", kind="component", value=comp)
+
+            # kanji -> radical hubs
+            for src, rad in radical_pairs:
+                add_edge(ensure_kanji_hub(src), ensure_rad_hub(rad), "kanji", kind="radical", value=rad)
+
+            # vocab -> kanji hubs
+            vocab_cfg = kg.get("vocab_note_types") or {}
+            for nt_id, vcfg in vocab_cfg.items():
+                if not isinstance(vcfg, dict):
                     continue
-                if field not in note:
+                field = str(vcfg.get("furigana_field") or "").strip()
+                if not field:
                     continue
-                raw = str(note[field] or "")
-                raw = _FURIGANA_BR_RE.sub("", raw)
-                chars = _extract_kanji(raw)
-                if not chars:
+                for nid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    if field not in note:
+                        continue
+                    raw = str(note[field] or "")
+                    raw = _FURIGANA_BR_RE.sub("", raw)
+                    chars = _extract_kanji(raw)
+                    if not chars:
+                        continue
+                    ensure_node(
+                        str(nid),
+                        label=_note_label(note, label_fields.get(str(note.mid))),
+                        kind="note",
+                        note_type_id=str(note.mid),
+                        note_type=_note_type_name(col, int(note.mid)),
+                        extra=_note_extra(note),
+                    )
+                    for ch in chars:
+                        add_edge(str(nid), ensure_kanji_hub(ch), "kanji", kind="vocab", value=ch)
+        else:
+            kanji_map, radical_map, _ = _build_kanji_maps(
+                col,
+                kanji_mid,
+                kanji_field,
+                kanji_alt_field,
+                radical_mid,
+                radical_field,
+                allowed_nids,
+            )
+            logger.dbg(
+                "kanji_gate maps",
+                "kanji=",
+                len(kanji_map),
+                "radical=",
+                len(radical_map),
+            )
+
+            # map components per kanji note
+            if kanji_mid and components_field:
+                for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    if components_field not in note:
+                        continue
+                    comps = _extract_kanji(str(note[components_field] or ""))
+                    for ch in comps:
+                        for comp_nid in kanji_map.get(ch, []):
+                            ensure_node(
+                                str(nid),
+                                label=_note_label(note, label_fields.get(str(note.mid))),
+                                kind="kanji",
+                                note_type_id=str(note.mid),
+                                note_type=_note_type_name(col, int(note.mid)),
+                                extra=_note_extra(note),
+                            )
+                            try:
+                                comp_note = col.get_note(comp_nid)
+                            except Exception:
+                                comp_note = None
+                            ensure_node(
+                                str(comp_nid),
+                                label=_note_label(comp_note, label_fields.get(str(comp_note.mid))) if comp_note else ch,
+                                kind="kanji",
+                                note_type_id=str(comp_note.mid) if comp_note else None,
+                                note_type=_note_type_name(col, int(comp_note.mid))
+                                if comp_note
+                                else "Kanji",
+                                extra=_note_extra(comp_note) if comp_note else None,
+                            )
+                            add_edge(str(nid), str(comp_nid), "kanji", kind="component", value=ch)
+
+            # kanji -> radical
+            if kanji_mid and kanji_rad_field and radical_mid and radical_field:
+                for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    if kanji_rad_field not in note:
+                        continue
+                    rads = _extract_kanji(str(note[kanji_rad_field] or ""))
+                    for ch in rads:
+                        for r_nid in radical_map.get(ch, []):
+                            ensure_node(
+                                str(nid),
+                                label=_note_label(note, label_fields.get(str(note.mid))),
+                                kind="kanji",
+                                note_type_id=str(note.mid),
+                                note_type=_note_type_name(col, int(note.mid)),
+                                extra=_note_extra(note),
+                            )
+                            try:
+                                rnote = col.get_note(r_nid)
+                            except Exception:
+                                rnote = None
+                            ensure_node(
+                                str(r_nid),
+                                label=_note_label(rnote, label_fields.get(str(rnote.mid))) if rnote else ch,
+                                kind="radical",
+                                note_type_id=str(rnote.mid) if rnote else None,
+                                note_type=_note_type_name(col, int(rnote.mid))
+                                if rnote
+                                else "Radical",
+                                extra=_note_extra(rnote) if rnote else None,
+                            )
+                            add_edge(str(nid), str(r_nid), "kanji", kind="radical", value=ch)
+
+            # vocab -> kanji
+            vocab_cfg = kg.get("vocab_note_types") or {}
+            for nt_id, vcfg in vocab_cfg.items():
+                if not isinstance(vcfg, dict):
                     continue
-                ensure_node(
-                    str(nid),
-                    label=_note_label(note, label_fields.get(str(note.mid))),
-                    kind="note",
-                    note_type_id=str(note.mid),
-                    note_type=_note_type_name(col, int(note.mid)),
-                    extra=_note_extra(note),
-                )
-                for ch in chars:
-                    for k_nid in kanji_map.get(ch, []):
-                        try:
-                            knote = col.get_note(k_nid)
-                        except Exception:
-                            knote = None
-                        ensure_node(
-                            str(k_nid),
-                            label=_note_label(knote, label_fields.get(str(knote.mid))) if knote else ch,
-                            kind="kanji",
-                            note_type_id=str(knote.mid) if knote else None,
-                            note_type=_note_type_name(col, int(knote.mid))
-                            if knote
-                            else "Kanji",
-                            extra=_note_extra(knote) if knote else None,
-                        )
-                        add_edge(str(nid), str(k_nid), "kanji", kind="vocab", value=ch)
+                field = str(vcfg.get("furigana_field") or "").strip()
+                if not field:
+                    continue
+                for nid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    if field not in note:
+                        continue
+                    raw = str(note[field] or "")
+                    raw = _FURIGANA_BR_RE.sub("", raw)
+                    chars = _extract_kanji(raw)
+                    if not chars:
+                        continue
+                    ensure_node(
+                        str(nid),
+                        label=_note_label(note, label_fields.get(str(note.mid))),
+                        kind="note",
+                        note_type_id=str(note.mid),
+                        note_type=_note_type_name(col, int(note.mid)),
+                        extra=_note_extra(note),
+                    )
+                    for ch in chars:
+                        for k_nid in kanji_map.get(ch, []):
+                            try:
+                                knote = col.get_note(k_nid)
+                            except Exception:
+                                knote = None
+                            ensure_node(
+                                str(k_nid),
+                                label=_note_label(knote, label_fields.get(str(knote.mid))) if knote else ch,
+                                kind="kanji",
+                                note_type_id=str(knote.mid) if knote else None,
+                                note_type=_note_type_name(col, int(knote.mid))
+                                if knote
+                                else "Kanji",
+                                extra=_note_extra(knote) if knote else None,
+                            )
+                            add_edge(str(nid), str(k_nid), "kanji", kind="vocab", value=ch)
 
     # Note Linker (reference)
     nl = cfg.get("note_linker", {})

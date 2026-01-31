@@ -179,6 +179,48 @@
       nodeById[String(n.id)] = n;
     });
 
+    var selectedId = null;
+    var neighborMap = {};
+    var activeNodes = [];
+    var activeLinks = [];
+    var frozenLayout = false;
+
+    function linkIds(l) {
+      var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
+      var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
+      return { s: String(s), t: String(t) };
+    }
+
+    function isConnected(id) {
+      if (!selectedId) return true;
+      if (id === selectedId) return true;
+      var set = neighborMap[selectedId];
+      return set && set.has(id);
+    }
+
+    function isLinkConnected(l) {
+      if (!selectedId) return true;
+      var ids = linkIds(l);
+      return ids.s === selectedId || ids.t === selectedId;
+    }
+
+    function applyDim(color, factor) {
+      if (!color) return color;
+      if (color.startsWith("rgba")) {
+        try {
+          var parts = color.replace("rgba(", "").replace(")", "").split(",");
+          var r = parts[0].trim();
+          var g = parts[1].trim();
+          var b = parts[2].trim();
+          var a = parseFloat(parts[3]);
+          return "rgba(" + r + "," + g + "," + b + "," + (a * factor) + ")";
+        } catch (_e) {
+          return color;
+        }
+      }
+      return colorWithAlpha(color, factor);
+    }
+
     function isNoteTypeVisible(n) {
       var ntid =
         n.note_type_id || n.note_type_id === 0 ? String(n.note_type_id) : "";
@@ -216,6 +258,9 @@
         }
         if (l.meta && l.meta.same_prio) {
           return colorWithAlpha(c, samePrioOpacity);
+        }
+        if (!isLinkConnected(l)) {
+          return applyDim(c, 0.2);
         }
         return c;
       })
@@ -260,7 +305,11 @@
         if (l.meta && l.meta.same_prio) {
           alpha = Math.min(1, alpha * samePrioOpacity);
         }
-        return colorWithAlpha(layerColor(l.layer, layerColors), alpha);
+        var col = colorWithAlpha(layerColor(l.layer, layerColors), alpha);
+        if (!isLinkConnected(l)) {
+          return applyDim(col, 0.2);
+        }
+        return col;
       })
       .cooldownTicks(80)
       .d3VelocityDecay(0.35);
@@ -274,7 +323,20 @@
     Graph.onNodeDragEnd(function (node) {
       node.fx = node.x;
       node.fy = node.y;
+      node.__pinned = true;
     });
+    Graph.onNodeClick(function (node) {
+      selectedId = node ? String(node.id) : null;
+      refreshSelection();
+    });
+    if (typeof Graph.onBackgroundClick === "function") {
+      Graph.onBackgroundClick(function () {
+        if (selectedId) {
+          selectedId = null;
+          refreshSelection();
+        }
+      });
+    }
 
     var tooltip = document.getElementById("tooltip");
     Graph.onNodeHover(function (node) {
@@ -302,24 +364,41 @@
 
     Graph.nodeRelSize(3);
     Graph.nodeCanvasObject(function (node, ctx) {
+      var connected = isConnected(String(node.id));
       var color = nodeColor(node, noteTypeColors, layerColors);
       var deg = node.__deg || 0;
       var scale = 1 + Math.min(deg, 20) * 0.08;
       var baseR = 3.5;
       var radius = baseR * scale;
       var t = Date.now() / 600;
-      var pulse = 1 + 0.1 * Math.sin(t + (node.id || 0));
+      var pulse = connected ? 1 + 0.1 * Math.sin(t + (node.id || 0)) : 1;
       var haloR = radius * 1.3 * pulse;
+      var alpha = connected ? 1 : 0.2;
+      if (connected) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
+        ctx.fillStyle = colorWithAlpha(color, 0.5 * alpha);
+        ctx.fill();
+        ctx.lineWidth = 0.25;
+        ctx.strokeStyle = colorWithAlpha(color, 0.75 * alpha);
+        ctx.stroke();
+        if (selectedId && String(node.id) === selectedId) {
+          var ringR = haloR + 2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, ringR, 0, 2 * Math.PI);
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = colorWithAlpha(color, 0.9);
+          ctx.stroke();
+        }
+      }
+      // mask link lines under the node so they stop at the inner circle
       ctx.beginPath();
-      ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
-      ctx.fillStyle = colorWithAlpha(color, 0.5);
+      ctx.arc(node.x, node.y, radius + 0.6, 0, 2 * Math.PI);
+      ctx.fillStyle = "#0f1216";
       ctx.fill();
-      ctx.lineWidth = 0.25;
-      ctx.strokeStyle = colorWithAlpha(color, 0.75);
-      ctx.stroke();
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
+      ctx.fillStyle = connected ? color : applyDim(color, 0.2);
       ctx.fill();
     }).nodeCanvasObjectMode(function () {
       return "replace";
@@ -342,11 +421,14 @@
         data.nodes.forEach(function (node) {
           var label = node.label || node.id;
           if (!label) return;
+          var connected = isConnected(String(node.id));
+          var labelColor = connected ? "#e5e7eb" : "rgba(229,231,235,0.2)";
           var deg = node.__deg || 0;
           var scale = 1 + Math.min(deg, 20) * 0.08;
           var baseR = 3.5;
           var radius = baseR * scale;
           var offset = radius + 4;
+          ctx.fillStyle = labelColor;
           ctx.fillText(label, node.x, node.y - offset);
         });
         ctx.restore();
@@ -368,8 +450,9 @@
       return 0;
     }
 
-    function applyFilters() {
-      var activeNodes = nodes.filter(function (n) {
+    function applyFilters(opts) {
+      opts = opts || {};
+      activeNodes = nodes.filter(function (n) {
         if (n.kind === "family" && !isLayerEnabled("family_hub")) return false;
         return isNoteTypeVisible(n);
       });
@@ -377,7 +460,7 @@
       activeNodes.forEach(function (n) {
         activeIds[String(n.id)] = true;
       });
-      var activeLinks = links.filter(function (l) {
+      activeLinks = links.filter(function (l) {
         if (!isLayerEnabled(l.layer)) return false;
         var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
         var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
@@ -396,6 +479,7 @@
         });
       }
       var degree = {};
+      neighborMap = {};
       activeLinks.forEach(function (l) {
         if (l.meta && l.meta.flow_only) return;
         if (l.layer === "family" && l.meta && l.meta.same_prio) return;
@@ -405,10 +489,21 @@
         var tk = String(t);
         degree[sk] = (degree[sk] || 0) + 1;
         degree[tk] = (degree[tk] || 0) + 1;
+        if (!neighborMap[sk]) neighborMap[sk] = new Set();
+        if (!neighborMap[tk]) neighborMap[tk] = new Set();
+        neighborMap[sk].add(tk);
+        neighborMap[tk].add(sk);
       });
       activeNodes.forEach(function (n) {
         n.__deg = degree[String(n.id)] || 0;
       });
+      var activeIdMap = {};
+      activeNodes.forEach(function (n) {
+        activeIdMap[String(n.id)] = true;
+      });
+      if (selectedId && !activeIdMap[selectedId]) {
+        selectedId = null;
+      }
       var pairMap = {};
       var flowOnly = [];
       activeLinks.forEach(function (l) {
@@ -462,10 +557,12 @@
           return l.curve || 0;
         });
       }
-      applyPhysics();
-      if (typeof Graph.d3ReheatSimulation === "function") {
-        Graph.d3ReheatSimulation();
+      if (opts.reheat === false) {
+        freezeNodes();
+      } else {
+        unfreezeNodes();
       }
+      applyPhysics(opts.reheat);
       if (typeof Graph.resumeAnimation === "function") {
         Graph.resumeAnimation();
       }
@@ -488,11 +585,43 @@
       updateLayerUnderlines();
     }
 
+    function refreshSelection() {
+      // Selection should not reheat physics; just ensure a redraw loop is active.
+      if (typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
+    }
+
+    function freezeNodes() {
+      frozenLayout = true;
+      activeNodes.forEach(function (n) {
+        if (n.__pinned) return;
+        if (n.fx === undefined || n.fx === null) {
+          n.__frozen = true;
+          n.fx = n.x;
+          n.fy = n.y;
+        }
+      });
+    }
+
+    function unfreezeNodes() {
+      frozenLayout = false;
+      activeNodes.forEach(function (n) {
+        if (n.__frozen) {
+          n.__frozen = false;
+          if (!n.__pinned) {
+            n.fx = null;
+            n.fy = null;
+          }
+        }
+      });
+    }
+
     for (var k in layerState) {
       if (layerState[k]) {
         layerState[k].addEventListener("change", function () {
           storeLayers();
-          applyFilters();
+          applyFilters({ reheat: true });
         });
       }
     }
@@ -738,7 +867,7 @@
                 "color:" + nt.id + ":" + encodeURIComponent(color.value)
               );
             }
-            applyFilters();
+            applyFilters({ reheat: false });
           });
           colorWrap.appendChild(color);
           fieldsWrap.appendChild(colorWrap);
@@ -754,7 +883,7 @@
               pycmd("ntvis:" + nt.id + ":" + (chk.checked ? "1" : "0"));
             }
             updateVisibility();
-            applyFilters();
+            applyFilters({ reheat: false });
           });
           updateVisibility();
         });
@@ -842,7 +971,7 @@
         if (window.pycmd) {
           pycmd("lflowspeed:" + flowSpeed);
         }
-        applyFilters();
+        applyFilters({ reheat: false });
       };
       flowRange.addEventListener("input", function () {
         setFlow(parseFloat(flowRange.value));
@@ -879,7 +1008,7 @@
         if (window.pycmd) {
           pycmd("refauto:" + autoRefOpacity);
         }
-        applyFilters();
+        applyFilters({ reheat: false });
       };
       autoRange.addEventListener("input", function () {
         setAuto(parseFloat(autoRange.value));
@@ -913,7 +1042,7 @@
           if (window.pycmd) {
             pycmd("lcol:" + layer + ":" + encodeURIComponent(color.value));
           }
-          applyFilters();
+          applyFilters({ reheat: false });
         });
         var style = document.createElement("select");
         ["solid", "dashed", "pointed"].forEach(function (opt) {
@@ -928,7 +1057,7 @@
           if (window.pycmd) {
             pycmd("lstyle:" + layer + ":" + encodeURIComponent(style.value));
           }
-          applyFilters();
+          applyFilters({ reheat: false });
         });
         if (style.value === "pointed") {
           style.value = "pointed";
@@ -941,7 +1070,7 @@
           if (window.pycmd) {
             pycmd("lflow:" + layer + ":" + (flow.checked ? "1" : "0"));
           }
-          applyFilters();
+          applyFilters({ reheat: false });
         });
         row.appendChild(label);
         row.appendChild(color);
@@ -975,7 +1104,7 @@
         if (window.pycmd) {
           pycmd("fprioop:" + samePrioOpacity);
         }
-        applyFilters();
+        applyFilters({ reheat: false });
       };
       opRange.addEventListener("input", function () {
         setOp(parseFloat(opRange.value));
@@ -1142,7 +1271,7 @@
     setupPhysicsPanel();
     setupDeckDropdown();
     setupSearch();
-    applyFilters();
+    applyFilters({ reheat: true });
     (function syncPanels() {
       var notePanel = document.getElementById("note-type-panel");
       var layerPanel = document.getElementById("layer-panel");
@@ -1178,7 +1307,7 @@
       } catch (_e) {}
     }
 
-    function applyPhysics() {
+    function applyPhysics(reheat) {
       if (!Graph) return;
       if (typeof Graph.linkDistance === "function") {
         Graph.linkDistance(physics.link_distance);
@@ -1210,7 +1339,7 @@
           charge.distanceMax(physics.max_radius || 0);
         }
       }
-      if (typeof Graph.d3ReheatSimulation === "function") {
+      if (reheat !== false && typeof Graph.d3ReheatSimulation === "function") {
         Graph.d3ReheatSimulation();
       }
       log(

@@ -9,7 +9,17 @@ import aqt.editor
 import aqt.forms
 from aqt import mw, gui_hooks
 from aqt.operations import QueryOp
-from aqt.qt import QDialogButtonBox, QKeySequence, QMainWindow, QVBoxLayout, QWidget, Qt
+from aqt.qt import (
+    QDialogButtonBox,
+    QKeySequence,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+    Qt,
+    QTimer,
+)
+from aqt.browser.previewer import Previewer
+from anki.cards import Card
 from aqt.utils import add_close_shortcut, showInfo, restoreGeom, saveGeom, setWindowIcon
 from urllib.parse import unquote
 from aqt.webview import AnkiWebView
@@ -549,14 +559,29 @@ class GraphNoteEditor(QMainWindow):
         except Exception:
             pass
         saveGeom(self, "ajpc_family_graph_editor")
-        if mw is not None:
-            editors = getattr(mw, "_ajpc_family_graph_editors", None)
-            if isinstance(editors, dict):
-                editors.pop(self.nid, None)
 
-    def closeEvent(self, event) -> None:
-        self.editor.call_after_note_saved(self.cleanup)
-        super().closeEvent(event)
+
+class GraphPreviewer(Previewer):
+    def __init__(self, mw: aqt.AnkiQt, card_id: int, on_close) -> None:
+        self._card_id = card_id
+        self._last_card_id = 0
+        super().__init__(parent=None, mw=mw, on_close=on_close)
+
+    def card(self) -> Card | None:
+        if mw is None or mw.col is None:
+            return None
+        try:
+            return mw.col.get_card(self._card_id)
+        except Exception:
+            return None
+
+    def card_changed(self) -> bool:
+        c = self.card()
+        if not c:
+            return True
+        changed = c.id != self._last_card_id
+        self._last_card_id = c.id
+        return changed
 
 
 def _get_family_field() -> str:
@@ -602,33 +627,41 @@ def _open_browser_for_note(nid: int):
 
 
 def _open_preview(nid: int) -> None:
-    browser = _open_browser_for_note(nid)
-    if not browser:
+    if mw is None or mw.col is None:
         return
     try:
-        if getattr(browser, "table", None) is not None:
-            try:
-                card_id = browser.table.get_single_selected_card()
-            except Exception:
-                card_id = None
-            if not card_id and mw is not None and mw.col is not None:
-                try:
-                    card_id = mw.col.db.scalar("select id from cards where nid = ?", nid)
-                except Exception:
-                    card_id = None
-            if card_id:
-                try:
-                    browser.table.select_single_card(card_id)
-                except Exception:
-                    pass
-            try:
-                browser.on_all_or_selected_rows_changed()
-            except Exception:
-                pass
-        if getattr(browser, "_previewer", None):
-            browser._previewer.render_card()
-        else:
-            browser.onTogglePreview()
+        card_id = mw.col.db.scalar(
+            "select id from cards where nid = ? order by ord limit 1", nid
+        )
+    except Exception:
+        card_id = None
+    if not card_id:
+        return
+    previewers = getattr(mw, "_ajpc_family_graph_previewers", None)
+    if not isinstance(previewers, dict):
+        previewers = {}
+        mw._ajpc_family_graph_previewers = previewers
+    if card_id in previewers:
+        win = previewers[card_id]
+        try:
+            win.show()
+            win.raise_()
+            win.activateWindow()
+            win.render_card()
+        except Exception:
+            pass
+        return
+
+    def _on_close() -> None:
+        try:
+            previewers.pop(card_id, None)
+        except Exception:
+            pass
+
+    try:
+        win = GraphPreviewer(mw, card_id, _on_close)
+        previewers[card_id] = win
+        win.open()
     except Exception:
         pass
 

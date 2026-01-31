@@ -22,6 +22,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "family_chain_edges": False,
     "selected_decks": [],
     "reference_auto_opacity": 1.0,
+    "kanji_hubs": True,
 }
 
 
@@ -50,6 +51,8 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["selected_decks"] = []
     if not isinstance(cfg.get("reference_auto_opacity"), (int, float)):
         cfg["reference_auto_opacity"] = 1.0
+    if not isinstance(cfg.get("kanji_hubs"), bool):
+        cfg["kanji_hubs"] = True
     return cfg
 
 

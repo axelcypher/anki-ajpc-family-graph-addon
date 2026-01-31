@@ -2,7 +2,7 @@ name: AJpC Family Graph Release (Anki Add-on)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:

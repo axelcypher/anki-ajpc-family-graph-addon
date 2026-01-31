@@ -23,13 +23,14 @@
     "1768669148068": "#387835",
     "1769220678917": "#ffb7ff",
     "1769454350497": "#550000",
-    "1769741511321": "#005500"
+    "1769741511321": "#005500",
+    "1768738698248": "#6a314c"
   },
   "layer_colors": {
     "family": "#3d95e7",
     "family_hub": "#34d399"
   },
-  "family_same_prio_edges": false,
+  "family_same_prio_edges": true,
   "layer_styles": {
     "family_hub": "pointed",
     "family": "solid",
@@ -68,5 +69,6 @@
   "selected_decks": [
     "Japanese"
   ],
-  "reference_auto_opacity": 0.15
+  "reference_auto_opacity": 0.15,
+  "kanji_hubs": true
 }
