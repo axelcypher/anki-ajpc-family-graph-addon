@@ -1,0 +1,565 @@
+[FamilyGraph 20:56:35] bridge refresh
+[FamilyGraph 20:56:35] load graph
+[FamilyGraph 20:56:35] build_graph start
+[FamilyGraph 20:56:35] deck filter decks= 1 notes= 5915
+[FamilyGraph 20:56:35] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 20:56:35] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 20:56:35] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 20:56:35] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 20:56:35] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 20:56:35] family groups 819
+[FamilyGraph 20:56:35] example_gate vocab keys 862
+[FamilyGraph 20:56:35] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 20:56:36] note_linker rules 2
+[FamilyGraph 20:56:36] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 20:56:36] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 20:56:36] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 20:56:36] manual links total matches 0 edges 0 bracket_notes 97
+[FamilyGraph 20:56:36] build_graph done nodes= 5422 edges= 11178
+[FamilyGraph 20:56:36] graph build success nodes= 5422 edges= 11178
+[FamilyGraph 20:56:36] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 20:56:36] graph payload bytes 2327068
+[FamilyGraph 20:56:36] js initGraph start nodes=5422 edges=11178
+[FamilyGraph 20:56:36] js links reference auto=1772 manual=0 total=11178
+[FamilyGraph 20:56:36] js physics charge=-80 link=30 strength=1
+[FamilyGraph 20:56:36] js physics charge=-80 link=30 strength=1
+[FamilyGraph 20:56:36] js filters applied nodes=324 edges=745
+[FamilyGraph 20:56:36] js active refs auto=0 manual=0
+[FamilyGraph 20:56:36] js graph render ready
+[FamilyGraph 20:56:36] js graph init called
+[FamilyGraph 21:01:07] ctx edit 1750262637794
+[FamilyGraph 21:01:29] bridge refresh
+[FamilyGraph 21:01:29] load graph
+[FamilyGraph 21:01:29] build_graph start
+[FamilyGraph 21:01:29] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:01:29] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:01:29] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:01:29] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:01:29] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:01:29] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:01:29] family groups 819
+[FamilyGraph 21:01:29] example_gate vocab keys 862
+[FamilyGraph 21:01:29] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:01:30] note_linker rules 2
+[FamilyGraph 21:01:30] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:01:30] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:01:30] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:01:30] manual links total matches 0 edges 0 bracket_notes 97
+[FamilyGraph 21:01:30] build_graph done nodes= 5422 edges= 11177
+[FamilyGraph 21:01:30] graph build success nodes= 5422 edges= 11177
+[FamilyGraph 21:01:30] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:01:30] graph payload bytes 2326914
+[FamilyGraph 21:01:30] js initGraph start nodes=5422 edges=11177
+[FamilyGraph 21:01:30] js links reference auto=1772 manual=0 total=11177
+[FamilyGraph 21:01:30] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:01:30] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:01:30] js filters applied nodes=324 edges=744
+[FamilyGraph 21:01:30] js active refs auto=0 manual=0
+[FamilyGraph 21:01:30] js graph render ready
+[FamilyGraph 21:01:30] js graph init called
+[FamilyGraph 21:02:19] bridge refresh
+[FamilyGraph 21:02:19] load graph
+[FamilyGraph 21:02:19] build_graph start
+[FamilyGraph 21:02:19] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:02:19] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:02:19] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:02:19] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:02:19] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:02:19] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:02:19] family groups 819
+[FamilyGraph 21:02:19] example_gate vocab keys 862
+[FamilyGraph 21:02:19] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:02:19] note_linker rules 2
+[FamilyGraph 21:02:19] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:02:19] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:02:19] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:02:19] manual links total matches 0 edges 0 bracket_notes 97
+[FamilyGraph 21:02:19] build_graph done nodes= 5422 edges= 11177
+[FamilyGraph 21:02:19] graph build success nodes= 5422 edges= 11177
+[FamilyGraph 21:02:19] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:02:19] graph payload bytes 2326914
+[FamilyGraph 21:02:20] js initGraph start nodes=5422 edges=11177
+[FamilyGraph 21:02:20] js links reference auto=1772 manual=0 total=11177
+[FamilyGraph 21:02:20] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:02:20] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:02:20] js filters applied nodes=324 edges=744
+[FamilyGraph 21:02:20] js active refs auto=0 manual=0
+[FamilyGraph 21:02:20] js graph render ready
+[FamilyGraph 21:02:20] js graph init called
+[FamilyGraph 21:02:31] window open
+[FamilyGraph 21:02:31] load graph
+[FamilyGraph 21:02:31] build_graph start
+[FamilyGraph 21:02:31] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:02:31] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:02:31] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:02:31] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:02:31] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:02:31] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:02:31] family groups 819
+[FamilyGraph 21:02:31] example_gate vocab keys 862
+[FamilyGraph 21:02:32] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:02:32] note_linker rules 2
+[FamilyGraph 21:02:32] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:02:32] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:02:32] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:02:32] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:02:32] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:02:32] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:02:32] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:02:32] graph payload bytes 2390740
+[FamilyGraph 21:02:32] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:02:32] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:02:32] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:02:32] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:02:32] js filters applied nodes=324 edges=744
+[FamilyGraph 21:02:32] js active refs auto=0 manual=0
+[FamilyGraph 21:02:32] js graph render ready
+[FamilyGraph 21:02:32] js graph init called
+[FamilyGraph 21:02:36] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:02:36] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:02:36] js active refs auto=0 manual=399
+[FamilyGraph 21:03:49] bridge refresh
+[FamilyGraph 21:03:49] load graph
+[FamilyGraph 21:03:49] build_graph start
+[FamilyGraph 21:03:49] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:03:49] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:03:49] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:03:49] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:03:49] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:03:49] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:03:49] family groups 819
+[FamilyGraph 21:03:49] example_gate vocab keys 862
+[FamilyGraph 21:03:49] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:03:49] note_linker rules 2
+[FamilyGraph 21:03:49] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:03:49] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:03:49] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:03:49] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:03:49] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:03:49] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:03:49] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:03:49] graph payload bytes 2390740
+[FamilyGraph 21:03:50] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:03:50] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:03:50] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:03:50] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:03:50] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:03:50] js active refs auto=0 manual=399
+[FamilyGraph 21:03:50] js graph render ready
+[FamilyGraph 21:03:50] js graph init called
+[FamilyGraph 21:04:42] layer flow reference 1
+[FamilyGraph 21:04:42] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:04:42] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:04:42] js active refs auto=0 manual=399
+[FamilyGraph 21:10:25] bridge refresh
+[FamilyGraph 21:10:25] load graph
+[FamilyGraph 21:10:25] build_graph start
+[FamilyGraph 21:10:25] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:10:25] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:10:25] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:10:25] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:10:25] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:10:25] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:10:25] family groups 819
+[FamilyGraph 21:10:25] example_gate vocab keys 862
+[FamilyGraph 21:10:26] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:10:26] note_linker rules 2
+[FamilyGraph 21:10:26] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:10:26] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:10:26] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:10:26] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:10:26] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:10:26] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:10:26] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:10:26] graph payload bytes 2390759
+[FamilyGraph 21:10:26] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:10:26] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:10:26] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:10:26] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:10:26] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:10:26] js active refs auto=0 manual=399
+[FamilyGraph 21:10:26] js graph render ready
+[FamilyGraph 21:10:26] js graph init called
+[FamilyGraph 21:12:16] bridge refresh
+[FamilyGraph 21:12:16] load graph
+[FamilyGraph 21:12:16] build_graph start
+[FamilyGraph 21:12:16] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:12:16] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:12:16] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:12:16] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:12:16] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:12:16] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:12:16] family groups 819
+[FamilyGraph 21:12:16] example_gate vocab keys 862
+[FamilyGraph 21:12:16] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:12:16] note_linker rules 2
+[FamilyGraph 21:12:16] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:12:16] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:12:17] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:12:17] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:12:17] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:12:17] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:12:17] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:12:17] graph payload bytes 2390759
+[FamilyGraph 21:12:17] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:12:17] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:12:17] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:12:17] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:12:17] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:12:17] js active refs auto=0 manual=399
+[FamilyGraph 21:12:17] js graph render ready
+[FamilyGraph 21:12:17] js graph init called
+[FamilyGraph 21:13:49] reference auto opacity 0.65
+[FamilyGraph 21:13:49] load graph
+[FamilyGraph 21:13:49] build_graph start
+[FamilyGraph 21:13:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:49] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:49] js active refs auto=0 manual=399
+[FamilyGraph 21:13:49] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:13:49] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:13:49] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:13:49] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:13:49] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:13:49] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:13:49] family groups 819
+[FamilyGraph 21:13:49] example_gate vocab keys 862
+[FamilyGraph 21:13:49] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:13:49] reference auto opacity 0.6
+[FamilyGraph 21:13:49] load graph
+[FamilyGraph 21:13:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:49] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:49] js active refs auto=0 manual=399
+[FamilyGraph 21:13:49] reference auto opacity 0.55
+[FamilyGraph 21:13:49] load graph
+[FamilyGraph 21:13:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:49] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:49] js active refs auto=0 manual=399
+[FamilyGraph 21:13:49] note_linker rules 2
+[FamilyGraph 21:13:49] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:13:49] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:13:49] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:13:49] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:13:49] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:13:49] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:13:49] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:13:49] build_graph start
+[FamilyGraph 21:13:49] graph payload bytes 2390760
+[FamilyGraph 21:13:49] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:13:49] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:13:49] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:13:49] reference auto opacity 0.5
+[FamilyGraph 21:13:49] load graph
+[FamilyGraph 21:13:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:49] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:49] js active refs auto=0 manual=399
+[FamilyGraph 21:13:50] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:13:50] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:13:50] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:13:50] family groups 819
+[FamilyGraph 21:13:50] example_gate vocab keys 862
+[FamilyGraph 21:13:50] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:13:50] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:13:50] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:50] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:50] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:50] js active refs auto=0 manual=399
+[FamilyGraph 21:13:50] js graph render ready
+[FamilyGraph 21:13:50] js graph init called
+[FamilyGraph 21:13:50] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:13:50] note_linker rules 2
+[FamilyGraph 21:13:50] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:13:50] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:13:50] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:13:50] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:13:50] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:13:50] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:13:50] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:13:50] build_graph start
+[FamilyGraph 21:13:50] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:13:50] graph payload bytes 2390760
+[FamilyGraph 21:13:50] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:13:50] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:13:50] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:13:50] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:13:50] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:13:50] family groups 819
+[FamilyGraph 21:13:50] example_gate vocab keys 862
+[FamilyGraph 21:13:51] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:13:51] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:13:51] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:51] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:51] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:51] js active refs auto=0 manual=399
+[FamilyGraph 21:13:51] js graph render ready
+[FamilyGraph 21:13:51] js graph init called
+[FamilyGraph 21:13:51] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:13:51] note_linker rules 2
+[FamilyGraph 21:13:51] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:13:51] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:13:51] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:13:51] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:13:51] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:13:51] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:13:51] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:13:51] build_graph start
+[FamilyGraph 21:13:51] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:13:51] graph payload bytes 2390759
+[FamilyGraph 21:13:51] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:13:51] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:13:51] reference auto opacity 0.15
+[FamilyGraph 21:13:51] load graph
+[FamilyGraph 21:13:51] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:51] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:51] js active refs auto=0 manual=399
+[FamilyGraph 21:13:51] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:13:51] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:13:51] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:13:51] family groups 819
+[FamilyGraph 21:13:51] example_gate vocab keys 862
+[FamilyGraph 21:13:52] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:13:52] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:13:52] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:52] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:13:52] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:52] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:52] js active refs auto=0 manual=399
+[FamilyGraph 21:13:52] js graph render ready
+[FamilyGraph 21:13:52] js graph init called
+[FamilyGraph 21:13:52] note_linker rules 2
+[FamilyGraph 21:13:52] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:13:52] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:13:52] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:13:52] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:13:52] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:13:52] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:13:52] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:13:52] build_graph start
+[FamilyGraph 21:13:52] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:13:52] graph payload bytes 2390759
+[FamilyGraph 21:13:52] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:13:52] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:13:52] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:13:52] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:13:52] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:13:52] family groups 819
+[FamilyGraph 21:13:52] example_gate vocab keys 862
+[FamilyGraph 21:13:52] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:13:52] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:13:52] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:52] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:52] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:52] js active refs auto=0 manual=399
+[FamilyGraph 21:13:52] js graph render ready
+[FamilyGraph 21:13:52] js graph init called
+[FamilyGraph 21:13:52] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:13:53] note_linker rules 2
+[FamilyGraph 21:13:53] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:13:53] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:13:53] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:13:53] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:13:53] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:13:53] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:13:53] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:13:53] graph payload bytes 2390760
+[FamilyGraph 21:13:53] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:13:53] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:13:53] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:53] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:13:53] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:13:53] js active refs auto=0 manual=399
+[FamilyGraph 21:13:53] js graph render ready
+[FamilyGraph 21:13:53] js graph init called
+[FamilyGraph 21:14:34] layer style reference dashed
+[FamilyGraph 21:14:34] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:14:34] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:14:34] js active refs auto=0 manual=399
+[FamilyGraph 21:15:48] bridge refresh
+[FamilyGraph 21:15:48] load graph
+[FamilyGraph 21:15:48] build_graph start
+[FamilyGraph 21:15:48] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:15:48] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:15:48] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:15:48] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:15:48] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:15:48] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:15:48] family groups 819
+[FamilyGraph 21:15:48] example_gate vocab keys 862
+[FamilyGraph 21:15:48] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:15:49] note_linker rules 2
+[FamilyGraph 21:15:49] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:15:49] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:15:49] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:15:49] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:15:49] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:15:49] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:15:49] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:15:49] graph payload bytes 2390783
+[FamilyGraph 21:15:49] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:15:49] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:15:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:15:49] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:15:49] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:15:49] js active refs auto=0 manual=399
+[FamilyGraph 21:15:49] js graph render ready
+[FamilyGraph 21:15:49] js graph init called
+[FamilyGraph 21:18:35] bridge refresh
+[FamilyGraph 21:18:35] load graph
+[FamilyGraph 21:18:35] build_graph start
+[FamilyGraph 21:18:35] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:18:35] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:18:35] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:18:35] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:18:35] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:18:35] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:18:35] family groups 819
+[FamilyGraph 21:18:36] example_gate vocab keys 862
+[FamilyGraph 21:18:36] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:18:36] note_linker rules 2
+[FamilyGraph 21:18:36] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:18:36] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:18:36] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:18:36] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:18:36] build_graph done nodes= 5511 edges= 11578
+[FamilyGraph 21:18:36] graph build success nodes= 5511 edges= 11578
+[FamilyGraph 21:18:36] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:18:36] graph payload bytes 2390783
+[FamilyGraph 21:18:37] js initGraph start nodes=5511 edges=11578
+[FamilyGraph 21:18:37] js links reference auto=1772 manual=401 total=11578
+[FamilyGraph 21:18:37] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:18:37] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:18:37] js filters applied nodes=483 edges=1143
+[FamilyGraph 21:18:37] js active refs auto=0 manual=399
+[FamilyGraph 21:18:37] js graph render ready
+[FamilyGraph 21:18:37] js graph init called
+[FamilyGraph 21:19:31] window open
+[FamilyGraph 21:19:31] load graph
+[FamilyGraph 21:19:31] build_graph start
+[FamilyGraph 21:19:31] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:19:31] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:19:31] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:19:31] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:19:31] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:19:31] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:19:31] family groups 819
+[FamilyGraph 21:19:31] example_gate vocab keys 862
+[FamilyGraph 21:19:31] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:19:32] note_linker rules 2
+[FamilyGraph 21:19:32] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:19:32] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:19:32] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:19:32] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:19:32] build_graph done nodes= 5511 edges= 13441
+[FamilyGraph 21:19:32] graph build success nodes= 5511 edges= 13441
+[FamilyGraph 21:19:32] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:19:32] graph payload bytes 2783941
+[FamilyGraph 21:19:32] js initGraph start nodes=5511 edges=13441
+[FamilyGraph 21:19:32] js links reference auto=3544 manual=492 total=13441
+[FamilyGraph 21:19:32] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:19:32] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:19:32] js filters applied nodes=324 edges=744
+[FamilyGraph 21:19:32] js active refs auto=0 manual=0
+[FamilyGraph 21:19:32] js graph render ready
+[FamilyGraph 21:19:32] js graph init called
+[FamilyGraph 21:19:41] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:19:41] js filters applied nodes=483 edges=1232
+[FamilyGraph 21:19:41] js active refs auto=0 manual=488
+[FamilyGraph 21:20:11] family same prio edges False
+[FamilyGraph 21:20:11] load graph
+[FamilyGraph 21:20:11] build_graph start
+[FamilyGraph 21:20:11] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:20:11] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:20:11] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:20:11] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:20:11] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:20:11] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:20:11] family groups 819
+[FamilyGraph 21:20:12] example_gate vocab keys 862
+[FamilyGraph 21:20:12] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:20:12] note_linker rules 2
+[FamilyGraph 21:20:12] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:20:12] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:20:12] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:20:12] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:20:12] build_graph done nodes= 5511 edges= 12801
+[FamilyGraph 21:20:12] graph build success nodes= 5511 edges= 12801
+[FamilyGraph 21:20:12] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:20:12] graph payload bytes 2693438
+[FamilyGraph 21:20:12] js initGraph start nodes=5511 edges=12801
+[FamilyGraph 21:20:12] js links reference auto=3544 manual=492 total=12801
+[FamilyGraph 21:20:12] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:20:12] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:20:12] js filters applied nodes=483 edges=750
+[FamilyGraph 21:20:12] js active refs auto=0 manual=488
+[FamilyGraph 21:20:12] js graph render ready
+[FamilyGraph 21:20:12] js graph init called
+[FamilyGraph 21:21:23] ctx edit 1750262637794
+[FamilyGraph 21:21:32] ctx preview 1768491895704
+[FamilyGraph 21:21:42] bridge refresh
+[FamilyGraph 21:21:42] load graph
+[FamilyGraph 21:21:42] build_graph start
+[FamilyGraph 21:21:42] deck filter decks= 1 notes= 5915
+[FamilyGraph 21:21:42] family_gate enabled field= FamilyID note_types= 4
+[FamilyGraph 21:21:42] family_gate note_type 1768669162567 notes= 719
+[FamilyGraph 21:21:42] family_gate note_type 1768654427037 notes= 89
+[FamilyGraph 21:21:42] family_gate note_type 1768669148068 notes= 88
+[FamilyGraph 21:21:42] family_gate note_type 1769220678917 notes= 44
+[FamilyGraph 21:21:42] family groups 819
+[FamilyGraph 21:21:42] example_gate vocab keys 862
+[FamilyGraph 21:21:42] kanji_gate maps kanji= 3164 radical= 214
+[FamilyGraph 21:21:43] note_linker rules 2
+[FamilyGraph 21:21:43] manual links note_type 1768669148068 field LinkedCards notes 88
+[FamilyGraph 21:21:43] manual links note_type 1768654427037 field LinkedCards notes 89
+[FamilyGraph 21:21:43] manual links note_type 1768669162567 field LinkedCards notes 719
+[FamilyGraph 21:21:43] manual links total matches 406 edges 404 invalid 0
+[FamilyGraph 21:21:43] build_graph done nodes= 5511 edges= 12801
+[FamilyGraph 21:21:43] graph build success nodes= 5511 edges= 12801
+[FamilyGraph 21:21:43] web base /_addons/ajpc-family-graph_dev/web graph js /_addons/ajpc-family-graph_dev/web/graph.js
+[FamilyGraph 21:21:43] graph payload bytes 2693438
+[FamilyGraph 21:21:43] js initGraph start nodes=5511 edges=12801
+[FamilyGraph 21:21:43] js links reference auto=3544 manual=492 total=12801
+[FamilyGraph 21:21:43] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:21:43] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:21:43] js filters applied nodes=483 edges=750
+[FamilyGraph 21:21:43] js active refs auto=0 manual=488
+[FamilyGraph 21:21:43] js graph render ready
+[FamilyGraph 21:21:43] js graph init called
+[FamilyGraph 21:21:45] js search hit 1768491895704
+[FamilyGraph 21:22:08] layer flow family_hub 1
+[FamilyGraph 21:22:08] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:22:08] js filters applied nodes=483 edges=750
+[FamilyGraph 21:22:08] js active refs auto=0 manual=488
+[FamilyGraph 21:22:36] layer flow family_hub 0
+[FamilyGraph 21:22:36] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:22:36] js filters applied nodes=483 edges=750
+[FamilyGraph 21:22:36] js active refs auto=0 manual=488
+[FamilyGraph 21:23:05] js search hit 1768586118070
+[FamilyGraph 21:23:36] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:23:36] js filters applied nodes=483 edges=750
+[FamilyGraph 21:23:36] js active refs auto=0 manual=488
+[FamilyGraph 21:23:39] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:23:39] js filters applied nodes=483 edges=750
+[FamilyGraph 21:23:39] js active refs auto=0 manual=488
+[FamilyGraph 21:23:53] note type visible 1769367768468 0
+[FamilyGraph 21:23:53] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:23:53] js filters applied nodes=337 edges=586
+[FamilyGraph 21:23:53] js active refs auto=0 manual=324
+[FamilyGraph 21:23:55] note type visible 1751376700451 0
+[FamilyGraph 21:23:55] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:23:55] js filters applied nodes=333 edges=578
+[FamilyGraph 21:23:55] js active refs auto=0 manual=316
+[FamilyGraph 21:24:00] note type visible 1768738698248 1
+[FamilyGraph 21:24:00] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:24:00] js filters applied nodes=3306 edges=5246
+[FamilyGraph 21:24:00] js active refs auto=0 manual=316
+[FamilyGraph 21:24:22] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:24:22] js filters applied nodes=3306 edges=5246
+[FamilyGraph 21:24:22] js active refs auto=0 manual=316
+[FamilyGraph 21:24:28] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:24:28] js filters applied nodes=3306 edges=4930
+[FamilyGraph 21:24:28] js active refs auto=0 manual=0
+[FamilyGraph 21:24:30] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:24:30] js filters applied nodes=3306 edges=4887
+[FamilyGraph 21:24:30] js active refs auto=0 manual=0
+[FamilyGraph 21:24:33] js physics charge=-80 link=30 strength=1
+[FamilyGraph 21:24:33] js filters applied nodes=3155 edges=4668
+[FamilyGraph 21:24:33] js active refs auto=0 manual=0

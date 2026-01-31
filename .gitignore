@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.ankiaddon
+.DS_Store
+.idea/
+.vscode/
+meta.json
+config.json
