@@ -13,16 +13,34 @@ DEFAULT_CFG: dict[str, Any] = {
     "note_type_tooltip_fields": {},
     "note_type_visible": {},
     "note_type_colors": {},
-    "layer_colors": {},
+    "layer_colors": {"family": "#3d95e7", "family_hub": "#34d399"},
     "family_same_prio_edges": False,
-    "family_same_prio_opacity": 0.6,
-    "layer_styles": {},
-    "layer_flow": {},
-    "layer_flow_speed": 0.02,
-    "family_chain_edges": False,
+    "family_same_prio_opacity": 0.15,
+    "layer_styles": {
+        "family_hub": "pointed",
+        "family": "solid",
+        "reference": "dashed",
+        "kanji": "solid",
+    },
+    "layer_flow": {
+        "family": True,
+        "family_hub": False,
+        "reference": True,
+        "kanji": True,
+        "example": True,
+    },
+    "layer_flow_speed": 0.35,
+    "family_chain_edges": True,
     "selected_decks": [],
-    "reference_auto_opacity": 1.0,
-    "kanji_hubs": True,
+    "reference_auto_opacity": 0.15,
+    "show_unlinked": True,
+    "kanji_hubs": False,
+    "kanji_components_enabled": True,
+    "kanji_component_style": "solid",
+    "kanji_component_color": "#f8ba87",
+    "kanji_component_opacity": 0.5,
+    "kanji_component_focus_only": True,
+    "kanji_component_flow": True,
 }
 
 
@@ -38,21 +56,35 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         "layer_flow",
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
-            cfg[key] = {}
+            cfg[key] = DEFAULT_CFG.get(key, {}).copy()
     if not isinstance(cfg.get("family_same_prio_edges"), bool):
         cfg["family_same_prio_edges"] = False
     if not isinstance(cfg.get("family_same_prio_opacity"), (int, float)):
-        cfg["family_same_prio_opacity"] = 0.6
+        cfg["family_same_prio_opacity"] = DEFAULT_CFG["family_same_prio_opacity"]
     if not isinstance(cfg.get("family_chain_edges"), bool):
-        cfg["family_chain_edges"] = False
+        cfg["family_chain_edges"] = DEFAULT_CFG["family_chain_edges"]
     if not isinstance(cfg.get("layer_flow_speed"), (int, float)):
-        cfg["layer_flow_speed"] = 0.02
+        cfg["layer_flow_speed"] = DEFAULT_CFG["layer_flow_speed"]
     if not isinstance(cfg.get("selected_decks"), list):
         cfg["selected_decks"] = []
     if not isinstance(cfg.get("reference_auto_opacity"), (int, float)):
-        cfg["reference_auto_opacity"] = 1.0
+        cfg["reference_auto_opacity"] = DEFAULT_CFG["reference_auto_opacity"]
+    if not isinstance(cfg.get("show_unlinked"), bool):
+        cfg["show_unlinked"] = DEFAULT_CFG["show_unlinked"]
     if not isinstance(cfg.get("kanji_hubs"), bool):
-        cfg["kanji_hubs"] = True
+        cfg["kanji_hubs"] = False
+    if not isinstance(cfg.get("kanji_components_enabled"), bool):
+        cfg["kanji_components_enabled"] = True
+    if not isinstance(cfg.get("kanji_component_style"), str):
+        cfg["kanji_component_style"] = DEFAULT_CFG["kanji_component_style"]
+    if not isinstance(cfg.get("kanji_component_color"), str):
+        cfg["kanji_component_color"] = DEFAULT_CFG["kanji_component_color"]
+    if not isinstance(cfg.get("kanji_component_opacity"), (int, float)):
+        cfg["kanji_component_opacity"] = DEFAULT_CFG["kanji_component_opacity"]
+    if not isinstance(cfg.get("kanji_component_focus_only"), bool):
+        cfg["kanji_component_focus_only"] = DEFAULT_CFG["kanji_component_focus_only"]
+    if not isinstance(cfg.get("kanji_component_flow"), bool):
+        cfg["kanji_component_flow"] = DEFAULT_CFG["kanji_component_flow"]
     return cfg
 
 
@@ -214,4 +246,54 @@ def set_reference_auto_opacity(value: float) -> None:
         cfg["reference_auto_opacity"] = float(value)
     except Exception:
         return
+    save_graph_config(cfg)
+
+
+def set_show_unlinked(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["show_unlinked"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_components_enabled(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_components_enabled"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_component_style(style: str) -> None:
+    cfg = load_graph_config()
+    style = (style or "").strip().lower()
+    if style in ("", "auto"):
+        cfg["kanji_component_style"] = "solid"
+    else:
+        cfg["kanji_component_style"] = style
+    save_graph_config(cfg)
+
+
+def set_kanji_component_color(color: str) -> None:
+    cfg = load_graph_config()
+    color = (color or "").strip()
+    cfg["kanji_component_color"] = color
+    save_graph_config(cfg)
+
+
+def set_kanji_component_opacity(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["kanji_component_opacity"] = float(value)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_kanji_component_focus_only(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_component_focus_only"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_component_flow(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_component_flow"] = bool(enabled)
     save_graph_config(cfg)

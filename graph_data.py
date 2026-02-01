@@ -213,19 +213,7 @@ def _build_kanji_maps(
             kanji_components[nid] = []
             # components field parsed later in build_kanji_edges
 
-    if radical_mid and radical_field:
-        for nid in _note_ids_for_mid(col, radical_mid):
-            if allowed_nids is not None and nid not in allowed_nids:
-                continue
-            try:
-                note = col.get_note(nid)
-            except Exception:
-                continue
-            if radical_field not in note:
-                continue
-            chars = _extract_kanji(str(note[radical_field] or ""))
-            for ch in chars:
-                radical_map.setdefault(ch, []).append(nid)
+    # radicals intentionally ignored in graph view
 
     return kanji_map, radical_map, kanji_components
 
@@ -251,7 +239,17 @@ def build_graph(col: Collection) -> dict[str, Any]:
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
     reference_auto_opacity = float(graph_cfg.get("reference_auto_opacity", 1.0))
+    show_unlinked = bool(graph_cfg.get("show_unlinked", False))
     kanji_hubs = bool(graph_cfg.get("kanji_hubs", True))
+    kanji_components_enabled = bool(graph_cfg.get("kanji_components_enabled", True))
+    kanji_component_style = str(graph_cfg.get("kanji_component_style") or "solid")
+    kanji_component_color = str(graph_cfg.get("kanji_component_color") or "")
+    try:
+        kanji_component_opacity = float(graph_cfg.get("kanji_component_opacity") or 0.6)
+    except Exception:
+        kanji_component_opacity = 0.6
+    kanji_component_focus_only = bool(graph_cfg.get("kanji_component_focus_only", False))
+    kanji_component_flow = bool(graph_cfg.get("kanji_component_flow", False))
 
     logger.dbg("build_graph start")
     nodes: dict[str, dict[str, Any]] = {}
@@ -297,6 +295,16 @@ def build_graph(col: Collection) -> dict[str, Any]:
             for k, v in kwargs.items():
                 if k not in n and v is not None:
                     n[k] = v
+
+    def add_layer(node_id: str, layer: str) -> None:
+        if not node_id or not layer:
+            return
+        n = nodes.get(node_id)
+        if n is None:
+            return
+        layers = n.setdefault("layers", [])
+        if isinstance(layers, list) and layer not in layers:
+            layers.append(layer)
 
     def add_edge(src: str, dst: str, layer: str, **meta: Any) -> None:
         if src == dst:
@@ -353,6 +361,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     prio=prio_val,
                     extra=_note_extra(note),
                 )
+                add_layer(str(nid), "family")
                 for fid, prio in fams:
                     node = nodes.get(str(nid))
                     if node is not None:
@@ -364,10 +373,11 @@ def build_graph(col: Collection) -> dict[str, Any]:
         # build hub edges + direct family edges (limited for performance)
         logger.dbg("family groups", len(family_groups))
         for fid, members in family_groups.items():
-            if len(members) < 2:
+            if len(members) < 2 and not show_unlinked:
                 continue
             hub_id = f"family:{fid}"
             ensure_node(hub_id, label=fid, kind="family")
+            add_layer(hub_id, "family_hub")
             if family_chain_edges:
                 by_prio: dict[int, list[int]] = {}
                 for nid, prio in members:
@@ -455,6 +465,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     note_type=_note_type_name(col, int(note.mid)),
                     extra=_note_extra(note),
                 )
+                add_layer(str(nid), "example")
 
         logger.dbg("example_gate vocab keys", len(vocab_index))
         if example_deck and example_key_field:
@@ -481,6 +492,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     note_type=_note_type_name(col, int(note.mid)),
                     extra=_note_extra(note),
                 )
+                add_layer(str(nid), "example")
                 add_edge(str(src), str(nid), "example", key=key, stage=stage)
 
     # Kanji Gate
@@ -522,31 +534,18 @@ def build_graph(col: Collection) -> dict[str, Any]:
                         for src in src_chars:
                             for comp in comps:
                                 component_pairs.append((src, comp))
-                    if kanji_rad_field and kanji_rad_field in note:
-                        rads = _extract_kanji(str(note[kanji_rad_field] or ""))
-                        for src in src_chars:
-                            for rad in rads:
-                                radical_pairs.append((src, rad))
+                    # radicals intentionally ignored in graph view
 
-            logger.dbg("kanji_gate hubs", "kanji=", len(kanji_chars), "components=", len(component_pairs), "radicals=", len(radical_pairs))
+            logger.dbg("kanji_gate hubs", "kanji=", len(kanji_chars), "components=", len(component_pairs))
 
             def ensure_kanji_hub(ch: str) -> str:
                 hub_id = f"kanji:{ch}"
                 ensure_node(hub_id, label=ch, kind="kanji_hub")
                 return hub_id
 
-            def ensure_rad_hub(ch: str) -> str:
-                hub_id = f"radical:{ch}"
-                ensure_node(hub_id, label=ch, kind="radical_hub")
-                return hub_id
-
             # components edges between kanji hubs
             for src, comp in component_pairs:
                 add_edge(ensure_kanji_hub(src), ensure_kanji_hub(comp), "kanji", kind="component", value=comp)
-
-            # kanji -> radical hubs
-            for src, rad in radical_pairs:
-                add_edge(ensure_kanji_hub(src), ensure_rad_hub(rad), "kanji", kind="radical", value=rad)
 
             # vocab -> kanji hubs
             vocab_cfg = kg.get("vocab_note_types") or {}
@@ -592,8 +591,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 "kanji_gate maps",
                 "kanji=",
                 len(kanji_map),
-                "radical=",
-                len(radical_map),
             )
 
             # map components per kanji note
@@ -632,41 +629,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             )
                             add_edge(str(nid), str(comp_nid), "kanji", kind="component", value=ch)
 
-            # kanji -> radical
-            if kanji_mid and kanji_rad_field and radical_mid and radical_field:
-                for nid in _filter_nids(_note_ids_for_mid(col, kanji_mid)):
-                    try:
-                        note = col.get_note(nid)
-                    except Exception:
-                        continue
-                    if kanji_rad_field not in note:
-                        continue
-                    rads = _extract_kanji(str(note[kanji_rad_field] or ""))
-                    for ch in rads:
-                        for r_nid in radical_map.get(ch, []):
-                            ensure_node(
-                                str(nid),
-                                label=_note_label(note, label_fields.get(str(note.mid))),
-                                kind="kanji",
-                                note_type_id=str(note.mid),
-                                note_type=_note_type_name(col, int(note.mid)),
-                                extra=_note_extra(note),
-                            )
-                            try:
-                                rnote = col.get_note(r_nid)
-                            except Exception:
-                                rnote = None
-                            ensure_node(
-                                str(r_nid),
-                                label=_note_label(rnote, label_fields.get(str(rnote.mid))) if rnote else ch,
-                                kind="radical",
-                                note_type_id=str(rnote.mid) if rnote else None,
-                                note_type=_note_type_name(col, int(rnote.mid))
-                                if rnote
-                                else "Radical",
-                                extra=_note_extra(rnote) if rnote else None,
-                            )
-                            add_edge(str(nid), str(r_nid), "kanji", kind="radical", value=ch)
+            # radicals intentionally ignored in graph view
 
             # vocab -> kanji
             vocab_cfg = kg.get("vocab_note_types") or {}
@@ -787,15 +750,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             label=target_labels.get(tnid, ""),
                             manual=False,
                         )
-                        add_edge(
-                            str(tnid),
-                            str(snid),
-                            "reference",
-                            tag=tag,
-                            label=target_labels.get(tnid, ""),
-                            manual=False,
-                            flow_only=True,
-                        )
 
     # Manual linked notes (reference)
     if isinstance(linked_fields, dict) and linked_fields:
@@ -871,14 +825,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
                         label=label,
                         manual=True,
                     )
-                    add_edge(
-                        str(resolved),
-                        str(nid),
-                        "reference",
-                        label=label,
-                        manual=True,
-                        flow_only=True,
-                    )
                     manual_edges += 1
             if note_count:
                 logger.dbg("manual links", "note_type", nt_id, "field", field, "notes", note_count)
@@ -899,9 +845,11 @@ def build_graph(col: Collection) -> dict[str, Any]:
             if sample_raw:
                 logger.dbg("manual links sample", sample_raw)
 
-    # Collapse duplicate reference edges (manual/auto) into a single visible edge per pair
+    # Collapse duplicate reference edges (manual/auto) into a single visible edge.
+    # If both directions exist, keep one visible edge and add a flow-only reverse
+    # so the flow appears bidirectional on the same line.
     if edges:
-        ref_groups: dict[tuple[str, str, bool], list[dict[str, Any]]] = {}
+        ref_groups: dict[tuple[str, str, bool], dict[str, list[dict[str, Any]]]] = {}
         out_edges: list[dict[str, Any]] = []
         for e in edges:
             if e.get("layer") != "reference":
@@ -909,37 +857,60 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 continue
             s = str(e.get("source"))
             t = str(e.get("target"))
-            a, b = (s, t) if s < t else (t, s)
             meta = e.get("meta") or {}
             manual = bool(meta.get("manual"))
-            ref_groups.setdefault((a, b, manual), []).append(e)
-        for (a, b, manual), group in ref_groups.items():
-            visible = None
-            for e in group:
-                if not (e.get("meta") or {}).get("flow_only"):
-                    visible = e
-                    break
-            if visible is None:
-                visible = group[0]
-            vmeta = dict(visible.get("meta") or {})
-            vmeta.pop("flow_only", None)
-            vmeta["manual"] = manual
-            visible["meta"] = vmeta
-            out_edges.append(visible)
-            rev_source = visible.get("target")
-            rev_target = visible.get("source")
-            # Add one flow-only reverse edge for bidirectional flow
-            out_edges.append(
-                {
-                    "source": rev_source,
-                    "target": rev_target,
-                    "layer": "reference",
-                    "meta": {**vmeta, "flow_only": True, "manual": manual},
-                }
-            )
+            a, b = (s, t) if s < t else (t, s)
+            entry = ref_groups.setdefault((a, b, manual), {"ab": [], "ba": []})
+            if s == a and t == b:
+                entry["ab"].append(e)
+            else:
+                entry["ba"].append(e)
+        for (_a, _b, manual), entry in ref_groups.items():
+            ab = entry.get("ab") or []
+            ba = entry.get("ba") or []
+            def _pick(group: list[dict[str, Any]]) -> dict[str, Any] | None:
+                for e in group:
+                    if not (e.get("meta") or {}).get("flow_only"):
+                        return e
+                return group[0] if group else None
+            vis_ab = _pick(ab)
+            vis_ba = _pick(ba)
+            if vis_ab and vis_ba:
+                visible = vis_ab
+                vmeta = dict(visible.get("meta") or {})
+                vmeta.pop("flow_only", None)
+                vmeta["manual"] = manual
+                vmeta["bidirectional"] = True
+                visible["meta"] = vmeta
+                out_edges.append(visible)
+                out_edges.append(
+                    {
+                        "source": visible.get("target"),
+                        "target": visible.get("source"),
+                        "layer": "reference",
+                        "meta": {**vmeta, "flow_only": True, "manual": manual, "bidirectional": True},
+                    }
+                )
+            else:
+                visible = vis_ab or vis_ba
+                if visible is None:
+                    continue
+                vmeta = dict(visible.get("meta") or {})
+                vmeta.pop("flow_only", None)
+                vmeta["manual"] = manual
+                visible["meta"] = vmeta
+                out_edges.append(visible)
         edges = out_edges
 
     if edges:
+        for e in edges:
+            layer = str(e.get("layer") or "")
+            if not layer:
+                continue
+            add_layer(str(e.get("source")), layer)
+            add_layer(str(e.get("target")), layer)
+
+    if edges and not show_unlinked:
         linked_ids = {str(e.get("source")) for e in edges} | {str(e.get("target")) for e in edges}
         nodes = {nid: n for nid, n in nodes.items() if nid in linked_ids}
     note_type_meta: list[dict[str, Any]] = []
@@ -998,7 +969,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layer_flow_speed": layer_flow_speed,
             "family_chain_edges": family_chain_edges,
             "reference_auto_opacity": reference_auto_opacity,
+            "show_unlinked": show_unlinked,
             "selected_decks": selected_decks,
             "decks": deck_names,
+            "kanji_components_enabled": kanji_components_enabled,
+            "kanji_component_style": kanji_component_style,
+            "kanji_component_color": kanji_component_color,
+            "kanji_component_opacity": kanji_component_opacity,
+            "kanji_component_focus_only": kanji_component_focus_only,
+            "kanji_component_flow": kanji_component_flow,
         },
     }

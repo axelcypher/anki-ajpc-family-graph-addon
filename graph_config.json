@@ -9,13 +9,13 @@
   },
   "note_type_visible": {
     "1769281677593": false,
-    "1768963265679": false,
+    "1768963265679": true,
     "1768738698248": true,
     "1769741511321": false,
     "1769454350497": false,
     "1769220678917": false,
     "1769367768468": false,
-    "1751376700451": false
+    "1751376700451": true
   },
   "note_type_colors": {
     "1768669162567": "#8b489e",
@@ -24,25 +24,29 @@
     "1769220678917": "#ffb7ff",
     "1769454350497": "#550000",
     "1769741511321": "#005500",
-    "1768738698248": "#6a314c"
+    "1768738698248": "#6a314c",
+    "1768963265679": "#ff47d7"
   },
   "layer_colors": {
     "family": "#3d95e7",
     "family_hub": "#34d399"
   },
-  "family_same_prio_edges": true,
+  "family_same_prio_edges": false,
   "layer_styles": {
     "family_hub": "pointed",
     "family": "solid",
-    "reference": "dashed"
+    "reference": "dashed",
+    "kanji": "solid"
   },
   "layer_flow": {
     "family": true,
     "family_hub": false,
-    "reference": true
+    "reference": true,
+    "kanji": true,
+    "example": true
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 0.11,
+  "layer_flow_speed": 0.35,
   "note_type_linked_fields": {
     "1768669148068": "LinkedCards",
     "1768654427037": "LinkedCards",
@@ -64,11 +68,23 @@
       "Vocab",
       "VocabKanji",
       "VocabReading"
+    ],
+    "1768738698248": [
+      "Kanji",
+      "KanjiMeaningDE",
+      "KanjiParts"
     ]
   },
   "selected_decks": [
     "Japanese"
   ],
   "reference_auto_opacity": 0.15,
-  "kanji_hubs": true
+  "kanji_hubs": false,
+  "kanji_components_enabled": true,
+  "kanji_component_style": "solid",
+  "kanji_component_color": "#f8ba87",
+  "kanji_component_opacity": 0.5,
+  "kanji_component_focus_only": true,
+  "kanji_component_flow": true,
+  "show_unlinked": true
 }
