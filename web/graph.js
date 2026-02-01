@@ -218,6 +218,7 @@
     });
 
     var selectedId = null;
+    var ctxMenuId = null;
     var componentFocusSet = null;
     var neighborMap = {};
     var activeNodes = [];
@@ -237,16 +238,20 @@
     }
 
     function isConnected(id) {
-      if (!selectedId) return true;
-      if (id === selectedId) return true;
-      var set = neighborMap[selectedId];
+      if (!selectedId && !ctxMenuId) return true;
+      if (selectedId && id === selectedId) return true;
+      if (ctxMenuId && id === ctxMenuId) return true;
+      var focus = selectedId || ctxMenuId;
+      var set = neighborMap[focus];
       return set && set.has(id);
     }
 
     function isLinkConnected(l) {
-      if (!selectedId) return true;
+      if (!selectedId && !ctxMenuId) return true;
       var ids = linkIds(l);
-      return ids.s === selectedId || ids.t === selectedId;
+      if (selectedId && (ids.s === selectedId || ids.t === selectedId)) return true;
+      if (ctxMenuId && (ids.s === ctxMenuId || ids.t === ctxMenuId)) return true;
+      return false;
     }
 
     function applyDim(color, factor) {
@@ -496,17 +501,33 @@
 
     Graph.nodeRelSize(3);
     Graph.nodeCanvasObject(function (node, ctx) {
-      var connected = isConnected(String(node.id));
+      var nodeId = String(node.id);
+      var isActiveNode = selectedId && nodeId === selectedId;
+      var isCtxNode = ctxMenuId && nodeId === ctxMenuId;
+      var connected = isConnected(nodeId);
+      var showPulse = node.kind === "family"
+        ? (isActiveNode || isCtxNode)
+        : (connected || isActiveNode || isCtxNode);
       var color = nodeColor(node, noteTypeColors, layerColors);
       var deg = node.__deg || 0;
       var scale = 1 + Math.min(deg, 20) * 0.08;
       var baseR = 3.5;
       var radius = baseR * scale;
       var t = Date.now() / 600;
-      var pulse = connected ? 1 + 0.1 * Math.sin(t + (node.id || 0)) : 1;
+      var seed = node.__seed;
+      if (seed === undefined || seed === null) {
+        var sid = String(node.id || "");
+        var h = 0;
+        for (var i = 0; i < sid.length; i++) {
+          h = (h * 31 + sid.charCodeAt(i)) % 100000;
+        }
+        node.__seed = h;
+        seed = h;
+      }
+      var pulse = showPulse ? 1 + 0.1 * Math.sin(t + seed) : 1;
       var haloR = radius * 1.3 * pulse;
-      var alpha = connected ? 1 : 0.2;
-      if (connected) {
+      var alpha = (connected || showPulse) ? 1 : 0.2;
+      if (showPulse) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
         ctx.fillStyle = colorWithAlpha(color, 0.5 * alpha);
@@ -514,12 +535,28 @@
         ctx.lineWidth = 0.25;
         ctx.strokeStyle = colorWithAlpha(color, 0.75 * alpha);
         ctx.stroke();
-        if (selectedId && String(node.id) === selectedId) {
+        if (isActiveNode && !isCtxNode) {
           var ringR = haloR + 2;
           ctx.beginPath();
           ctx.arc(node.x, node.y, ringR, 0, 2 * Math.PI);
           ctx.lineWidth = 1.2;
           ctx.strokeStyle = colorWithAlpha(color, 0.9);
+          ctx.stroke();
+        }
+        if (isCtxNode) {
+          var ctxRingR = haloR + 0.8;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, ctxRingR, 0, 2 * Math.PI);
+          ctx.lineWidth = 0.36;
+          ctx.strokeStyle = "rgba(239,68,68,0.9)";
+          ctx.stroke();
+        }
+        if (showPulse && node.kind === "family" && !isCtxNode) {
+          var hubOuterR = haloR + 2.2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, hubOuterR, 0, 2 * Math.PI);
+          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = colorWithAlpha(color, 0.75 * alpha);
           ctx.stroke();
         }
       }
@@ -530,7 +567,7 @@
       ctx.fill();
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = connected ? color : applyDim(color, 0.2);
+        ctx.fillStyle = (connected || showPulse) ? color : applyDim(color, 0.2);
         ctx.fill();
         if (node.kind === "family") {
           var count = node.__hub_count || 0;
@@ -2307,64 +2344,290 @@
       }
     }
 
-function showContextMenu(node, evt) {
+    function showContextMenu(node, evt) {
       var menu = document.getElementById("ctx-menu");
       if (!menu) return;
+      ctxMenuId = node ? String(node.id) : null;
       menu.innerHTML = "";
       function addItem(label, cb) {
         var div = document.createElement("div");
         div.className = "item";
-        div.textContent = label;
+        var parts = String(label).split("selected");
+        if (parts.length > 1) {
+          var prefix = parts[0];
+          var suffix = parts.slice(1).join("selected");
+          if (prefix) div.appendChild(document.createTextNode(prefix));
+          var dot = document.createElement("span");
+          dot.className = "ctx-selected-dot";
+          div.appendChild(dot);
+          div.appendChild(document.createTextNode("selected" + suffix));
+        } else {
+          div.textContent = label;
+        }
         div.addEventListener("click", function () {
           cb();
           hideContextMenu();
         });
         menu.appendChild(div);
       }
-        if (node.kind !== "family") {
-          addItem("Open Preview", function () {
+      function addDivider() {
+        if (!menu.lastElementChild) return;
+        if (menu.lastElementChild.className === "divider") return;
+        var div = document.createElement("div");
+        div.className = "divider";
+        menu.appendChild(div);
+      }
+      function appendGroup(items) {
+        if (!items.length) return;
+        if (menu.childElementCount) addDivider();
+        items.forEach(function (entry) {
+          addItem(entry.label, entry.cb);
+        });
+      }
+      function showFamilyPicker(title, families, onApply) {
+        if (!families || !families.length) return;
+        var overlay = document.getElementById("ctx-picker");
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        overlay = document.createElement("div");
+        overlay.id = "ctx-picker";
+        var dialog = document.createElement("div");
+        dialog.className = "dialog";
+        var heading = document.createElement("div");
+        heading.className = "title";
+        heading.textContent = title || "Select families";
+        var list = document.createElement("div");
+        list.className = "list";
+        families.forEach(function (fid) {
+          var row = document.createElement("label");
+          row.className = "row";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = fid;
+          cb.checked = true;
+          var span = document.createElement("span");
+          span.textContent = fid;
+          row.appendChild(cb);
+          row.appendChild(span);
+          list.appendChild(row);
+        });
+        var btnRow = document.createElement("div");
+        btnRow.className = "btn-row";
+        var cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn";
+        cancelBtn.textContent = "Cancel";
+        var okBtn = document.createElement("button");
+        okBtn.className = "btn primary";
+        okBtn.textContent = "Apply";
+        btnRow.appendChild(cancelBtn);
+        btnRow.appendChild(okBtn);
+        dialog.appendChild(heading);
+        dialog.appendChild(list);
+        dialog.appendChild(btnRow);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        function close() {
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }
+        cancelBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          close();
+        });
+        okBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          var selected = [];
+          list.querySelectorAll("input[type=checkbox]:checked").forEach(function (el) {
+            selected.push(el.value);
+          });
+          close();
+          if (onApply) onApply(selected);
+        });
+        overlay.addEventListener("click", function (e) {
+          if (e.target === overlay) close();
+        });
+      }
+
+      var groups = [];
+      var openGroup = [];
+      if (node.kind !== "family") {
+        openGroup.push({
+          label: "Open Preview",
+          cb: function () {
             showToast("Open preview");
             if (window.pycmd) pycmd("ctx:preview:" + node.id);
-          });
-          addItem("Open Editor", function () {
+          },
+        });
+        openGroup.push({
+          label: "Open Editor",
+          cb: function () {
             showToast("Open editor");
             if (window.pycmd) pycmd("ctx:edit:" + node.id);
-          });
+          },
+        });
+        openGroup.push({
+          label: "Open Browser",
+          cb: function () {
+            showToast("Open browser");
+            if (window.pycmd) pycmd("ctx:browser:" + node.id);
+          },
+        });
+      }
+      groups.push(openGroup);
+
+      var selectedNode =
+        selectedId && nodeById[selectedId] ? nodeById[selectedId] : null;
+      var selectedKind = selectedNode ? selectedNode.kind || "" : "";
+      var isSelectedNote = selectedNode && selectedKind === "note";
+      var isSelectedFamily = selectedNode && selectedKind === "family";
+      var isNodeNote = node && node.kind === "note";
+      var isNodeFamily = node && node.kind === "family";
+      var isDifferent = selectedNode && String(node.id) !== String(selectedId);
+      var isSame = selectedNode && String(node.id) === String(selectedId);
+
+      function getPrimaryFamily(n) {
+        if (!n) return "";
+        if (n.kind === "family") {
+          return n.label || String(n.id).replace("family:", "");
         }
-        var selectedNode =
-          selectedId && nodeById[selectedId] ? nodeById[selectedId] : null;
-        if (
-          selectedNode &&
-          String(node.id) !== String(selectedId) &&
-          node.kind === "note"
-        ) {
-          var selectedKind = selectedNode.kind || "";
-          var canConnect =
-            selectedKind === "family" ||
-            (selectedKind === "note" &&
-              Array.isArray(selectedNode.families) &&
-              selectedNode.families.length);
-          if (selectedKind === "kanji" || selectedKind === "kanji_hub") {
-            canConnect = false;
+        if (Array.isArray(n.families) && n.families.length) {
+          return String(n.families[0]);
+        }
+        return "";
+      }
+
+      function getSharedFamilies(a, b) {
+        if (!a || !b) return [];
+        if (!Array.isArray(a.families) || !Array.isArray(b.families)) return [];
+        var set = {};
+        a.families.forEach(function (f) {
+          set[String(f)] = true;
+        });
+        var out = [];
+        b.families.forEach(function (f) {
+          var fid = String(f);
+          if (set[fid]) out.push(fid);
+        });
+        return out;
+      }
+
+      function manualLinkInfo(aId, bId) {
+        var info = { ab: false, ba: false };
+        links.forEach(function (l) {
+          if (l.layer !== "reference") return;
+          if (!l.meta || !l.meta.manual) return;
+          var ids = linkIds(l);
+          if (ids.s === aId && ids.t === bId) info.ab = true;
+          if (ids.s === bId && ids.t === aId) info.ba = true;
+          if (l.meta.bidirectional && (ids.s === aId && ids.t === bId || ids.s === bId && ids.t === aId)) {
+            info.ab = true;
+            info.ba = true;
           }
-          if (canConnect) {
-            addItem("Connect to selected (Family)", function () {
+        });
+        return info;
+      }
+
+      var connectGroup = [];
+      if (selectedNode && isDifferent && isNodeNote) {
+        var canConnect =
+          selectedKind === "family" ||
+          (selectedKind === "note" &&
+            Array.isArray(selectedNode.families) &&
+            selectedNode.families.length);
+        if (selectedKind === "kanji" || selectedKind === "kanji_hub") {
+          canConnect = false;
+        }
+        if (canConnect) {
+          function doConnectWithMode(title, mode) {
+            return function () {
+              function doConnect(families) {
+                showToast("Connect family");
+                var payload = {
+                  source: String(selectedId),
+                  target: String(node.id),
+                  source_kind: selectedKind,
+                  source_label: selectedNode.label || "",
+                  prio_mode: mode || "",
+                };
+                if (families) payload.families = families;
+                if (window.pycmd) {
+                  pycmd("ctx:connect:" + encodeURIComponent(JSON.stringify(payload)));
+                }
+              }
+              if (selectedKind === "note" && Array.isArray(selectedNode.families) && selectedNode.families.length > 1) {
+                showFamilyPicker(title, selectedNode.families, doConnect);
+              } else if (selectedKind === "family") {
+                var fid = selectedNode.label || String(selectedNode.id).replace("family:", "");
+                doConnect([fid]);
+              } else if (selectedKind === "note") {
+                doConnect(selectedNode.families || []);
+              } else {
+                doConnect([]);
+              }
+            };
+          }
+          if (selectedKind === "family") {
+            connectGroup.push({
+              label: "Connect selected to Family",
+              cb: doConnectWithMode("Select hub families", ""),
+            });
+          } else if (selectedKind === "note") {
+            connectGroup.push({
+              label: "Connect selected: to active Family@+1",
+              cb: doConnectWithMode("Select families to connect", ""),
+            });
+            connectGroup.push({
+              label: "Connect selected: to active Family@same prio",
+              cb: doConnectWithMode("Select families to connect", "same"),
+            });
+            if (selectedNode.prio !== undefined && selectedNode.prio !== null && Number(selectedNode.prio) > 0) {
+              connectGroup.push({
+                label: "Connect selected: to active Family@-1",
+                cb: doConnectWithMode("Select families to connect", "minus1"),
+              });
+            }
+          }
+        }
+      }
+      if (selectedNode && isDifferent && isNodeFamily && isSelectedNote) {
+        var hubFid2 = node.label || String(node.id).replace("family:", "");
+        var activeFamilies = Array.isArray(selectedNode.families)
+          ? selectedNode.families.map(function (f) { return String(f); })
+          : [];
+        if (hubFid2 && activeFamilies.indexOf(String(hubFid2)) === -1) {
+          connectGroup.push({
+            label: "Connect to Family",
+            cb: function () {
               showToast("Connect family");
               var payload = {
-                source: String(selectedId),
-                target: String(node.id),
-                source_kind: selectedKind,
-                source_label: selectedNode.label || "",
+                source: String(node.id),
+                target: String(selectedId),
+                source_kind: "family",
+                source_label: hubFid2,
+                prio_mode: "hub_zero",
               };
               if (window.pycmd) {
                 pycmd("ctx:connect:" + encodeURIComponent(JSON.stringify(payload)));
               }
-            });
-          }
-          var targetNt = node.note_type_id ? String(node.note_type_id) : "";
-          var linkedField = targetNt ? noteTypeLinkedField[targetNt] : "";
-          if (selectedKind === "note" && linkedField) {
-            addItem("Append link to selected", function () {
+            },
+          });
+        }
+      }
+      groups.push(connectGroup);
+
+      var linkInfo = { ab: false, ba: false };
+      if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
+        linkInfo = manualLinkInfo(String(selectedId), String(node.id));
+      }
+
+      var appendItems = [];
+      if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
+        var targetNt = node.note_type_id ? String(node.note_type_id) : "";
+        var targetLinked = targetNt ? noteTypeLinkedField[targetNt] : "";
+        var activeNt = selectedNode.note_type_id ? String(selectedNode.note_type_id) : "";
+        var activeLinked = activeNt ? noteTypeLinkedField[activeNt] : "";
+        if (targetLinked && !linkInfo.ba) {
+          appendItems.push({
+            label: "Append Link on selected: to active",
+            cb: function () {
               showToast("Append link");
               var payload = {
                 source: String(selectedId),
@@ -2374,21 +2637,188 @@ function showContextMenu(node, evt) {
               if (window.pycmd) {
                 pycmd("ctx:link:" + encodeURIComponent(JSON.stringify(payload)));
               }
-            });
-          }
+            },
+          });
         }
-        var families = [];
-        if (node.kind === "family") {
-          families = [node.label || String(node.id).replace("family:", "")];
-        } else if (Array.isArray(node.families)) {
-          families = node.families.slice(0, 20);
+        if (activeLinked && !linkInfo.ab) {
+          appendItems.push({
+            label: "Append Link on active: to selected",
+            cb: function () {
+              showToast("Append link");
+              var payload = {
+                source: String(node.id),
+                target: String(selectedId),
+                label: node.label || "",
+              };
+              if (window.pycmd) {
+                pycmd("ctx:link_active:" + encodeURIComponent(JSON.stringify(payload)));
+              }
+            },
+          });
+        }
+        if (targetLinked && activeLinked && !linkInfo.ab && !linkInfo.ba) {
+          appendItems.push({
+            label: "Append Link on both: to each other",
+            cb: function () {
+              showToast("Append links");
+              var payload = {
+                source: String(selectedId),
+                target: String(node.id),
+                source_label: selectedNode.label || "",
+                target_label: node.label || "",
+              };
+              if (window.pycmd) {
+                pycmd("ctx:link_both:" + encodeURIComponent(JSON.stringify(payload)));
+              }
+            },
+          });
+        }
+      }
+      var disconnectGroup = [];
+      if (
+        selectedNode &&
+        (isDifferent || isSame) &&
+        (isSelectedNote || isSelectedFamily) &&
+        (isNodeNote || isNodeFamily) &&
+        !(isSelectedFamily && isNodeFamily)
+      ) {
+        var activeFamily = getPrimaryFamily(selectedNode);
+        var sharedFamilies = [];
+        if (isSelectedFamily) {
+          sharedFamilies = activeFamily ? [activeFamily] : [];
+        } else if (isNodeFamily) {
+          var hubFid = node.label || String(node.id).replace("family:", "");
+          var activeFamilies2 = Array.isArray(selectedNode.families)
+            ? selectedNode.families.map(function (f) { return String(f); })
+            : [];
+          if (hubFid && activeFamilies2.indexOf(String(hubFid)) >= 0) {
+            sharedFamilies = [hubFid];
+          } else {
+            sharedFamilies = [];
+          }
+        } else {
+          sharedFamilies = isSame
+            ? (Array.isArray(node.families) ? node.families.slice(0) : [])
+            : getSharedFamilies(selectedNode, node);
+        }
+        if (sharedFamilies.length) {
+          disconnectGroup.push({
+            label: isSame
+              ? "Disconnect from Family"
+              : (isNodeFamily && isSelectedNote)
+              ? "Disconnect from Family"
+              : isSelectedFamily
+              ? "Disconnect selected from Family"
+              : "Disconnect selected: from active Family",
+            cb: function () {
+              function doDisconnect(families) {
+                showToast("Disconnect family");
+                var payload = {
+                  source: String(selectedId),
+                  target: String(node.id),
+                  source_kind: selectedKind,
+                  source_label: selectedNode.label || "",
+                };
+                if (isNodeFamily && isSelectedNote) {
+                  var hubFid3 = node.label || String(node.id).replace("family:", "");
+                  payload.source = String(node.id);
+                  payload.target = String(selectedId);
+                  payload.source_kind = "family";
+                  payload.source_label = hubFid3;
+                }
+                if (families && families.length) {
+                  payload.families = families;
+                }
+                if (window.pycmd) {
+                  pycmd("ctx:disconnect:" + encodeURIComponent(JSON.stringify(payload)));
+                }
+              }
+              if (sharedFamilies.length > 1 && isSelectedNote) {
+                showFamilyPicker("Select families to disconnect", sharedFamilies, doDisconnect);
+              } else {
+                doDisconnect(sharedFamilies);
+              }
+            },
+          });
+        }
+      }
+
+      var removeGroup = [];
+      if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
+        var nodeNt = node.note_type_id ? String(node.note_type_id) : "";
+        var nodeLinked = nodeNt ? noteTypeLinkedField[nodeNt] : "";
+        var selNt = selectedNode.note_type_id ? String(selectedNode.note_type_id) : "";
+        var selLinked = selNt ? noteTypeLinkedField[selNt] : "";
+        if (linkInfo.ba && nodeLinked) {
+          removeGroup.push({
+            label: "Remove Link on selected: to active",
+            cb: function () {
+              showToast("Remove link");
+              var payload = {
+                source: String(selectedId),
+                target: String(node.id),
+              };
+              if (window.pycmd) {
+                pycmd("ctx:unlink:" + encodeURIComponent(JSON.stringify(payload)));
+              }
+            },
+          });
+        }
+        if (linkInfo.ab && selLinked) {
+          removeGroup.push({
+            label: "Remove Link on active: to selected",
+            cb: function () {
+              showToast("Remove link");
+              var payload = {
+                source: String(node.id),
+                target: String(selectedId),
+              };
+              if (window.pycmd) {
+                pycmd("ctx:unlink_active:" + encodeURIComponent(JSON.stringify(payload)));
+              }
+            },
+          });
+        }
+        if (linkInfo.ab && linkInfo.ba && nodeLinked && selLinked) {
+          removeGroup.push({
+            label: "Remove Link on both: to each other",
+            cb: function () {
+              showToast("Remove links");
+              var payload = {
+                source: String(selectedId),
+                target: String(node.id),
+              };
+              if (window.pycmd) {
+                pycmd("ctx:unlink_both:" + encodeURIComponent(JSON.stringify(payload)));
+              }
+            },
+          });
+        }
+      }
+      groups.push(disconnectGroup);
+      groups.push(appendItems);
+      groups.push(removeGroup);
+
+      var filterGroup = [];
+      var families = [];
+      if (isNodeFamily) {
+        families = [node.label || String(node.id).replace("family:", "")];
+      } else if (Array.isArray(node.families)) {
+        families = node.families.slice(0, 20);
       }
       families.forEach(function (fid) {
-        addItem("Filter Family: " + fid, function () {
-          showToast("Filter family");
-          if (window.pycmd)
-            pycmd("ctx:filter:" + encodeURIComponent(fid));
+        filterGroup.push({
+          label: "Filter Family: " + fid,
+          cb: function () {
+            showToast("Filter family");
+            if (window.pycmd) pycmd("ctx:filter:" + encodeURIComponent(fid));
+          },
         });
+      });
+      groups.push(filterGroup);
+
+      groups.forEach(function (grp) {
+        appendGroup(grp);
       });
       var e = evt || window.event;
       if (e) {
@@ -2401,6 +2831,7 @@ function showContextMenu(node, evt) {
     function hideContextMenu() {
       var menu = document.getElementById("ctx-menu");
       if (menu) menu.style.display = "none";
+      ctxMenuId = null;
     }
 
     graphEl.addEventListener("contextmenu", function (e) {

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 import aqt
@@ -247,6 +248,36 @@ def _html(payload: dict[str, Any]) -> str:
       padding: 6px 8px; cursor: pointer; border-radius: 4px;
     }
     #ctx-menu .item:hover { background: #111827; }
+    #ctx-menu .divider {
+      height: 1px; background: #1f2530; margin: 4px 4px;
+    }
+    #ctx-menu .ctx-selected-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      border: 1.5px solid #ef4444; background: transparent;
+      margin: 0 6px 1px 2px;
+    }
+    #ctx-picker {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 30;
+    }
+    #ctx-picker .dialog {
+      background: #0b0f14; border: 1px solid #1f2530; border-radius: 8px;
+      padding: 12px; min-width: 220px; max-width: 320px; color: #e5e7eb;
+      font-size: 12px;
+    }
+    #ctx-picker .title { font-weight: 600; margin-bottom: 6px; }
+    #ctx-picker .list { max-height: 220px; overflow: auto; margin: 8px 0; }
+    #ctx-picker .row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    #ctx-picker .btn-row {
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    #ctx-picker .btn {
+      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
+      border-radius: 6px; padding: 4px 8px; cursor: pointer;
+    }
+    #ctx-picker .btn:hover { background: #1f2937; }
     .layer-row, .layer-row-toggle {
       display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
       font-size: 12px; color: #cbd5e1;
@@ -659,6 +690,12 @@ class FamilyGraphWindow(QWidget):
                     logger.dbg("ctx edit", payload)
                 except Exception:
                     logger.dbg("ctx edit failed", payload)
+            elif kind == "browser":
+                try:
+                    _open_browser_for_note(int(payload))
+                    logger.dbg("ctx browser", payload)
+                except Exception:
+                    logger.dbg("ctx browser failed", payload)
             elif kind == "filter":
                 try:
                     fid = unquote(payload)
@@ -673,6 +710,8 @@ class FamilyGraphWindow(QWidget):
                     target = data.get("target")
                     source_kind = str(data.get("source_kind") or "")
                     source_label = str(data.get("source_label") or "")
+                    families = data.get("families")
+                    prio_mode = str(data.get("prio_mode") or "")
                     if not source or not target:
                         logger.dbg("ctx connect missing ids", payload)
                         return None
@@ -682,11 +721,16 @@ class FamilyGraphWindow(QWidget):
                         logger.dbg("ctx connect bad target", target)
                         return None
                     family_field, sep, default_prio = _get_family_cfg()
-                    fid = ""
-                    prio = 0
+                    fids: list[str] = []
+                    prio_map: dict[str, int] = {}
                     if source_kind == "family" or str(source).startswith("family:"):
                         fid = source_label or str(source).replace("family:", "", 1)
-                        prio = 0
+                        if fid:
+                            prio_map[fid] = 0
+                        if isinstance(families, list) and families:
+                            fids = [str(f).strip() for f in families if str(f).strip()]
+                        elif fid:
+                            fids = [fid]
                     else:
                         try:
                             source_nid = int(source)
@@ -704,19 +748,102 @@ class FamilyGraphWindow(QWidget):
                         if not fams:
                             logger.dbg("ctx connect source no families", source_nid)
                             return None
-                        fid, base_prio = min(fams, key=lambda pair: pair[1])
-                        prio = int(base_prio) + 1
-                    if not fid:
+                        for fid_val, base_prio in fams:
+                            if fid_val not in prio_map:
+                                prio_map[fid_val] = int(base_prio)
+                        if isinstance(families, list) and families:
+                            fids = [str(f).strip() for f in families if str(f).strip() and str(f).strip() in prio_map]
+                        else:
+                            fid, base_prio = min(fams, key=lambda pair: pair[1])
+                            fids = [fid]
+                    if not fids:
                         logger.dbg("ctx connect no fid", payload)
                         return None
-                    if _append_family_to_note(target_nid, fid, prio, family_field, sep, default_prio):
+                    changed = False
+                    for fid in fids:
+                        base = prio_map.get(fid, 0)
+                        prio = int(base) + 1
+                        if prio_mode == "same":
+                            prio = int(base)
+                        elif prio_mode == "minus1":
+                            prio = int(base) - 1
+                        elif prio_mode == "hub_plus1":
+                            prio = 1
+                        elif prio_mode == "hub_zero":
+                            prio = 0
+                        if prio < 0:
+                            prio = 0
+                        if _append_family_to_note(target_nid, fid, prio, family_field, sep, default_prio):
+                            changed = True
+                    if changed:
                         self._pending_changed_nids.add(target_nid)
                         self._schedule_refresh("ctx connect")
-                        logger.dbg("ctx connect", target_nid, fid, prio)
+                        logger.dbg("ctx connect", target_nid, fids)
                     else:
-                        logger.dbg("ctx connect no-op", target_nid, fid, prio)
+                        logger.dbg("ctx connect no-op", target_nid, fids)
                 except Exception:
                     logger.dbg("ctx connect failed", payload)
+            elif kind == "disconnect":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    source_kind = str(data.get("source_kind") or "")
+                    source_label = str(data.get("source_label") or "")
+                    families = data.get("families")
+                    if not source or not target:
+                        logger.dbg("ctx disconnect missing ids", payload)
+                        return None
+                    try:
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx disconnect bad target", target)
+                        return None
+                    family_field, sep, default_prio = _get_family_cfg()
+                    fids: list[str] = []
+                    if source_kind == "family" or str(source).startswith("family:"):
+                        fid = source_label or str(source).replace("family:", "", 1)
+                        if isinstance(families, list) and families:
+                            fids = [str(f).strip() for f in families if str(f).strip()]
+                        elif fid:
+                            fids = [fid]
+                    else:
+                        try:
+                            source_nid = int(source)
+                        except Exception:
+                            logger.dbg("ctx disconnect bad source", source)
+                            return None
+                        if not family_field:
+                            logger.dbg("ctx disconnect missing family field")
+                            return None
+                        note = mw.col.get_note(source_nid) if mw and mw.col else None
+                        if note is None or family_field not in note:
+                            logger.dbg("ctx disconnect source missing field", source_nid)
+                            return None
+                        fams = _parse_family_field(str(note[family_field] or ""), sep, default_prio)
+                        if not fams:
+                            logger.dbg("ctx disconnect source no families", source_nid)
+                            return None
+                        if isinstance(families, list) and families:
+                            fids = [str(f).strip() for f in families if str(f).strip()]
+                        else:
+                            fid, _prio = min(fams, key=lambda pair: pair[1])
+                            fids = [fid]
+                    if not fids:
+                        logger.dbg("ctx disconnect no fid", payload)
+                        return None
+                    changed = False
+                    for fid in fids:
+                        if _remove_family_from_note(target_nid, fid, family_field, sep, default_prio):
+                            changed = True
+                    if changed:
+                        self._pending_changed_nids.add(target_nid)
+                        self._schedule_refresh("ctx disconnect")
+                        logger.dbg("ctx disconnect", target_nid, fids)
+                    else:
+                        logger.dbg("ctx disconnect no-op", target_nid, fids)
+                except Exception:
+                    logger.dbg("ctx disconnect failed", payload)
             elif kind == "link":
                 try:
                     data = json.loads(unquote(payload)) if payload else {}
@@ -740,6 +867,131 @@ class FamilyGraphWindow(QWidget):
                         logger.dbg("ctx link no-op", target_nid, source_nid)
                 except Exception:
                     logger.dbg("ctx link failed", payload)
+            elif kind == "link_active":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    label = str(data.get("label") or "")
+                    if not source or not target:
+                        logger.dbg("ctx link_active missing ids", payload)
+                        return None
+                    try:
+                        source_nid = int(source)
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx link_active bad ids", payload)
+                        return None
+                    if _append_link_to_note(target_nid, source_nid, label):
+                        self._pending_changed_nids.add(target_nid)
+                        self._schedule_refresh("ctx link active")
+                        logger.dbg("ctx link active", target_nid, source_nid)
+                    else:
+                        logger.dbg("ctx link active no-op", target_nid, source_nid)
+                except Exception:
+                    logger.dbg("ctx link active failed", payload)
+            elif kind == "link_both":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    source_label = str(data.get("source_label") or "")
+                    target_label = str(data.get("target_label") or "")
+                    if not source or not target:
+                        logger.dbg("ctx link both missing ids", payload)
+                        return None
+                    try:
+                        source_nid = int(source)
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx link both bad ids", payload)
+                        return None
+                    changed = False
+                    if _append_link_to_note(target_nid, source_nid, source_label):
+                        self._pending_changed_nids.add(target_nid)
+                        changed = True
+                    if _append_link_to_note(source_nid, target_nid, target_label):
+                        self._pending_changed_nids.add(source_nid)
+                        changed = True
+                    if changed:
+                        self._schedule_refresh("ctx link both")
+                        logger.dbg("ctx link both", source_nid, target_nid)
+                    else:
+                        logger.dbg("ctx link both no-op", source_nid, target_nid)
+                except Exception:
+                    logger.dbg("ctx link both failed", payload)
+            elif kind == "unlink":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    if not source or not target:
+                        logger.dbg("ctx unlink missing ids", payload)
+                        return None
+                    try:
+                        source_nid = int(source)
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx unlink bad ids", payload)
+                        return None
+                    if _remove_link_from_note(target_nid, source_nid):
+                        self._pending_changed_nids.add(target_nid)
+                        self._schedule_refresh("ctx unlink")
+                        logger.dbg("ctx unlink", target_nid, source_nid)
+                    else:
+                        logger.dbg("ctx unlink no-op", target_nid, source_nid)
+                except Exception:
+                    logger.dbg("ctx unlink failed", payload)
+            elif kind == "unlink_active":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    if not source or not target:
+                        logger.dbg("ctx unlink active missing ids", payload)
+                        return None
+                    try:
+                        source_nid = int(source)
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx unlink active bad ids", payload)
+                        return None
+                    if _remove_link_from_note(target_nid, source_nid):
+                        self._pending_changed_nids.add(target_nid)
+                        self._schedule_refresh("ctx unlink active")
+                        logger.dbg("ctx unlink active", target_nid, source_nid)
+                    else:
+                        logger.dbg("ctx unlink active no-op", target_nid, source_nid)
+                except Exception:
+                    logger.dbg("ctx unlink active failed", payload)
+            elif kind == "unlink_both":
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                    source = data.get("source")
+                    target = data.get("target")
+                    if not source or not target:
+                        logger.dbg("ctx unlink both missing ids", payload)
+                        return None
+                    try:
+                        source_nid = int(source)
+                        target_nid = int(target)
+                    except Exception:
+                        logger.dbg("ctx unlink both bad ids", payload)
+                        return None
+                    changed = False
+                    if _remove_link_from_note(target_nid, source_nid):
+                        self._pending_changed_nids.add(target_nid)
+                        changed = True
+                    if _remove_link_from_note(source_nid, target_nid):
+                        self._pending_changed_nids.add(source_nid)
+                        changed = True
+                    if changed:
+                        self._schedule_refresh("ctx unlink both")
+                        logger.dbg("ctx unlink both", source_nid, target_nid)
+                    else:
+                        logger.dbg("ctx unlink both no-op", source_nid, target_nid)
+                except Exception:
+                    logger.dbg("ctx unlink both failed", payload)
         return None
 
     def _load(self) -> None:
@@ -1026,6 +1278,46 @@ def _append_family_to_note(
     return True
 
 
+def _remove_family_from_note(nid: int, fid: str, field: str, sep: str, default_prio: int) -> bool:
+    if mw is None or mw.col is None:
+        return False
+    if not field:
+        return False
+    try:
+        note = mw.col.get_note(nid)
+    except Exception:
+        return False
+    if note is None or field not in note:
+        return False
+    raw = str(note[field] or "")
+    fams = _parse_family_field(raw, sep, default_prio)
+    if not fams:
+        return False
+    kept: list[tuple[str, int]] = [(f, p) for f, p in fams if f != fid]
+    if len(kept) == len(fams):
+        return False
+    joiner = sep
+    if sep and (sep + " ") in raw:
+        joiner = sep + " "
+    elif sep == ";":
+        joiner = "; "
+    parts: list[str] = []
+    for f, p in kept:
+        if p == default_prio:
+            parts.append(f)
+        else:
+            parts.append(f"{f}@{p}")
+    note[field] = joiner.join(parts).strip()
+    try:
+        note.flush()
+    except Exception:
+        try:
+            mw.col.update_note(note)
+        except Exception:
+            return False
+    return True
+
+
 def _append_link_to_note(nid: int, source_nid: int, label: str) -> bool:
     if mw is None or mw.col is None:
         return False
@@ -1052,6 +1344,70 @@ def _append_link_to_note(nid: int, source_nid: int, label: str) -> bool:
         new_val = raw.rstrip() + " " + tag
     else:
         new_val = tag
+    note[field] = new_val
+    try:
+        note.flush()
+    except Exception:
+        try:
+            mw.col.update_note(note)
+        except Exception:
+            return False
+    return True
+
+
+_LINK_TAG_RE = re.compile(r"\[([^\]|]+)\|\s*([^\]]+?)\s*\]")
+
+
+def _token_to_nid(token: str) -> int | None:
+    token = (token or "").strip()
+    if not token:
+        return None
+    m = re.search(r"(?:nid|noteid|note|cid|card|cardid)?\s*(\d+)", token, re.IGNORECASE)
+    if m:
+        try:
+            return int(m.group(1))
+        except Exception:
+            return None
+    if token.isdigit():
+        try:
+            return int(token)
+        except Exception:
+            return None
+    return None
+
+
+def _remove_link_from_note(nid: int, target_nid: int) -> bool:
+    if mw is None or mw.col is None:
+        return False
+    try:
+        note = mw.col.get_note(nid)
+    except Exception:
+        return False
+    if note is None:
+        return False
+    cfg = load_graph_config()
+    linked_fields = cfg.get("note_type_linked_fields") or {}
+    field = str(linked_fields.get(str(note.mid)) or "").strip()
+    if not field or field not in note:
+        return False
+    raw = str(note[field] or "")
+    if not raw:
+        return False
+    removed = False
+
+    def _repl(match: re.Match) -> str:
+        nonlocal removed
+        token = match.group(2) or ""
+        nid_val = _token_to_nid(token)
+        if nid_val == target_nid:
+            removed = True
+            return ""
+        return match.group(0)
+
+    new_val = _LINK_TAG_RE.sub(_repl, raw)
+    if not removed:
+        return False
+    new_val = re.sub(r"\s{2,}", " ", new_val).strip()
     note[field] = new_val
     try:
         note.flush()
