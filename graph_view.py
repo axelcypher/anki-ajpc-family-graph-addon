@@ -33,12 +33,15 @@ from .graph_config import (
     set_note_type_tooltip_fields,
     set_note_type_visible,
     set_note_type_color,
+    set_note_type_hub,
     set_layer_color,
+    set_layer_enabled,
     set_family_same_prio_edges,
     set_family_same_prio_opacity,
     set_layer_style,
     set_layer_flow,
     set_layer_flow_speed,
+    set_link_strength,
     set_family_chain_edges,
     set_selected_decks,
     set_reference_auto_opacity,
@@ -49,6 +52,9 @@ from .graph_config import (
     set_kanji_component_opacity,
     set_kanji_component_focus_only,
     set_kanji_component_flow,
+    set_card_dot_suspended_color,
+    set_card_dot_buried_color,
+    set_card_dots_enabled,
     load_graph_config,
 )
 
@@ -278,6 +284,31 @@ def _html(payload: dict[str, Any]) -> str:
       border-radius: 6px; padding: 4px 8px; cursor: pointer;
     }
     #ctx-picker .btn:hover { background: #1f2937; }
+    #card-popup {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 30;
+    }
+    #card-popup .dialog {
+      background: #0b0f14; border: 1px solid #1f2530; border-radius: 8px;
+      padding: 12px; min-width: 220px; max-width: 320px; color: #e5e7eb;
+      font-size: 12px;
+    }
+    #card-popup .title { font-weight: 600; margin-bottom: 6px; }
+    #card-popup .list { max-height: 220px; overflow: auto; margin: 8px 0; }
+    #card-popup .row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    #card-popup .badge {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    #card-popup .btn-row {
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    #card-popup .btn {
+      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
+      border-radius: 6px; padding: 4px 8px; cursor: pointer;
+    }
+    #card-popup .btn:hover { background: #1f2937; }
     .layer-row, .layer-row-toggle {
       display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
       font-size: 12px; color: #cbd5e1;
@@ -351,13 +382,17 @@ def _html(payload: dict[str, Any]) -> str:
   <div id="zoom-indicator">Zoom: 1.00x</div>
   <div id="toast-container"></div>
   <div id="settings-panel">
-    <div id="settings-tabs">
+  <div id="settings-tabs">
       <div class="settings-tab active" data-tab="notes">Note Settings</div>
+      <div class="settings-tab" data-tab="cards">Card Settings</div>
       <div class="settings-tab" data-tab="links">Link Settings</div>
       <div class="settings-tab" data-tab="physics">Physics</div>
     </div>
     <div id="settings-notes" class="settings-pane active">
       <div id="note-type-list"></div>
+    </div>
+    <div id="settings-cards" class="settings-pane">
+      <div id="card-settings"></div>
     </div>
     <div id="settings-links" class="settings-pane">
       <div id="layer-color-list"></div>
@@ -539,6 +574,15 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("note type color", mid, color)
             except Exception:
                 logger.dbg("note type color parse failed", message)
+        elif message.startswith("nthub:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                mid, val = rest.split(":", 1)
+                set_note_type_hub(mid, val == "1")
+                logger.dbg("note type hub", mid, val)
+                self._schedule_refresh("note type hub")
+            except Exception:
+                logger.dbg("note type hub parse failed", message)
         elif message.startswith("lcol:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -548,6 +592,14 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer color", layer, color)
             except Exception:
                 logger.dbg("layer color parse failed", message)
+        elif message.startswith("lenabled:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, val = rest.split(":", 1)
+                set_layer_enabled(layer, val == "1")
+                logger.dbg("layer enabled", layer, val)
+            except Exception:
+                logger.dbg("layer enabled parse failed", message)
         elif message.startswith("lstyle:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -572,6 +624,14 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow speed", val)
             except Exception:
                 logger.dbg("layer flow speed parse failed", message)
+        elif message.startswith("lstrength:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, val = rest.split(":", 1)
+                set_link_strength(layer, float(val))
+                logger.dbg("link strength", layer, val)
+            except Exception:
+                logger.dbg("link strength parse failed", message)
         elif message.startswith("refauto:"):
             try:
                 _prefix, val = message.split(":", 1)
@@ -624,6 +684,27 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("kanji component flow", val)
             except Exception:
                 logger.dbg("kanji component flow parse failed", message)
+        elif message.startswith("cdot:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                kind, enc = rest.split(":", 1)
+                color = unquote(enc)
+                if kind == "suspended":
+                    set_card_dot_suspended_color(color)
+                    logger.dbg("card dot suspended color", color)
+                elif kind == "buried":
+                    set_card_dot_buried_color(color)
+                    logger.dbg("card dot buried color", color)
+            except Exception:
+                logger.dbg("card dot color parse failed", message)
+        elif message.startswith("cdotenabled:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                enabled = val == "1"
+                set_card_dots_enabled(enabled)
+                logger.dbg("card dots enabled", enabled)
+            except Exception:
+                logger.dbg("card dots enabled parse failed", message)
         elif message.startswith("decks:"):
             try:
                 _prefix, enc = message.split(":", 1)
@@ -684,6 +765,12 @@ class FamilyGraphWindow(QWidget):
                     logger.dbg("ctx preview", payload)
                 except Exception:
                     logger.dbg("ctx preview failed", payload)
+            elif kind == "previewcard":
+                try:
+                    _open_preview_card(int(payload))
+                    logger.dbg("ctx preview card", payload)
+                except Exception:
+                    logger.dbg("ctx preview card failed", payload)
             elif kind == "edit":
                 try:
                     _open_editor(int(payload))
@@ -696,6 +783,12 @@ class FamilyGraphWindow(QWidget):
                     logger.dbg("ctx browser", payload)
                 except Exception:
                     logger.dbg("ctx browser failed", payload)
+            elif kind == "browsernt":
+                try:
+                    _open_browser_for_notetype(int(payload))
+                    logger.dbg("ctx browsernt", payload)
+                except Exception:
+                    logger.dbg("ctx browsernt failed", payload)
             elif kind == "filter":
                 try:
                     fid = unquote(payload)
@@ -1439,6 +1532,34 @@ def _open_browser_for_note(nid: int):
     return browser
 
 
+def _open_browser_for_notetype(mid: int):
+    if mw is None or mw.col is None:
+        return None
+    name = ""
+    try:
+        model = mw.col.models.get(mid)
+        if model and isinstance(model, dict):
+            name = str(model.get("name", ""))
+    except Exception:
+        name = ""
+    try:
+        browser = aqt.dialogs.open("Browser", mw)
+    except Exception:
+        return None
+    try:
+        if name:
+            if " " in name:
+                query = f'note:"{name}"'
+            else:
+                query = f"note:{name}"
+            browser.search_for(query)
+        else:
+            browser.search_for(f"mid:{mid}")
+    except Exception:
+        pass
+    return browser
+
+
 def _open_preview(nid: int) -> None:
     if mw is None or mw.col is None:
         return
@@ -1449,6 +1570,46 @@ def _open_preview(nid: int) -> None:
     except Exception:
         card_id = None
     if not card_id:
+        return
+    previewers = getattr(mw, "_ajpc_family_graph_previewers", None)
+    if not isinstance(previewers, dict):
+        previewers = {}
+        mw._ajpc_family_graph_previewers = previewers
+    if card_id in previewers:
+        win = previewers[card_id]
+        try:
+            win.show()
+            win.raise_()
+            win.activateWindow()
+            win.render_card()
+        except Exception:
+            pass
+        return
+
+    def _on_close() -> None:
+        try:
+            previewers.pop(card_id, None)
+        except Exception:
+            pass
+
+    try:
+        win = GraphPreviewer(mw, card_id, _on_close)
+        previewers[card_id] = win
+        win.open()
+    except Exception:
+        pass
+
+
+def _open_preview_card(card_id: int) -> None:
+    if mw is None or mw.col is None:
+        return
+    if not card_id:
+        return
+    try:
+        card = mw.col.get_card(card_id)
+    except Exception:
+        card = None
+    if card is None:
         return
     previewers = getattr(mw, "_ajpc_family_graph_previewers", None)
     if not isinstance(previewers, dict):

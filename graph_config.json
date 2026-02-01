@@ -11,8 +11,8 @@
     "1769281677593": false,
     "1768963265679": true,
     "1768738698248": true,
-    "1769741511321": false,
-    "1769454350497": false,
+    "1769741511321": true,
+    "1769454350497": true,
     "1769220678917": false,
     "1769367768468": false,
     "1751376700451": true
@@ -78,7 +78,7 @@
   "selected_decks": [
     "Japanese"
   ],
-  "reference_auto_opacity": 0.15,
+  "reference_auto_opacity": 0.2,
   "kanji_hubs": false,
   "kanji_components_enabled": true,
   "kanji_component_style": "solid",
@@ -86,5 +86,23 @@
   "kanji_component_opacity": 0.5,
   "kanji_component_focus_only": true,
   "kanji_component_flow": true,
-  "show_unlinked": true
+  "show_unlinked": true,
+  "card_dot_suspended_color": "#ffb752",
+  "card_dot_buried_color": "#f55831",
+  "card_dots_enabled": true,
+  "link_strengths": {
+    "family": 1.0,
+    "family_hub": 2.0,
+    "reference": 2.0,
+    "example": 1.0,
+    "kanji": 1.0,
+    "kanji_component": 1.0
+  },
+  "note_type_hubs": {
+    "1769454350497": true,
+    "1769741511321": true
+  },
+  "layer_enabled": {
+    "reference": true
+  }
 }

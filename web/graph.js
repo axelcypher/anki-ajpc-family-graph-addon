@@ -84,6 +84,39 @@
     return color;
   }
 
+  function parseColor(color) {
+    if (!color) return null;
+    if (color[0] === "#" && color.length === 7) {
+      var r = parseInt(color.slice(1, 3), 16);
+      var g = parseInt(color.slice(3, 5), 16);
+      var b = parseInt(color.slice(5, 7), 16);
+      return { r: r, g: g, b: b };
+    }
+    if (color.startsWith("rgb")) {
+      try {
+        var parts = color.replace("rgba(", "").replace("rgb(", "").replace(")", "").split(",");
+        return {
+          r: parseInt(parts[0].trim(), 10),
+          g: parseInt(parts[1].trim(), 10),
+          b: parseInt(parts[2].trim(), 10),
+        };
+      } catch (_e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function mixWithWhite(color, amount) {
+    var rgb = parseColor(color);
+    if (!rgb) return color;
+    var t = Math.max(0, Math.min(1, amount));
+    var r = Math.round(rgb.r + (255 - rgb.r) * t);
+    var g = Math.round(rgb.g + (255 - rgb.g) * t);
+    var b = Math.round(rgb.b + (255 - rgb.b) * t);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
   function initGraph(data) {
     log("initGraph start nodes=" + (data.nodes || []).length + " edges=" + (data.edges || []).length);
     var fallback = document.getElementById("fallback");
@@ -127,10 +160,21 @@
     var visibleNoteTypes = {};
     var noteTypeColors = {};
     var noteTypeLinkedField = {};
+    var noteTypeTemplates = {};
+    var cardDotColors = (data.meta && data.meta.card_dot_colors) || {};
+    if (!cardDotColors.suspended) cardDotColors.suspended = "#ef4444";
+    if (!cardDotColors.buried) cardDotColors.buried = "#f59e0b";
+    var cardDotsEnabled =
+      data.meta && data.meta.card_dots_enabled !== undefined
+        ? !!data.meta.card_dots_enabled
+        : true;
+    var cardDotsMinZoom = 2.5;
 
     var layerColors = (data.meta && data.meta.layer_colors) || {};
+    var layerEnabled = (data.meta && data.meta.layer_enabled) || {};
     var layerStyles = (data.meta && data.meta.layer_styles) || {};
     var layerFlow = (data.meta && data.meta.layer_flow) || {};
+    var linkStrengths = (data.meta && data.meta.link_strengths) || {};
     var flowSpeed = (data.meta && data.meta.layer_flow_speed) || 0.02;
     var autoRefOpacity =
       data.meta && data.meta.reference_auto_opacity !== undefined
@@ -180,6 +224,9 @@
       if (nt.linked_field) {
         noteTypeLinkedField[String(nt.id)] = nt.linked_field;
       }
+      if (Array.isArray(nt.templates)) {
+        noteTypeTemplates[String(nt.id)] = nt.templates.slice();
+      }
     });
 
     var nodes = (data.nodes || []).map(function (n) {
@@ -219,6 +266,7 @@
 
     var selectedId = null;
     var ctxMenuId = null;
+    var ctxDot = null;
     var componentFocusSet = null;
     var neighborMap = {};
     var activeNodes = [];
@@ -269,6 +317,19 @@
         }
       }
       return colorWithAlpha(color, factor);
+    }
+
+    function getLinkStrength(l) {
+      if (l && l.meta && l.meta.flow_only) return 0;
+      if (!l) return physics.link_strength;
+      if (l.layer === "kanji" && l.meta && l.meta.kind === "component") {
+        if (typeof linkStrengths.kanji_component === "number")
+          return linkStrengths.kanji_component;
+      }
+      if (linkStrengths && typeof linkStrengths[l.layer] === "number") {
+        return linkStrengths[l.layer];
+      }
+      return physics.link_strength;
     }
 
     function isKanjiComponent(l) {
@@ -462,7 +523,117 @@
         unfreezeForDrag(node);
       });
     }
-    Graph.onNodeClick(function (node) {
+    function showCardPopup(node) {
+      var cards = node && Array.isArray(node.cards) ? node.cards : [];
+      if (cards.length <= 12) return;
+      var overlay = document.getElementById("card-popup");
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      overlay = document.createElement("div");
+      overlay.id = "card-popup";
+      var dialog = document.createElement("div");
+      dialog.className = "dialog";
+      var heading = document.createElement("div");
+      heading.className = "title";
+      heading.textContent = "Cards (" + cards.length + ")";
+      var list = document.createElement("div");
+      list.className = "list";
+      var extra = cards.slice(11);
+      extra.forEach(function (card) {
+        var row = document.createElement("div");
+        row.className = "row";
+        var badge = document.createElement("span");
+        badge.className = "badge";
+        var col = mixWithWhite(nodeColor(node, noteTypeColors, layerColors), 0.2);
+        if (card.status === "suspended") {
+          col = cardDotColors.suspended || "#ef4444";
+        } else if (card.status === "buried") {
+          col = cardDotColors.buried || "#f59e0b";
+        }
+        badge.style.background = col;
+        var label = document.createElement("span");
+        var name = cardName(node, card);
+        var status = card.status || "normal";
+        var stab = formatStability(card.stability).replace("stability: ", "");
+        label.textContent = name + " - " + status + " - " + stab;
+        row.appendChild(badge);
+        row.appendChild(label);
+        list.appendChild(row);
+      });
+      var btnRow = document.createElement("div");
+      btnRow.className = "btn-row";
+      var closeBtn = document.createElement("button");
+      closeBtn.className = "btn primary";
+      closeBtn.textContent = "Close";
+      btnRow.appendChild(closeBtn);
+      dialog.appendChild(heading);
+      dialog.appendChild(list);
+      dialog.appendChild(btnRow);
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      function close() {
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      }
+      closeBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        close();
+      });
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) close();
+      });
+    }
+
+    function eventGraphPos(evt) {
+      if (!Graph || typeof Graph.screen2GraphCoords !== "function" || !evt) return null;
+      var rect = graphEl.getBoundingClientRect();
+      var x = evt.clientX - rect.left;
+      var y = evt.clientY - rect.top;
+      return Graph.screen2GraphCoords(x, y);
+    }
+
+    function isCardPlusClick(node, evt) {
+      if (!node || !node.__card_plus || !evt || !Graph) return false;
+      var pos = eventGraphPos(evt);
+      if (!pos) return false;
+      var dx = pos.x - node.__card_plus.x;
+      var dy = pos.y - node.__card_plus.y;
+      var r = node.__card_plus.r || 0;
+      return dx * dx + dy * dy <= r * r;
+    }
+
+    function getCardDotClick(node, evt) {
+      if (!node || !node.__card_dots || !node.__card_dots.length) return null;
+      if (!evt || !Graph) return null;
+      var z = 1;
+      try {
+        if (Graph && typeof Graph.zoom === "function") {
+          z = Graph.zoom();
+        }
+      } catch (_e) {
+        z = 1;
+      }
+      if (z < cardDotsMinZoom) return null;
+      var pos = eventGraphPos(evt);
+      if (!pos) return null;
+      for (var i = 0; i < node.__card_dots.length; i++) {
+        var d = node.__card_dots[i];
+        if (!d || !d.card) continue;
+        var dx = pos.x - d.x;
+        var dy = pos.y - d.y;
+        var r = d.r || 0;
+        if (dx * dx + dy * dy <= r * r) {
+          return d.card;
+        }
+      }
+      return null;
+    }
+
+    Graph.onNodeClick(function (node, evt) {
+      if (node && cardDotsEnabled) {
+        if (isCardPlusClick(node, evt)) {
+          showCardPopup(node);
+          return;
+        }
+      }
       selectedId = node ? String(node.id) : null;
       refreshSelection();
     });
@@ -476,7 +647,11 @@
     }
 
     var tooltip = document.getElementById("tooltip");
-    Graph.onNodeHover(function (node) {
+    var hoverNode = null;
+    var dotTooltipActive = false;
+    var hoverDot = null;
+
+    function renderNodeTooltip(node) {
       if (!tooltip) return;
       if (node) {
         tooltip.style.display = "block";
@@ -497,6 +672,43 @@
       } else {
         tooltip.style.display = "none";
       }
+    }
+
+    function cardName(node, card) {
+      var ntid =
+        node && (node.note_type_id || node.note_type_id === 0)
+          ? String(node.note_type_id)
+          : "";
+      var tmpls = ntid && noteTypeTemplates[ntid] ? noteTypeTemplates[ntid] : [];
+      var ord = card && card.ord !== undefined ? card.ord : 0;
+      var name = tmpls[ord];
+      if (!name) name = "Card " + (ord + 1);
+      return name;
+    }
+
+    function formatStability(value) {
+      if (value === null || value === undefined || value === "") return "stability: —";
+      var num = parseFloat(value);
+      if (!isFinite(num)) return "stability: —";
+      return "stability: " + num.toFixed(2);
+    }
+
+    function renderDotTooltip(node, card) {
+      if (!tooltip) return;
+      tooltip.style.display = "block";
+      tooltip.innerText = cardName(node, card) + "\n" + formatStability(card.stability);
+    }
+
+    Graph.onNodeHover(function (node) {
+      hoverNode = node || null;
+      if (dotTooltipActive) {
+        if (!node) {
+          dotTooltipActive = false;
+          renderNodeTooltip(null);
+        }
+        return;
+      }
+      renderNodeTooltip(node);
     });
 
     Graph.nodeRelSize(3);
@@ -581,19 +793,123 @@
             ctx.restore();
           }
         }
+        var zoomLevel = 1;
+        try {
+          if (Graph && typeof Graph.zoom === "function") {
+            zoomLevel = Graph.zoom();
+          }
+        } catch (_e) {
+          zoomLevel = 1;
+        }
+        if (
+          cardDotsEnabled &&
+          zoomLevel >= cardDotsMinZoom &&
+          node.kind === "note" &&
+          Array.isArray(node.cards) &&
+          node.cards.length
+        ) {
+          var cards = node.cards;
+          var total = cards.length;
+          var maxDots = 12;
+          var slots = maxDots;
+          var showPlus = total > maxDots;
+          var dotCount = showPlus ? maxDots - 1 : total;
+          var dotR = Math.max(0.6, radius * 0.144);
+          var ringR = Math.max(radius - dotR * 1.4, radius * 0.6);
+          var startAngle = Math.PI;
+          var step = (Math.PI * 2) / Math.max(slots, 1);
+          var baseDotColor = mixWithWhite(color, 0.2);
+          var dotAlpha = (connected || showPulse) ? 1 : 0.2;
+          var dotList = [];
+          for (var i = 0; i < dotCount; i++) {
+            var card = cards[i] || {};
+            var ccol = baseDotColor;
+            if (card.status === "suspended") {
+              ccol = cardDotColors.suspended || "#ef4444";
+            } else if (card.status === "buried") {
+              ccol = cardDotColors.buried || "#f59e0b";
+            }
+            var angle = startAngle + step * i;
+            var dx = Math.cos(angle) * ringR;
+            var dy = Math.sin(angle) * ringR;
+            var px = node.x + dx;
+            var py = node.y + dy;
+            dotList.push({ x: px, y: py, r: dotR * 1.4, card: card });
+            ctx.beginPath();
+            var isHover =
+              hoverDot &&
+              hoverDot.nodeId === String(node.id) &&
+              hoverDot.cardId === (card && card.id ? card.id : null);
+            var drawR = dotR * (isHover ? 1.05 : 1);
+            ctx.arc(px, py, drawR, 0, 2 * Math.PI);
+            ctx.fillStyle = (connected || showPulse) ? ccol : applyDim(ccol, dotAlpha);
+            ctx.fill();
+            if (
+              ctxDot &&
+              ctxDot.nodeId === String(node.id) &&
+              ctxDot.cardId === (card && card.id ? card.id : null)
+            ) {
+              ctx.beginPath();
+              ctx.arc(px, py, drawR * 1.35, 0, 2 * Math.PI);
+              ctx.lineWidth = 0.225;
+              ctx.strokeStyle = "rgba(239,68,68,0.9)";
+              ctx.stroke();
+            }
+          }
+          if (showPlus) {
+            var pAngle = startAngle + step * (maxDots - 1);
+            var px = node.x + Math.cos(pAngle) * ringR;
+            var py = node.y + Math.sin(pAngle) * ringR;
+            node.__card_plus = { x: px, y: py, r: dotR * 1.6 };
+            ctx.beginPath();
+            ctx.arc(px, py, dotR, 0, 2 * Math.PI);
+            ctx.fillStyle = (connected || showPulse)
+              ? baseDotColor
+              : applyDim(baseDotColor, dotAlpha);
+            ctx.fill();
+            ctx.save();
+            ctx.fillStyle = (connected || showPulse)
+              ? "#0f1216"
+              : applyDim("#0f1216", dotAlpha);
+            ctx.font = Math.max(4, dotR * 2.2) + "px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("+", px, py + dotR * 0.05);
+            ctx.restore();
+          } else {
+            node.__card_plus = null;
+          }
+          node.__card_dots = dotList;
+        } else {
+          node.__card_dots = null;
+          node.__card_plus = null;
+        }
       }).nodeCanvasObjectMode(function () {
         return "replace";
       });
+    if (typeof Graph.nodePointerAreaPaint === "function") {
+      Graph.nodePointerAreaPaint(function (node, color, ctx) {
+        var deg = node.__deg || 0;
+        var scale = 1 + Math.min(deg, 20) * 0.08;
+        var baseR = 3.5;
+        var radius = baseR * scale;
+        var r = radius + 2;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+        ctx.fill();
+      });
+    }
 
     if (typeof Graph.onRenderFramePost === "function") {
       Graph.onRenderFramePost(function (ctx, globalScale) {
         var data = Graph.graphData();
         if (!data || !data.nodes) return;
         var z = globalScale || 1;
-        var cap = 3;
+        var cap = 2;
         var base = 6.4;
         var fontSize = (base * Math.min(z, cap)) / z;
-        if (z < 0.25) return;
+        if (z < 1) return;
         ctx.save();
         ctx.font = fontSize + "px Arial";
         ctx.fillStyle = "#e5e7eb";
@@ -683,6 +999,81 @@
       if (!tooltip) return;
       tooltip.style.left = e.clientX + 12 + "px";
       tooltip.style.top = e.clientY + 12 + "px";
+      if (!cardDotsEnabled) {
+        if (dotTooltipActive || hoverDot) {
+          dotTooltipActive = false;
+          hoverDot = null;
+          renderNodeTooltip(hoverNode);
+          if (Graph && typeof Graph.resumeAnimation === "function") {
+            Graph.resumeAnimation();
+          }
+        }
+        return;
+      }
+      if (!hoverNode || !hoverNode.__card_dots || !hoverNode.__card_dots.length) {
+        if (dotTooltipActive || hoverDot) {
+          dotTooltipActive = false;
+          hoverDot = null;
+          renderNodeTooltip(hoverNode);
+          if (Graph && typeof Graph.resumeAnimation === "function") {
+            Graph.resumeAnimation();
+          }
+        }
+        return;
+      }
+      var z = 1;
+      try {
+        if (Graph && typeof Graph.zoom === "function") {
+          z = Graph.zoom();
+        }
+      } catch (_e) {
+        z = 1;
+      }
+      if (z < cardDotsMinZoom) {
+        if (dotTooltipActive || hoverDot) {
+          dotTooltipActive = false;
+          hoverDot = null;
+          renderNodeTooltip(hoverNode);
+          if (Graph && typeof Graph.resumeAnimation === "function") {
+            Graph.resumeAnimation();
+          }
+        }
+        return;
+      }
+      var pos = eventGraphPos(e);
+      if (!pos) return;
+      var best = null;
+      var bestDist = Infinity;
+      hoverNode.__card_dots.forEach(function (d) {
+        if (!d || !d.card) return;
+        var dx = pos.x - d.x;
+        var dy = pos.y - d.y;
+        var dist = dx * dx + dy * dy;
+        var r = d.r || 0;
+        if (dist <= r * r && dist < bestDist) {
+          bestDist = dist;
+          best = d;
+        }
+      });
+      var nextHover =
+        best && best.card
+          ? { nodeId: String(hoverNode.id), cardId: best.card.id || null }
+          : null;
+      var changed =
+        (!hoverDot && nextHover) ||
+        (hoverDot && !nextHover) ||
+        (hoverDot && nextHover && (hoverDot.nodeId !== nextHover.nodeId || hoverDot.cardId !== nextHover.cardId));
+      hoverDot = nextHover;
+      if (best && best.card) {
+        dotTooltipActive = true;
+        renderDotTooltip(hoverNode, best.card);
+      } else if (dotTooltipActive) {
+        dotTooltipActive = false;
+        renderNodeTooltip(hoverNode);
+      }
+      if (changed && Graph && typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
     };
 
     function baseCurve(layer) {
@@ -1284,14 +1675,22 @@
       log("js release edges=" + edges.length + " nodes=" + releasedCount);
     }
 
+    function bindLayerToggle(layerKey, el) {
+      if (!el) return;
+      el.addEventListener("change", function () {
+        var lbl = this && this.parentNode ? this.parentNode.textContent.trim() : "Layer";
+        showToast((this.checked ? "Enabled " : "Disabled ") + lbl);
+        storeLayers();
+        if (window.pycmd) {
+          pycmd("lenabled:" + layerKey + ":" + (this.checked ? "1" : "0"));
+        }
+        applyFilters({ reheat: true, toast_visible: true });
+      });
+    }
+
     for (var k in layerState) {
       if (layerState[k]) {
-        layerState[k].addEventListener("change", function () {
-          var lbl = this && this.parentNode ? this.parentNode.textContent.trim() : "Layer";
-          showToast((this.checked ? "Enabled " : "Disabled ") + lbl);
-          storeLayers();
-          applyFilters({ reheat: true, toast_visible: true });
-        });
+        bindLayerToggle(k, layerState[k]);
       }
     }
 
@@ -1349,9 +1748,14 @@
 
     function loadLayers() {
       try {
-        var raw = localStorage.getItem("ajpc_graph_layers");
-        if (!raw) return;
-        var state = JSON.parse(raw);
+        var state = null;
+        if (layerEnabled && Object.keys(layerEnabled).length) {
+          state = layerEnabled;
+        } else {
+          var raw = localStorage.getItem("ajpc_graph_layers");
+          if (raw) state = JSON.parse(raw);
+        }
+        if (!state) return;
         Object.keys(layerState).forEach(function (k) {
           if (layerState[k] && state.hasOwnProperty(k)) {
             layerState[k].checked = !!state[k];
@@ -1401,6 +1805,22 @@
           group.appendChild(titleRow);
 
           var fieldsWrap = document.createElement("div");
+          var hubWrap = document.createElement("div");
+          hubWrap.className = "nt-field";
+          var hubLabel = document.createElement("label");
+          hubLabel.textContent = "Aggregate to hub";
+          var hubToggle = document.createElement("input");
+          hubToggle.type = "checkbox";
+          hubToggle.checked = !!nt.hub;
+          hubToggle.addEventListener("change", function () {
+            if (window.pycmd) {
+              pycmd("nthub:" + nt.id + ":" + (hubToggle.checked ? "1" : "0"));
+            }
+            showToast("NoteType hub: " + nt.name + " " + (hubToggle.checked ? "On" : "Off"));
+          });
+          hubWrap.appendChild(hubLabel);
+          hubWrap.appendChild(hubToggle);
+          fieldsWrap.appendChild(hubWrap);
           var labelFieldWrap = document.createElement("div");
           labelFieldWrap.className = "nt-field";
           var labelFieldLabel = document.createElement("label");
@@ -1581,10 +2001,71 @@
         });
     }
 
+    function setupCardPanel() {
+      var list = document.getElementById("card-settings");
+      if (!list) return;
+      list.innerHTML = "";
+      var group = document.createElement("div");
+      group.className = "nt-group";
+      var title = document.createElement("div");
+      title.className = "nt-title";
+      title.textContent = "Card Dots";
+      group.appendChild(title);
+
+      var toggleRow = document.createElement("div");
+      toggleRow.className = "nt-field";
+      var toggleLabel = document.createElement("label");
+      toggleLabel.textContent = "Show Card Dots";
+      var toggle = document.createElement("input");
+      toggle.type = "checkbox";
+      toggle.checked = !!cardDotsEnabled;
+      toggle.addEventListener("change", function () {
+        cardDotsEnabled = !!toggle.checked;
+        if (window.pycmd) {
+          pycmd("cdotenabled:" + (cardDotsEnabled ? "1" : "0"));
+        }
+        if (typeof Graph !== "undefined" && Graph && typeof Graph.resumeAnimation === "function") {
+          Graph.resumeAnimation();
+        }
+        showToast("Card dots: " + (cardDotsEnabled ? "On" : "Off"));
+      });
+      toggleRow.appendChild(toggleLabel);
+      toggleRow.appendChild(toggle);
+      group.appendChild(toggleRow);
+
+      function addDotRow(label, key) {
+        var row = document.createElement("div");
+        row.className = "nt-field";
+        var lbl = document.createElement("label");
+        lbl.textContent = label;
+        var input = document.createElement("input");
+        input.type = "color";
+        input.value =
+          cardDotColors[key] || (key === "buried" ? "#f59e0b" : "#ef4444");
+        input.addEventListener("change", function () {
+          cardDotColors[key] = input.value;
+          if (window.pycmd) {
+            pycmd("cdot:" + key + ":" + encodeURIComponent(input.value));
+          }
+          if (typeof Graph !== "undefined" && Graph && typeof Graph.resumeAnimation === "function") {
+            Graph.resumeAnimation();
+          }
+          showToast(label + " dot color");
+        });
+        row.appendChild(lbl);
+        row.appendChild(input);
+        group.appendChild(row);
+      }
+      addDotRow("Suspended", "suspended");
+      addDotRow("Buried", "buried");
+      list.appendChild(group);
+    }
+
     function setupLayerPanel() {
       var list = document.getElementById("layer-color-list");
       if (!list) return;
       list.innerHTML = "";
+
       var flowRow = document.createElement("div");
       flowRow.className = "layer-row";
       var flowLabel = document.createElement("span");
@@ -1602,7 +2083,7 @@
       flowInput.min = "0";
       flowInput.max = "2";
       flowInput.value = flowSpeed;
-      var setFlow = function (v) {
+      var setFlow = function (v, notify) {
         if (isNaN(v)) return;
         flowSpeed = v;
         flowRange.value = v;
@@ -1611,51 +2092,35 @@
           pycmd("lflowspeed:" + flowSpeed);
         }
         applyFilters({ reheat: false });
-        showToast("Flow speed: " + flowSpeed);
+        if (notify) showToast("Flow speed: " + flowSpeed);
       };
       flowRange.addEventListener("input", function () {
-        setFlow(parseFloat(flowRange.value));
+        setFlow(parseFloat(flowRange.value), false);
       });
       flowInput.addEventListener("change", function () {
-        setFlow(parseFloat(flowInput.value));
+        setFlow(parseFloat(flowInput.value), true);
       });
       flowRow.appendChild(flowLabel);
       flowRow.appendChild(flowRange);
       flowRow.appendChild(flowInput);
       list.appendChild(flowRow);
 
-      var chainRow = document.createElement("div");
-      chainRow.className = "layer-row-toggle";
-      var chainToggle = document.createElement("input");
-      chainToggle.type = "checkbox";
-      chainToggle.checked = !!familyChainEdges;
-      chainToggle.addEventListener("change", function () {
-        familyChainEdges = !!chainToggle.checked;
-        if (window.pycmd) {
-          pycmd("fchain:" + (familyChainEdges ? "1" : "0"));
-        }
-        showToast("Chain family levels: " + (familyChainEdges ? "On" : "Off"));
-      });
-      var chainLabel = document.createElement("span");
-      chainLabel.textContent = "Chain family levels";
-      chainRow.appendChild(chainToggle);
-      chainRow.appendChild(chainLabel);
-      var layers = ["family", "family_hub", "reference", "example", "kanji"];
-      var familyRow = null;
-      var familyHubRow = null;
-      var referenceRow = null;
-      layers.forEach(function (layer) {
+      function addGroup(title) {
+        var group = document.createElement("div");
+        group.className = "nt-group";
+        var t = document.createElement("div");
+        t.className = "nt-title";
+        t.textContent = title;
+        group.appendChild(t);
+        list.appendChild(group);
+        return group;
+      }
+
+      function layerRow(group, layer, title) {
         var row = document.createElement("div");
         row.className = "layer-row";
         var label = document.createElement("span");
-        var labelMap = {
-          family: "Family Gate",
-          family_hub: "Family Hubs",
-          reference: "Linked Notes",
-          example: "Example Gate",
-          kanji: "Kanji Gate",
-        };
-        label.textContent = labelMap[layer] || layer;
+        label.textContent = title;
         label.style.flex = "1";
         var color = document.createElement("input");
         color.type = "color";
@@ -1666,7 +2131,7 @@
             pycmd("lcol:" + layer + ":" + encodeURIComponent(color.value));
           }
           applyFilters({ reheat: false });
-          showToast("Link color: " + (labelMap[layer] || layer));
+          showToast("Link color: " + title);
         });
         var style = document.createElement("select");
         ["solid", "dashed", "pointed"].forEach(function (opt) {
@@ -1682,11 +2147,8 @@
             pycmd("lstyle:" + layer + ":" + encodeURIComponent(style.value));
           }
           applyFilters({ reheat: false });
-          showToast("Link style: " + (labelMap[layer] || layer));
+          showToast("Link style: " + title);
         });
-        if (style.value === "pointed") {
-          style.value = "pointed";
-        }
         var flow = document.createElement("input");
         flow.type = "checkbox";
         flow.checked = !!layerFlow[layer];
@@ -1696,57 +2158,84 @@
             pycmd("lflow:" + layer + ":" + (flow.checked ? "1" : "0"));
           }
           applyFilters({ reheat: false });
-          showToast("Flow: " + (labelMap[layer] || layer) + " " + (flow.checked ? "On" : "Off"));
+          showToast("Flow: " + title + " " + (flow.checked ? "On" : "Off"));
         });
         row.appendChild(label);
         row.appendChild(color);
         row.appendChild(style);
         row.appendChild(flow);
-        list.appendChild(row);
-        if (layer === "family") familyRow = row;
-        if (layer === "family_hub") familyHubRow = row;
-        if (layer === "reference") referenceRow = row;
-      });
-
-      function insertAfter(ref, node) {
-        if (!ref || !ref.parentNode) {
-          list.appendChild(node);
-          return;
-        }
-        if (ref.nextSibling) {
-          ref.parentNode.insertBefore(node, ref.nextSibling);
-        } else {
-          ref.parentNode.appendChild(node);
-        }
+        group.appendChild(row);
+        return row;
       }
 
-      if (familyHubRow) {
-        insertAfter(familyHubRow, chainRow);
-      } else {
-        list.appendChild(chainRow);
+      function strengthRow(group, layer, labelText) {
+        var row = document.createElement("div");
+        row.className = "layer-row";
+        var label = document.createElement("span");
+        label.textContent = labelText || "Strength";
+        label.style.flex = "1";
+        var range = document.createElement("input");
+        range.type = "range";
+        range.min = "0";
+        range.max = "2";
+        range.step = "0.05";
+        var input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "2";
+        input.step = "0.05";
+        var current =
+          typeof linkStrengths[layer] === "number"
+            ? linkStrengths[layer]
+            : physics.link_strength;
+        range.value = current;
+        input.value = current;
+        var setStrength = function (v, notify) {
+          if (isNaN(v)) return;
+          linkStrengths[layer] = v;
+          range.value = v;
+          input.value = v;
+          if (window.pycmd) {
+            pycmd("lstrength:" + layer + ":" + v);
+          }
+          applyPhysics(false);
+          if (notify) {
+            showToast("Link strength: " + v);
+          }
+        };
+        range.addEventListener("input", function () {
+          setStrength(parseFloat(range.value), false);
+        });
+        input.addEventListener("change", function () {
+          setStrength(parseFloat(input.value), true);
+        });
+        row.appendChild(label);
+        row.appendChild(range);
+        row.appendChild(input);
+        group.appendChild(row);
+        return row;
       }
 
-      var toggleRow = document.createElement("div");
-      toggleRow.className = "layer-row-toggle";
-      var toggle = document.createElement("input");
-      toggle.type = "checkbox";
-      toggle.checked = !!samePrioEdges;
-      toggle.addEventListener("change", function () {
-        samePrioEdges = !!toggle.checked;
-        if (window.pycmd) {
-          pycmd("fprio:" + (samePrioEdges ? "1" : "0"));
-        }
-        showToast("Same-priority links: " + (samePrioEdges ? "On" : "Off"));
-      });
-      var tlabel = document.createElement("span");
-      tlabel.textContent = "Same-priority links";
-      toggleRow.appendChild(toggle);
-      toggleRow.appendChild(tlabel);
-      if (familyRow) {
-        insertAfter(familyRow, toggleRow);
-      } else {
-        list.appendChild(toggleRow);
+      function toggleRow(group, labelText, checked, onChange) {
+        var row = document.createElement("div");
+        row.className = "layer-row-toggle";
+        var toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = !!checked;
+        toggle.addEventListener("change", function () {
+          onChange(!!toggle.checked);
+        });
+        var label = document.createElement("span");
+        label.textContent = labelText;
+        row.appendChild(toggle);
+        row.appendChild(label);
+        group.appendChild(row);
+        return { row: row, toggle: toggle };
       }
+
+      var familyGroup = addGroup("Family Gate");
+      layerRow(familyGroup, "family", "Family Gate");
+      strengthRow(familyGroup, "family", "Strength");
 
       var opRow = document.createElement("div");
       opRow.className = "layer-row";
@@ -1765,7 +2254,7 @@
       opInput.max = "1";
       opInput.step = "0.05";
       opInput.value = samePrioOpacity;
-      var setOp = function (v) {
+      var setOp = function (v, notify) {
         if (isNaN(v)) return;
         samePrioOpacity = v;
         opRange.value = v;
@@ -1774,23 +2263,48 @@
           pycmd("fprioop:" + samePrioOpacity);
         }
         applyFilters({ reheat: false });
+        if (notify) showToast("Same-prio opacity: " + samePrioOpacity);
       };
       opRange.addEventListener("input", function () {
-        setOp(parseFloat(opRange.value));
+        setOp(parseFloat(opRange.value), false);
       });
       opInput.addEventListener("change", function () {
-        setOp(parseFloat(opInput.value));
-        showToast("Same-prio opacity: " + samePrioOpacity);
+        setOp(parseFloat(opInput.value), true);
       });
       opRow.appendChild(opLabel);
       opRow.appendChild(opRange);
       opRow.appendChild(opInput);
-      insertAfter(toggleRow, opRow);
-      opRow.style.display = toggle.checked ? "flex" : "none";
-      toggle.addEventListener("change", function () {
-        opRow.style.display = toggle.checked ? "flex" : "none";
+
+      var sameRow = toggleRow(
+        familyGroup,
+        "Same-priority links",
+        samePrioEdges,
+        function (val) {
+          samePrioEdges = val;
+          if (window.pycmd) {
+            pycmd("fprio:" + (samePrioEdges ? "1" : "0"));
+          }
+          opRow.style.display = samePrioEdges ? "flex" : "none";
+          showToast("Same-priority links: " + (samePrioEdges ? "On" : "Off"));
+        }
+      );
+      familyGroup.appendChild(opRow);
+      opRow.style.display = samePrioEdges ? "flex" : "none";
+
+      var hubGroup = addGroup("Family Hubs");
+      layerRow(hubGroup, "family_hub", "Family Hubs");
+      strengthRow(hubGroup, "family_hub", "Strength");
+      toggleRow(hubGroup, "Chain family levels", familyChainEdges, function (val) {
+        familyChainEdges = val;
+        if (window.pycmd) {
+          pycmd("fchain:" + (familyChainEdges ? "1" : "0"));
+        }
+        showToast("Chain family levels: " + (familyChainEdges ? "On" : "Off"));
       });
 
+      var refGroup = addGroup("Linked Notes");
+      layerRow(refGroup, "reference", "Linked Notes");
+      strengthRow(refGroup, "reference", "Strength");
       var autoRow = document.createElement("div");
       autoRow.className = "layer-row";
       var autoLabel = document.createElement("span");
@@ -1808,7 +2322,7 @@
       autoInput.max = "1";
       autoInput.step = "0.05";
       autoInput.value = autoRefOpacity;
-      var setAuto = function (v) {
+      var setAuto = function (v, notify) {
         if (isNaN(v)) return;
         autoRefOpacity = v;
         autoRange.value = v;
@@ -1817,51 +2331,48 @@
           pycmd("refauto:" + autoRefOpacity);
         }
         applyFilters({ reheat: false });
+        if (notify) showToast("Auto-link opacity: " + autoRefOpacity);
       };
       autoRange.addEventListener("input", function () {
-        setAuto(parseFloat(autoRange.value));
+        setAuto(parseFloat(autoRange.value), false);
       });
       autoInput.addEventListener("change", function () {
-        setAuto(parseFloat(autoInput.value));
-        showToast("Auto-link opacity: " + autoRefOpacity);
+        setAuto(parseFloat(autoInput.value), true);
       });
       autoRow.appendChild(autoLabel);
       autoRow.appendChild(autoRange);
       autoRow.appendChild(autoInput);
-      if (referenceRow) {
-        insertAfter(referenceRow, autoRow);
-      } else {
-        list.appendChild(autoRow);
-      }
+      refGroup.appendChild(autoRow);
 
-      var compToggleRow = document.createElement("div");
-      compToggleRow.className = "layer-row-toggle";
-      var compToggle = document.createElement("input");
-      compToggle.type = "checkbox";
-      compToggle.checked = !!kanjiComponentsEnabled;
-      compToggle.addEventListener("change", function () {
-        kanjiComponentsEnabled = !!compToggle.checked;
+      var exampleGroup = addGroup("Example Gate");
+      layerRow(exampleGroup, "example", "Example Gate");
+      strengthRow(exampleGroup, "example", "Strength");
+
+      var kanjiGroup = addGroup("Kanji Gate");
+      layerRow(kanjiGroup, "kanji", "Kanji Gate");
+      strengthRow(kanjiGroup, "kanji", "Strength");
+
+      var compRow = toggleRow(kanjiGroup, "Kanji Parts", kanjiComponentsEnabled, function (val) {
+        kanjiComponentsEnabled = val;
         if (window.pycmd) {
           pycmd("kcomp:" + (kanjiComponentsEnabled ? "1" : "0"));
         }
-        compStyleRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-        compColorRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-        compOpacityRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-        compFlowRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-        compFocusRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
+        partsWrap.style.display = kanjiComponentsEnabled ? "block" : "none";
         applyFilters({ reheat: false });
         showToast("Kanji parts: " + (kanjiComponentsEnabled ? "On" : "Off"));
       });
-      var compLabel = document.createElement("span");
-      compLabel.textContent = "Kanji Parts";
-      compToggleRow.appendChild(compToggle);
-      compToggleRow.appendChild(compLabel);
-      list.appendChild(compToggleRow);
+
+      var partsWrap = document.createElement("div");
+      partsWrap.className = "nt-group";
+      partsWrap.style.marginLeft = "12px";
+      partsWrap.style.paddingLeft = "8px";
+      partsWrap.style.borderLeft = "1px solid rgba(255,255,255,0.08)";
+      kanjiGroup.appendChild(partsWrap);
 
       var compColorRow = document.createElement("div");
       compColorRow.className = "layer-row";
       var compColorLabel = document.createElement("span");
-      compColorLabel.textContent = "Kanji Parts";
+      compColorLabel.textContent = "Parts";
       compColorLabel.style.flex = "1";
       var compColor = document.createElement("input");
       compColor.type = "color";
@@ -1874,54 +2385,6 @@
         applyFilters({ reheat: false });
         showToast("Parts color updated");
       });
-      compColorRow.appendChild(compColorLabel);
-      compColorRow.appendChild(compColor);
-      list.appendChild(compColorRow);
-
-      var compOpacityRow = document.createElement("div");
-      compOpacityRow.className = "layer-row";
-      var compOpacityLabel = document.createElement("span");
-      compOpacityLabel.textContent = "Parts Opacity";
-      compOpacityLabel.style.flex = "1";
-      var compOpacityRange = document.createElement("input");
-      compOpacityRange.type = "range";
-      compOpacityRange.min = "0.05";
-      compOpacityRange.max = "1";
-      compOpacityRange.step = "0.05";
-      compOpacityRange.value = kanjiComponentOpacity;
-      var compOpacityInput = document.createElement("input");
-      compOpacityInput.type = "number";
-      compOpacityInput.min = "0.05";
-      compOpacityInput.max = "1";
-      compOpacityInput.step = "0.05";
-      compOpacityInput.value = kanjiComponentOpacity;
-      var setCompOpacity = function (v) {
-        if (isNaN(v)) return;
-        kanjiComponentOpacity = v;
-        compOpacityRange.value = v;
-        compOpacityInput.value = v;
-        if (window.pycmd) {
-          pycmd("kcompop:" + kanjiComponentOpacity);
-        }
-        applyFilters({ reheat: false });
-      };
-      compOpacityRange.addEventListener("input", function () {
-        setCompOpacity(parseFloat(compOpacityRange.value));
-      });
-      compOpacityInput.addEventListener("change", function () {
-        setCompOpacity(parseFloat(compOpacityInput.value));
-        showToast("Parts opacity: " + kanjiComponentOpacity);
-      });
-      compOpacityRow.appendChild(compOpacityLabel);
-      compOpacityRow.appendChild(compOpacityRange);
-      compOpacityRow.appendChild(compOpacityInput);
-      list.appendChild(compOpacityRow);
-
-      var compStyleRow = document.createElement("div");
-      compStyleRow.className = "layer-row";
-      var compStyleLabel = document.createElement("span");
-      compStyleLabel.textContent = "Parts Style";
-      compStyleLabel.style.flex = "1";
       var compStyle = document.createElement("select");
       ["solid", "dashed", "pointed"].forEach(function (opt) {
         var o = document.createElement("option");
@@ -1938,12 +2401,6 @@
         applyFilters({ reheat: false });
         showToast("Parts style: " + kanjiComponentStyle);
       });
-      compStyleRow.appendChild(compStyleLabel);
-      compStyleRow.appendChild(compStyle);
-      // place style in same row as color, without extra label
-      compStyleLabel.textContent = "";
-      compColorRow.appendChild(compStyle);
-
       var compFlowToggle = document.createElement("input");
       compFlowToggle.type = "checkbox";
       compFlowToggle.checked = !!kanjiComponentFlow;
@@ -1955,7 +2412,52 @@
         applyFilters({ reheat: false });
         showToast("Parts flow: " + (kanjiComponentFlow ? "On" : "Off"));
       });
+      compColorRow.appendChild(compColorLabel);
+      compColorRow.appendChild(compColor);
+      compColorRow.appendChild(compStyle);
       compColorRow.appendChild(compFlowToggle);
+      partsWrap.appendChild(compColorRow);
+
+      strengthRow(partsWrap, "kanji_component", "Strength");
+
+      var compOpacityRow = document.createElement("div");
+      compOpacityRow.className = "layer-row";
+      var compOpacityLabel = document.createElement("span");
+      compOpacityLabel.textContent = "Parts opacity";
+      compOpacityLabel.style.flex = "1";
+      var compOpacityRange = document.createElement("input");
+      compOpacityRange.type = "range";
+      compOpacityRange.min = "0.05";
+      compOpacityRange.max = "1";
+      compOpacityRange.step = "0.05";
+      compOpacityRange.value = kanjiComponentOpacity;
+      var compOpacityInput = document.createElement("input");
+      compOpacityInput.type = "number";
+      compOpacityInput.min = "0.05";
+      compOpacityInput.max = "1";
+      compOpacityInput.step = "0.05";
+      compOpacityInput.value = kanjiComponentOpacity;
+      var setCompOpacity = function (v, notify) {
+        if (isNaN(v)) return;
+        kanjiComponentOpacity = v;
+        compOpacityRange.value = v;
+        compOpacityInput.value = v;
+        if (window.pycmd) {
+          pycmd("kcompop:" + kanjiComponentOpacity);
+        }
+        applyFilters({ reheat: false });
+        if (notify) showToast("Parts opacity: " + kanjiComponentOpacity);
+      };
+      compOpacityRange.addEventListener("input", function () {
+        setCompOpacity(parseFloat(compOpacityRange.value), false);
+      });
+      compOpacityInput.addEventListener("change", function () {
+        setCompOpacity(parseFloat(compOpacityInput.value), true);
+      });
+      compOpacityRow.appendChild(compOpacityLabel);
+      compOpacityRow.appendChild(compOpacityRange);
+      compOpacityRow.appendChild(compOpacityInput);
+      partsWrap.appendChild(compOpacityRow);
 
       var compFocusRow = document.createElement("div");
       compFocusRow.className = "layer-row-toggle";
@@ -1974,13 +2476,9 @@
       compFocusLabel.textContent = "Parts only on selection";
       compFocusRow.appendChild(compFocusToggle);
       compFocusRow.appendChild(compFocusLabel);
-      list.appendChild(compFocusRow);
+      partsWrap.appendChild(compFocusRow);
 
-      compStyleRow.style.display = "none";
-      compColorRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-      compOpacityRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-      compFocusRow.style.display = kanjiComponentsEnabled ? "flex" : "none";
-
+      partsWrap.style.display = kanjiComponentsEnabled ? "block" : "none";
     }
 
     function setupDeckDropdown() {
@@ -2209,6 +2707,7 @@
 
     loadLayers();
     setupNoteTypePanel();
+    setupCardPanel();
     setupLayerPanel();
     setupPhysicsPanel();
     setupSettingsPanel();
@@ -2242,8 +2741,7 @@
       }
       if (typeof Graph.linkStrength === "function") {
         Graph.linkStrength(function (l) {
-          if (l && l.meta && l.meta.flow_only) return 0;
-          return physics.link_strength;
+          return getLinkStrength(l);
         });
       }
       if (typeof Graph.d3VelocityDecay === "function") {
@@ -2348,6 +2846,13 @@
       var menu = document.getElementById("ctx-menu");
       if (!menu) return;
       ctxMenuId = node ? String(node.id) : null;
+      ctxDot = null;
+      if (node && cardDotsEnabled) {
+        var dotCard = getCardDotClick(node, evt);
+        if (dotCard && dotCard.id) {
+          ctxDot = { nodeId: String(node.id), cardId: dotCard.id };
+        }
+      }
       menu.innerHTML = "";
       function addItem(label, cb) {
         var div = document.createElement("div");
@@ -2448,7 +2953,8 @@
 
       var groups = [];
       var openGroup = [];
-      if (node.kind !== "family") {
+      var isNodeNoteTypeHub = node && node.kind === "note_type_hub";
+      if (node.kind === "note") {
         openGroup.push({
           label: "Open Preview",
           cb: function () {
@@ -2456,6 +2962,15 @@
             if (window.pycmd) pycmd("ctx:preview:" + node.id);
           },
         });
+        if (ctxDot && ctxDot.cardId) {
+          openGroup.push({
+            label: "Open Card in Preview",
+            cb: function () {
+              showToast("Open card preview");
+              if (window.pycmd) pycmd("ctx:previewcard:" + ctxDot.cardId);
+            },
+          });
+        }
         openGroup.push({
           label: "Open Editor",
           cb: function () {
@@ -2468,6 +2983,15 @@
           cb: function () {
             showToast("Open browser");
             if (window.pycmd) pycmd("ctx:browser:" + node.id);
+          },
+        });
+      } else if (isNodeNoteTypeHub) {
+        openGroup.push({
+          label: "Open Browser",
+          cb: function () {
+            showToast("Open browser");
+            var mid = node.note_type_id || String(node.id).replace("notetype:", "");
+            if (window.pycmd) pycmd("ctx:browsernt:" + mid);
           },
         });
       }
@@ -2826,12 +3350,21 @@
         menu.style.top = e.clientY + "px";
       }
       menu.style.display = "block";
+      if (ctxDot && Graph && typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
     }
 
     function hideContextMenu() {
       var menu = document.getElementById("ctx-menu");
       if (menu) menu.style.display = "none";
       ctxMenuId = null;
+      if (ctxDot) {
+        ctxDot = null;
+        if (Graph && typeof Graph.resumeAnimation === "function") {
+          Graph.resumeAnimation();
+        }
+      }
     }
 
     graphEl.addEventListener("contextmenu", function (e) {
@@ -2936,6 +3469,9 @@
             } else {
               delete noteTypeLinkedField[id];
             }
+            if (Array.isArray(nt.templates)) {
+              noteTypeTemplates[id] = nt.templates.slice();
+            }
           });
         }
         if (newData.meta && newData.meta.layer_colors) {
@@ -2952,6 +3488,21 @@
           Object.keys(newData.meta.layer_flow).forEach(function (k) {
             if (!layerFlow[k]) layerFlow[k] = newData.meta.layer_flow[k];
           });
+        }
+        if (newData.meta && newData.meta.link_strengths) {
+          Object.keys(newData.meta.link_strengths).forEach(function (k) {
+            if (linkStrengths[k] === undefined) {
+              linkStrengths[k] = newData.meta.link_strengths[k];
+            }
+          });
+        }
+        if (newData.meta && newData.meta.card_dot_colors) {
+          var cdc = newData.meta.card_dot_colors || {};
+          if (cdc.suspended) cardDotColors.suspended = cdc.suspended;
+          if (cdc.buried) cardDotColors.buried = cdc.buried;
+        }
+        if (newData.meta && newData.meta.card_dots_enabled !== undefined) {
+          cardDotsEnabled = !!newData.meta.card_dots_enabled;
         }
         if (newData.meta && newData.meta.layer_flow_speed !== undefined) {
           flowSpeed = newData.meta.layer_flow_speed;

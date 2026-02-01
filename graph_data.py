@@ -159,6 +159,131 @@ def _note_type_name(col: Collection, mid: int) -> str:
     return str(mid)
 
 
+def _card_status(queue: int) -> str:
+    if queue == -1:
+        return "suspended"
+    if queue in (-2, -3):
+        return "buried"
+    return "normal"
+
+
+def _card_columns(col: Collection) -> set[str]:
+    try:
+        rows = col.db.all("pragma table_info(cards)")
+    except Exception:
+        return set()
+    out = set()
+    for row in rows or []:
+        try:
+            out.add(str(row[1]))
+        except Exception:
+            continue
+    return out
+
+
+def _extract_stability(value: Any, memory_state: Any) -> float | None:
+    if value is not None:
+        try:
+            return float(value)
+        except Exception:
+            pass
+    if not memory_state:
+        return None
+    try:
+        if isinstance(memory_state, (bytes, bytearray)):
+            memory_state = memory_state.decode("utf-8", "ignore")
+        data = json.loads(memory_state)
+        if isinstance(data, dict):
+            if "stability" in data:
+                return float(data["stability"])
+            if "s" in data:
+                return float(data["s"])
+    except Exception:
+        return None
+    return None
+
+
+def _build_card_map(col: Collection, nids: list[int]) -> dict[int, list[dict[str, Any]]]:
+    out: dict[int, list[dict[str, Any]]] = {}
+    if not nids:
+        return out
+    cols = _card_columns(col)
+    select_cols = ["id", "nid", "ord", "queue"]
+    if "stability" in cols:
+        select_cols.append("stability")
+    if "memory_state" in cols:
+        select_cols.append("memory_state")
+    chunk_size = 900
+    for idx in range(0, len(nids), chunk_size):
+        chunk = nids[idx : idx + chunk_size]
+        if not chunk:
+            continue
+        placeholders = ",".join(["?"] * len(chunk))
+        try:
+            rows = col.db.all(
+                f"select {','.join(select_cols)} from cards where nid in ({placeholders})",
+                *chunk,
+            )
+        except Exception:
+            continue
+        idx_map = {name: i for i, name in enumerate(select_cols)}
+        for row in rows or []:
+            try:
+                cid = row[idx_map["id"]]
+                nid = row[idx_map["nid"]]
+                ord_val = row[idx_map["ord"]]
+                queue = row[idx_map["queue"]]
+            except Exception:
+                continue
+            try:
+                nid_int = int(nid)
+            except Exception:
+                continue
+            try:
+                ord_int = int(ord_val)
+            except Exception:
+                ord_int = 0
+            try:
+                queue_int = int(queue)
+            except Exception:
+                queue_int = 0
+            stability = None
+            if "stability" in idx_map:
+                stability = _extract_stability(row[idx_map["stability"]], None)
+            if stability is None and "memory_state" in idx_map:
+                stability = _extract_stability(None, row[idx_map["memory_state"]])
+            if stability is None:
+                try:
+                    card_obj = col.get_card(int(cid))
+                except Exception:
+                    card_obj = None
+                if card_obj is not None:
+                    try:
+                        mem = getattr(card_obj, "memory_state", None)
+                        if mem is not None and hasattr(mem, "stability"):
+                            stability = float(mem.stability)
+                    except Exception:
+                        stability = None
+                    if stability is None:
+                        try:
+                            comp = col.compute_memory_state(int(cid))
+                            if comp and getattr(comp, "stability", None) is not None:
+                                stability = float(comp.stability)
+                        except Exception:
+                            stability = None
+            out.setdefault(nid_int, []).append(
+                {
+                    "id": int(cid),
+                    "ord": ord_int,
+                    "status": _card_status(queue_int),
+                    "stability": stability,
+                }
+            )
+    for cards in out.values():
+        cards.sort(key=lambda c: c.get("ord", 0))
+    return out
+
+
 def _note_ids_for_query(col: Collection, q: str) -> list[int]:
     try:
         return list(col.find_notes(q))
@@ -230,11 +355,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
     tooltip_fields = graph_cfg.get("note_type_tooltip_fields") or {}
     visible_note_types = graph_cfg.get("note_type_visible") or {}
     note_type_colors = graph_cfg.get("note_type_colors") or {}
+    note_type_hubs = graph_cfg.get("note_type_hubs") or {}
     layer_colors = graph_cfg.get("layer_colors") or {}
     same_prio_edges = bool(graph_cfg.get("family_same_prio_edges", False))
     same_prio_opacity = float(graph_cfg.get("family_same_prio_opacity", 0.6))
     layer_styles = graph_cfg.get("layer_styles") or {}
     layer_flow = graph_cfg.get("layer_flow") or {}
+    layer_enabled = graph_cfg.get("layer_enabled") or {}
+    link_strengths = graph_cfg.get("link_strengths") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
@@ -250,6 +378,13 @@ def build_graph(col: Collection) -> dict[str, Any]:
         kanji_component_opacity = 0.6
     kanji_component_focus_only = bool(graph_cfg.get("kanji_component_focus_only", False))
     kanji_component_flow = bool(graph_cfg.get("kanji_component_flow", False))
+    card_dot_suspended_color = str(
+        graph_cfg.get("card_dot_suspended_color") or "#ef4444"
+    )
+    card_dot_buried_color = str(
+        graph_cfg.get("card_dot_buried_color") or "#f59e0b"
+    )
+    card_dots_enabled = bool(graph_cfg.get("card_dots_enabled", True))
 
     logger.dbg("build_graph start")
     nodes: dict[str, dict[str, Any]] = {}
@@ -902,6 +1037,71 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 out_edges.append(visible)
         edges = out_edges
 
+    # Aggregate note types into hubs (optional)
+    if note_type_hubs:
+        hub_map: dict[str, str] = {}
+        hub_counts: dict[str, int] = {}
+        for nid, node in list(nodes.items()):
+            if node.get("kind") != "note":
+                continue
+            mid = str(node.get("note_type_id") or "")
+            if not mid or not note_type_hubs.get(mid):
+                continue
+            hub_id = f"notetype:{mid}"
+            hub_map[str(nid)] = hub_id
+            hub_counts[hub_id] = hub_counts.get(hub_id, 0) + 1
+        if hub_map:
+            for hub_id, count in hub_counts.items():
+                mid = hub_id.split(":", 1)[1]
+                try:
+                    name = _note_type_name(col, int(mid))
+                except Exception:
+                    name = mid
+                ensure_node(
+                    hub_id,
+                    label=name,
+                    kind="note_type_hub",
+                    note_type_id=mid,
+                    note_type=name,
+                    hub_count=count,
+                )
+            for nid in hub_map.keys():
+                nodes.pop(nid, None)
+            new_edges: list[dict[str, Any]] = []
+            seen: set[tuple[str, str, str, str]] = set()
+
+            def _hub_meta_key(meta: Any) -> str:
+                if not isinstance(meta, dict):
+                    return ""
+                keep: dict[str, Any] = {}
+                for k in ("flow_only", "manual", "bidirectional", "kind"):
+                    if k in meta:
+                        keep[k] = meta.get(k)
+                try:
+                    return json.dumps(keep, sort_keys=True, default=str)
+                except Exception:
+                    return str(keep)
+
+            for e in edges:
+                src = hub_map.get(str(e.get("source")), str(e.get("source")))
+                dst = hub_map.get(str(e.get("target")), str(e.get("target")))
+                if src == dst:
+                    continue
+                meta = e.get("meta") or {}
+                if str(src).startswith("notetype:") or str(dst).startswith("notetype:"):
+                    meta_key = _hub_meta_key(meta)
+                else:
+                    try:
+                        meta_key = json.dumps(meta, sort_keys=True, default=str)
+                    except Exception:
+                        meta_key = str(meta)
+                key = (src, dst, str(e.get("layer") or ""), meta_key)
+                if key in seen:
+                    continue
+                seen.add(key)
+                new_edges.append({"source": src, "target": dst, "layer": e.get("layer"), "meta": meta})
+            edges = new_edges
+
     if edges:
         for e in edges:
             layer = str(e.get("layer") or "")
@@ -913,6 +1113,23 @@ def build_graph(col: Collection) -> dict[str, Any]:
     if edges and not show_unlinked:
         linked_ids = {str(e.get("source")) for e in edges} | {str(e.get("target")) for e in edges}
         nodes = {nid: n for nid, n in nodes.items() if nid in linked_ids}
+
+    note_ids: list[int] = []
+    for nid, node in nodes.items():
+        if node.get("kind") != "note":
+            continue
+        try:
+            note_ids.append(int(nid))
+        except Exception:
+            continue
+    card_map = _build_card_map(col, note_ids)
+    for nid, node in nodes.items():
+        if node.get("kind") != "note":
+            continue
+        try:
+            node["cards"] = card_map.get(int(nid), [])
+        except Exception:
+            node["cards"] = []
     note_type_meta: list[dict[str, Any]] = []
     seen_nt: set[str] = set()
     for node in nodes.values():
@@ -937,11 +1154,19 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 "id": str(mid),
                 "name": name,
                 "fields": fields,
+                "templates": [
+                    str(t.get("name", ""))
+                    for t in (model.get("tmpls") or [])
+                    if t.get("name")
+                ]
+                if model and isinstance(model, dict)
+                else [],
                 "label_field": label_fields.get(str(mid), ""),
                 "linked_field": linked_fields.get(str(mid), ""),
                 "tooltip_fields": tooltip_fields.get(str(mid), []) if isinstance(tooltip_fields, dict) else [],
                 "visible": bool(visible_note_types.get(str(mid), True)),
                 "color": note_type_colors.get(str(mid), ""),
+                "hub": bool(note_type_hubs.get(str(mid), False)),
             }
         )
 
@@ -962,10 +1187,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layers": ["family", "family_hub", "reference", "example", "kanji"],
             "note_types": note_type_meta,
             "layer_colors": layer_colors,
+            "layer_enabled": layer_enabled,
             "family_same_prio_edges": same_prio_edges,
             "family_same_prio_opacity": same_prio_opacity,
             "layer_styles": layer_styles,
             "layer_flow": layer_flow,
+            "link_strengths": link_strengths,
             "layer_flow_speed": layer_flow_speed,
             "family_chain_edges": family_chain_edges,
             "reference_auto_opacity": reference_auto_opacity,
@@ -978,5 +1205,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "kanji_component_opacity": kanji_component_opacity,
             "kanji_component_focus_only": kanji_component_focus_only,
             "kanji_component_flow": kanji_component_flow,
+            "card_dot_colors": {
+                "suspended": card_dot_suspended_color,
+                "buried": card_dot_buried_color,
+            },
+            "card_dots_enabled": card_dots_enabled,
         },
     }

@@ -13,6 +13,8 @@ DEFAULT_CFG: dict[str, Any] = {
     "note_type_tooltip_fields": {},
     "note_type_visible": {},
     "note_type_colors": {},
+    "note_type_hubs": {},
+    "layer_enabled": {},
     "layer_colors": {"family": "#3d95e7", "family_hub": "#34d399"},
     "family_same_prio_edges": False,
     "family_same_prio_opacity": 0.15,
@@ -29,6 +31,14 @@ DEFAULT_CFG: dict[str, Any] = {
         "kanji": True,
         "example": True,
     },
+    "link_strengths": {
+        "family": 1.0,
+        "family_hub": 1.0,
+        "reference": 1.0,
+        "example": 1.0,
+        "kanji": 1.0,
+        "kanji_component": 1.0,
+    },
     "layer_flow_speed": 0.35,
     "family_chain_edges": True,
     "selected_decks": [],
@@ -41,6 +51,9 @@ DEFAULT_CFG: dict[str, Any] = {
     "kanji_component_opacity": 0.5,
     "kanji_component_focus_only": True,
     "kanji_component_flow": True,
+    "card_dot_suspended_color": "#ef4444",
+    "card_dot_buried_color": "#f59e0b",
+    "card_dots_enabled": True,
 }
 
 
@@ -51,9 +64,12 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         "note_type_tooltip_fields",
         "note_type_visible",
         "note_type_colors",
+        "note_type_hubs",
+        "layer_enabled",
         "layer_colors",
         "layer_styles",
         "layer_flow",
+        "link_strengths",
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
@@ -85,6 +101,12 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["kanji_component_focus_only"] = DEFAULT_CFG["kanji_component_focus_only"]
     if not isinstance(cfg.get("kanji_component_flow"), bool):
         cfg["kanji_component_flow"] = DEFAULT_CFG["kanji_component_flow"]
+    if not isinstance(cfg.get("card_dot_suspended_color"), str):
+        cfg["card_dot_suspended_color"] = DEFAULT_CFG["card_dot_suspended_color"]
+    if not isinstance(cfg.get("card_dot_buried_color"), str):
+        cfg["card_dot_buried_color"] = DEFAULT_CFG["card_dot_buried_color"]
+    if not isinstance(cfg.get("card_dots_enabled"), bool):
+        cfg["card_dots_enabled"] = DEFAULT_CFG["card_dots_enabled"]
     return cfg
 
 
@@ -164,6 +186,17 @@ def set_note_type_color(mid: str, color: str) -> None:
     save_graph_config(cfg)
 
 
+def set_note_type_hub(mid: str, enabled: bool) -> None:
+    cfg = load_graph_config()
+    mid = str(mid)
+    cfg.setdefault("note_type_hubs", {})
+    if enabled:
+        cfg["note_type_hubs"][mid] = True
+    else:
+        cfg["note_type_hubs"].pop(mid, None)
+    save_graph_config(cfg)
+
+
 def set_layer_color(layer: str, color: str) -> None:
     cfg = load_graph_config()
     layer = (layer or "").strip()
@@ -174,6 +207,16 @@ def set_layer_color(layer: str, color: str) -> None:
         cfg["layer_colors"].pop(layer, None)
     else:
         cfg["layer_colors"][layer] = color
+    save_graph_config(cfg)
+
+
+def set_layer_enabled(layer: str, enabled: bool) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    if not layer:
+        return
+    cfg.setdefault("layer_enabled", {})
+    cfg["layer_enabled"][layer] = bool(enabled)
     save_graph_config(cfg)
 
 
@@ -220,6 +263,20 @@ def set_layer_flow_speed(speed: float) -> None:
         cfg["layer_flow_speed"] = float(speed)
     except Exception:
         return
+    save_graph_config(cfg)
+
+
+def set_link_strength(layer: str, strength: float) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    if not layer:
+        return
+    try:
+        value = float(strength)
+    except Exception:
+        return
+    cfg.setdefault("link_strengths", {})
+    cfg["link_strengths"][layer] = value
     save_graph_config(cfg)
 
 
@@ -296,4 +353,28 @@ def set_kanji_component_focus_only(enabled: bool) -> None:
 def set_kanji_component_flow(enabled: bool) -> None:
     cfg = load_graph_config()
     cfg["kanji_component_flow"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_card_dot_suspended_color(color: str) -> None:
+    cfg = load_graph_config()
+    color = (color or "").strip()
+    if not color:
+        color = DEFAULT_CFG["card_dot_suspended_color"]
+    cfg["card_dot_suspended_color"] = color
+    save_graph_config(cfg)
+
+
+def set_card_dot_buried_color(color: str) -> None:
+    cfg = load_graph_config()
+    color = (color or "").strip()
+    if not color:
+        color = DEFAULT_CFG["card_dot_buried_color"]
+    cfg["card_dot_buried_color"] = color
+    save_graph_config(cfg)
+
+
+def set_card_dots_enabled(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["card_dots_enabled"] = bool(enabled)
     save_graph_config(cfg)
