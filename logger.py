@@ -7,7 +7,7 @@ from typing import Any
 ADDON_DIR = os.path.dirname(__file__)
 LOG_PATH = os.path.join(ADDON_DIR, "ajpc-family-graph.log")
 
-_ENABLED = True
+_ENABLED = False
 
 
 def set_enabled(flag: bool) -> None:
@@ -25,4 +25,3 @@ def dbg(*args: Any) -> None:
             f.write(f"[FamilyGraph {ts}] {line}\n")
     except Exception:
         pass
-
