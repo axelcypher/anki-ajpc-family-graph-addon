@@ -12,7 +12,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - **Linked Notes** shows manual and auto-links (Anki Note Linker style tags/fields).
 
 ## Open the graph
-- `Tools -> AJpC -> Show Graph`
+- `AJpC -> Show Graph`
 
 ## UI tour
 ### Top toolbar
