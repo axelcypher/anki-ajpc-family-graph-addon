@@ -77,4 +77,6 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
 - All actions are visual only, except the context actions that explicitly write to your notes.
 
+## External Resources:
+https://www.svgrepo.com/svg/451006/knowledge-graph
 ---
