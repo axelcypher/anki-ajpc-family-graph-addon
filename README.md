@@ -5,6 +5,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 > **Required:** This add-on only works together with **AJpC Tools**. It pulls data through the Tools add-on API and will not work on its own.
 
 ![Graph UI](Screenshot-Graph-UI.png)
+![Graph UI](Screenshot-Graph-UI2.png)
 
 ## How it works (overview)
 - **Nodes = Anki notes**, **Edges = relationships** defined by AJpC Tools.

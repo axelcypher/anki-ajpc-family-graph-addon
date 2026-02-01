@@ -66,6 +66,8 @@ jobs:
             --exclude "meta.json" \
             --exclude "config-example.json" \
             --exclude "*.ankiaddon" \
+            --exclude "*.png" \
+            --exclude "*.log" \
             ./ "build/"
 
           if [ -f "build/config-example.json" ] && [ ! -f "build/config.json" ]; then
