@@ -75,5 +75,3 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - All actions are visual only, except the context actions that explicitly write to your notes.
 
 ---
-
-If you need help wiring specific fields or want a custom layout rule, just ask.
