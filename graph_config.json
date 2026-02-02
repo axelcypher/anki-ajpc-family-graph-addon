@@ -9,13 +9,13 @@
   },
   "note_type_visible": {
     "1769281677593": false,
-    "1768963265679": true,
-    "1768738698248": true,
+    "1768963265679": false,
+    "1768738698248": false,
     "1769741511321": true,
     "1769454350497": true,
     "1769220678917": false,
     "1769367768468": false,
-    "1751376700451": true
+    "1751376700451": false
   },
   "note_type_colors": {
     "1768669162567": "#8b489e",
@@ -50,7 +50,9 @@
   "note_type_linked_fields": {
     "1768669148068": "LinkedCards",
     "1768654427037": "LinkedCards",
-    "1768669162567": "LinkedCards"
+    "1768669162567": "LinkedCards",
+    "1769741511321": "LinkedNotes",
+    "1769454350497": "LinkedNotes"
   },
   "family_same_prio_opacity": 0.15,
   "note_type_tooltip_fields": {
@@ -92,8 +94,8 @@
   "card_dots_enabled": true,
   "link_strengths": {
     "family": 1.0,
-    "family_hub": 2.0,
-    "reference": 2.0,
+    "family_hub": 1.0,
+    "reference": 0.1,
     "example": 1.0,
     "kanji": 1.0,
     "kanji_component": 1.0
@@ -103,6 +105,19 @@
     "1769741511321": true
   },
   "layer_enabled": {
-    "reference": true
-  }
+    "reference": true,
+    "example": false,
+    "kanji": false
+  },
+  "physics": {
+    "charge": -121.0,
+    "link_distance": 20.0,
+    "link_strength": 1,
+    "velocity_decay": 0.17,
+    "alpha_decay": 0.024,
+    "cooldown_ticks": 83.0,
+    "warmup_ticks": 1.0,
+    "max_radius": 400.0
+  },
+  "soft_pin_radius": 90.0
 }

@@ -348,6 +348,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
     if not cfg:
         logger.dbg("config missing: _ajpc_graph_api unavailable")
         return {"nodes": [], "edges": [], "meta": {"error": "missing_tools_config"}}
+    debug_enabled = bool(cfg.get("debug_enabled", False)) if isinstance(cfg, dict) else False
 
     graph_cfg = load_graph_config()
     label_fields = graph_cfg.get("note_type_label_fields") or {}
@@ -364,6 +365,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
     layer_enabled = graph_cfg.get("layer_enabled") or {}
     link_strengths = graph_cfg.get("link_strengths") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
+    soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
+    physics_cfg = graph_cfg.get("physics") or {}
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
     reference_auto_opacity = float(graph_cfg.get("reference_auto_opacity", 1.0))
@@ -389,6 +392,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
     logger.dbg("build_graph start")
     nodes: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
+    hub_members: dict[str, dict[str, Any]] = {}
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -428,7 +432,11 @@ def build_graph(col: Collection) -> dict[str, Any]:
             nodes[node_id] = base
         else:
             for k, v in kwargs.items():
-                if k not in n and v is not None:
+                if v is None:
+                    continue
+                if k in ("label", "extra"):
+                    n[k] = v
+                elif k not in n:
                     n[k] = v
 
     def add_layer(node_id: str, layer: str) -> None:
@@ -535,35 +543,83 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 for nid, prio in members:
                     add_edge(str(nid), hub_id, "family_hub", prio=prio, fid=fid)
             if 1 < len(members) <= MAX_DIRECT_FAMILY_MEMBERS:
-                for i in range(len(members)):
-                    for j in range(i + 1, len(members)):
-                        src, prio = members[i]
-                        dst, _prio2 = members[j]
-                        if not same_prio_edges and prio == _prio2:
-                            continue
-                        if prio < _prio2:
-                            # flow from higher prio to lower prio
-                            add_edge(str(dst), str(src), "family", prio=prio, fid=fid, same_prio=False)
-                        elif prio > _prio2:
-                            add_edge(str(src), str(dst), "family", prio=_prio2, fid=fid, same_prio=False)
-                        else:
-                            add_edge(
-                                str(src),
-                                str(dst),
-                                "family",
-                                prio=prio,
-                                fid=fid,
-                                same_prio=True,
-                            )
-                            add_edge(
-                                str(dst),
-                                str(src),
-                                "family",
-                                prio=prio,
-                                fid=fid,
-                                same_prio=True,
-                                flow_only=True,
-                            )
+                if family_chain_edges:
+                    # In chain mode, only connect same-priority or adjacent-priority members.
+                    for i in range(len(members)):
+                        for j in range(i + 1, len(members)):
+                            src, prio = members[i]
+                            dst, _prio2 = members[j]
+                            if prio == _prio2:
+                                if not same_prio_edges:
+                                    continue
+                                add_edge(
+                                    str(src),
+                                    str(dst),
+                                    "family",
+                                    prio=prio,
+                                    fid=fid,
+                                    same_prio=True,
+                                )
+                                add_edge(
+                                    str(dst),
+                                    str(src),
+                                    "family",
+                                    prio=prio,
+                                    fid=fid,
+                                    same_prio=True,
+                                    flow_only=True,
+                                )
+                                continue
+                            if abs(prio - _prio2) != 1:
+                                continue
+                            if prio < _prio2:
+                                add_edge(
+                                    str(dst),
+                                    str(src),
+                                    "family",
+                                    prio=prio,
+                                    fid=fid,
+                                    same_prio=False,
+                                )
+                            else:
+                                add_edge(
+                                    str(src),
+                                    str(dst),
+                                    "family",
+                                    prio=_prio2,
+                                    fid=fid,
+                                    same_prio=False,
+                                )
+                else:
+                    for i in range(len(members)):
+                        for j in range(i + 1, len(members)):
+                            src, prio = members[i]
+                            dst, _prio2 = members[j]
+                            if not same_prio_edges and prio == _prio2:
+                                continue
+                            if prio < _prio2:
+                                # flow from higher prio to lower prio
+                                add_edge(str(dst), str(src), "family", prio=prio, fid=fid, same_prio=False)
+                            elif prio > _prio2:
+                                add_edge(str(src), str(dst), "family", prio=_prio2, fid=fid, same_prio=False)
+                            else:
+                                add_edge(
+                                    str(src),
+                                    str(dst),
+                                    "family",
+                                    prio=prio,
+                                    fid=fid,
+                                    same_prio=True,
+                                )
+                                add_edge(
+                                    str(dst),
+                                    str(src),
+                                    "family",
+                                    prio=prio,
+                                    fid=fid,
+                                    same_prio=True,
+                                    flow_only=True,
+                                )
 
     # Example Gate
     eg = cfg.get("example_gate", {})
@@ -1050,6 +1106,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
             hub_id = f"notetype:{mid}"
             hub_map[str(nid)] = hub_id
             hub_counts[hub_id] = hub_counts.get(hub_id, 0) + 1
+            hub_entry = hub_members.setdefault(hub_id, {"nodes": [], "edges": []})
+            hub_entry["nodes"].append(node)
         if hub_map:
             for hub_id, count in hub_counts.items():
                 mid = hub_id.split(":", 1)[1]
@@ -1083,8 +1141,17 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     return str(keep)
 
             for e in edges:
-                src = hub_map.get(str(e.get("source")), str(e.get("source")))
-                dst = hub_map.get(str(e.get("target")), str(e.get("target")))
+                raw_src = str(e.get("source"))
+                raw_dst = str(e.get("target"))
+                src_hub = hub_map.get(raw_src)
+                dst_hub = hub_map.get(raw_dst)
+                if src_hub and dst_hub and src_hub == dst_hub:
+                    hub_entry = hub_members.get(src_hub)
+                    if hub_entry is not None:
+                        hub_entry["edges"].append(e)
+                    continue
+                src = src_hub or raw_src
+                dst = dst_hub or raw_dst
                 if src == dst:
                     continue
                 meta = e.get("meta") or {}
@@ -1122,6 +1189,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
             note_ids.append(int(nid))
         except Exception:
             continue
+    for hub_entry in hub_members.values():
+        for node in hub_entry.get("nodes", []):
+            if node.get("kind") != "note":
+                continue
+            try:
+                note_ids.append(int(node.get("id")))
+            except Exception:
+                continue
     card_map = _build_card_map(col, note_ids)
     for nid, node in nodes.items():
         if node.get("kind") != "note":
@@ -1130,18 +1205,27 @@ def build_graph(col: Collection) -> dict[str, Any]:
             node["cards"] = card_map.get(int(nid), [])
         except Exception:
             node["cards"] = []
+    for hub_entry in hub_members.values():
+        for node in hub_entry.get("nodes", []):
+            if node.get("kind") != "note":
+                continue
+            try:
+                node["cards"] = card_map.get(int(node.get("id")), [])
+            except Exception:
+                node["cards"] = []
     note_type_meta: list[dict[str, Any]] = []
     seen_nt: set[str] = set()
-    for node in nodes.values():
+
+    def add_note_type_meta(node: dict[str, Any]) -> None:
         mid = node.get("note_type_id")
         if not mid or mid in seen_nt:
-            continue
+            return
         seen_nt.add(mid)
         try:
             model = col.models.get(int(mid))
         except Exception:
             model = None
-        fields = []
+        fields: list[str] = []
         name = mid
         if model and isinstance(model, dict):
             name = str(model.get("name", mid))
@@ -1170,6 +1254,25 @@ def build_graph(col: Collection) -> dict[str, Any]:
             }
         )
 
+    for node in nodes.values():
+        if isinstance(node, dict):
+            add_note_type_meta(node)
+    for hub_entry in hub_members.values():
+        for node in hub_entry.get("nodes", []):
+            if isinstance(node, dict):
+                add_note_type_meta(node)
+
+    hub_members_payload: list[dict[str, Any]] = []
+    for hub_id, entry in hub_members.items():
+        try:
+            nodes_list = entry.get("nodes") or []
+            edges_list = entry.get("edges") or []
+            hub_members_payload.append(
+                {"hub_id": hub_id, "nodes": nodes_list, "edges": edges_list}
+            )
+        except Exception:
+            continue
+
     deck_names: list[str] = []
     try:
         deck_names = sorted([d.get("name") for d in (col.decks.all_names_and_ids() or []) if d.get("name")])
@@ -1194,11 +1297,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layer_flow": layer_flow,
             "link_strengths": link_strengths,
             "layer_flow_speed": layer_flow_speed,
+            "soft_pin_radius": soft_pin_radius,
+            "physics": physics_cfg,
             "family_chain_edges": family_chain_edges,
             "reference_auto_opacity": reference_auto_opacity,
             "show_unlinked": show_unlinked,
             "selected_decks": selected_decks,
             "decks": deck_names,
+            "note_type_hub_members": hub_members_payload,
             "kanji_components_enabled": kanji_components_enabled,
             "kanji_component_style": kanji_component_style,
             "kanji_component_color": kanji_component_color,
@@ -1210,5 +1316,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 "buried": card_dot_buried_color,
             },
             "card_dots_enabled": card_dots_enabled,
+            "debug_enabled": debug_enabled,
         },
     }

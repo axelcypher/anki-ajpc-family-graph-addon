@@ -41,7 +41,8 @@ from .graph_config import (
     set_layer_style,
     set_layer_flow,
     set_layer_flow_speed,
-    set_link_strength,
+    set_physics_value,
+    set_soft_pin_radius,
     set_family_chain_edges,
     set_selected_decks,
     set_reference_auto_opacity,
@@ -400,7 +401,6 @@ def _html(payload: dict[str, Any]) -> str:
     <div id="settings-physics" class="settings-pane">
       <div class="phys-row"><span title="Repulsion between nodes. More negative = further apart.">Charge (Repulsion)</span><input id="phys-charge" type="range" min="-200" max="0" step="1"><input id="phys-charge-num" type="number" min="-200" max="0" step="1"></div>
       <div class="phys-row"><span title="Target distance between linked nodes. Smaller = tighter clusters.">Link Distance</span><input id="phys-link-distance" type="range" min="5" max="200" step="1"><input id="phys-link-distance-num" type="number" min="5" max="200" step="1"></div>
-      <div class="phys-row"><span title="How strongly links pull nodes together. Higher = tighter.">Link Strength</span><input id="phys-link-strength" type="range" min="0" max="2" step="0.05"><input id="phys-link-strength-num" type="number" min="0" max="2" step="0.05"></div>
       <div class="phys-row"><span title="Damping of movement per tick. Higher = less bounce.">Velocity Decay</span><input id="phys-vel-decay" type="range" min="0.01" max="1" step="0.01"><input id="phys-vel-decay-num" type="number" min="0.01" max="1" step="0.01"></div>
       <div class="phys-row"><span title="How fast the simulation cools down. Higher = settles sooner.">Alpha Decay</span><input id="phys-alpha-decay" type="range" min="0.001" max="0.2" step="0.001"><input id="phys-alpha-decay-num" type="number" min="0.001" max="0.2" step="0.001"></div>
       <div class="phys-row"><span title="Max range where repulsion affects other nodes.">Repulsion Range</span><input id="phys-max-radius" type="range" min="300" max="5000" step="50"><input id="phys-max-radius-num" type="number" min="300" max="5000" step="50"></div>
@@ -624,14 +624,21 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow speed", val)
             except Exception:
                 logger.dbg("layer flow speed parse failed", message)
-        elif message.startswith("lstrength:"):
+        elif message.startswith("phys:"):
             try:
                 _prefix, rest = message.split(":", 1)
-                layer, val = rest.split(":", 1)
-                set_link_strength(layer, float(val))
-                logger.dbg("link strength", layer, val)
+                key, val = rest.split(":", 1)
+                set_physics_value(key, float(val))
+                logger.dbg("physics", key, val)
             except Exception:
-                logger.dbg("link strength parse failed", message)
+                logger.dbg("physics parse failed", message)
+        elif message.startswith("softpin:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_soft_pin_radius(float(val))
+                logger.dbg("soft pin radius", val)
+            except Exception:
+                logger.dbg("soft pin radius parse failed", message)
         elif message.startswith("refauto:"):
             try:
                 _prefix, val = message.split(":", 1)
@@ -820,6 +827,8 @@ class FamilyGraphWindow(QWidget):
                         fid = source_label or str(source).replace("family:", "", 1)
                         if fid:
                             prio_map[fid] = 0
+                        if not prio_mode:
+                            prio_mode = "hub_zero"
                         if isinstance(families, list) and families:
                             fids = [str(f).strip() for f in families if str(f).strip()]
                         elif fid:

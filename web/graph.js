@@ -7,6 +7,13 @@
     } catch (_e) {}
   }
 
+  function nowMs() {
+    if (typeof performance !== "undefined" && performance.now) {
+      return performance.now();
+    }
+    return Date.now();
+  }
+
   function showToast(text, ttl) {
     var container = document.getElementById("toast-container");
     if (!container) return;
@@ -151,12 +158,33 @@
       velocity_decay: 0.35,
       alpha_decay: 0.02,
       cooldown_ticks: 80,
-      warmup_ticks: 0,
+      warmup_ticks: 180,
       max_radius: 1400,
     };
     var physics = {};
 
     var noteTypeMeta = (data.meta && data.meta.note_types) || [];
+    function buildNoteTypeHubMembers(raw) {
+      var map = {};
+      (raw || []).forEach(function (entry) {
+        if (!entry || !entry.hub_id) return;
+        var nodesList = entry.nodes || [];
+        nodesList.forEach(function (n) {
+          if (!n) return;
+          if (!n.kind) n.kind = "note";
+          n.__hub_parent = String(entry.hub_id);
+        });
+        map[String(entry.hub_id)] = {
+          nodes: nodesList,
+          edges: entry.edges || [],
+        };
+      });
+      return map;
+    }
+    var noteTypeHubMembers = buildNoteTypeHubMembers(
+      (data.meta && data.meta.note_type_hub_members) || []
+    );
+    var expandedHubs = new Set();
     var visibleNoteTypes = {};
     var noteTypeColors = {};
     var noteTypeLinkedField = {};
@@ -263,6 +291,17 @@
     nodes.forEach(function (n) {
       nodeById[String(n.id)] = n;
     });
+    function addHubMembersToNodeMap() {
+      Object.keys(noteTypeHubMembers).forEach(function (hid) {
+        var entry = noteTypeHubMembers[hid];
+        if (!entry || !entry.nodes) return;
+        entry.nodes.forEach(function (n) {
+          if (!n || n.id === undefined || n.id === null) return;
+          nodeById[String(n.id)] = n;
+        });
+      });
+    }
+    addHubMembersToNodeMap();
 
     var selectedId = null;
     var ctxMenuId = null;
@@ -273,11 +312,122 @@
     var activeLinks = [];
     var frozenLayout = false;
     var dragActive = false;
+    var dragNodeId = null;
     var pendingFlowUpdate = false;
     var lastActiveNoteIds = new Set();
     var softPinRadius = 140;
+    if (data.meta && data.meta.soft_pin_radius !== undefined) {
+      var sp = parseFloat(data.meta.soft_pin_radius);
+      if (!isNaN(sp)) softPinRadius = sp;
+    }
     var releaseTimer = null;
     var graphReady = true;
+    var debugEnabled = !!(data.meta && data.meta.debug_enabled);
+    var debugLinkDistEl = null;
+    var debugLinkLabels = {
+      enabled: debugEnabled,
+      mode: "cluster", // "cluster" | "all" | "dragged"
+    };
+    var debugClusterCache = { id: null, version: -1, set: null };
+    var activeLinksVersion = 0;
+
+    function ensureDebugLinkDistEl() {
+      if (!debugEnabled) return null;
+      if (debugLinkDistEl) return debugLinkDistEl;
+      var el = document.createElement("div");
+      el.id = "debug-linkdist";
+      el.style.position = "fixed";
+      el.style.right = "12px";
+      el.style.top = "56px";
+      el.style.zIndex = "9999";
+      el.style.padding = "6px 8px";
+      el.style.background = "rgba(0,0,0,0.65)";
+      el.style.border = "1px solid rgba(255,255,255,0.15)";
+      el.style.borderRadius = "6px";
+      el.style.color = "#e5e7eb";
+      el.style.fontSize = "12px";
+      el.style.fontFamily = "Segoe UI, Arial, sans-serif";
+      el.style.whiteSpace = "pre";
+      el.style.pointerEvents = "none";
+      el.style.display = "none";
+      document.body.appendChild(el);
+      debugLinkDistEl = el;
+      return el;
+    }
+
+    function hideDebugLinkDist() {
+      if (!debugEnabled) return;
+      if (debugLinkDistEl) debugLinkDistEl.style.display = "none";
+    }
+
+    function updateDebugLinkDist(node) {
+      if (!debugEnabled) return;
+      if (!node || !activeLinks || !activeLinks.length) {
+        hideDebugLinkDist();
+        return;
+      }
+      var el = ensureDebugLinkDistEl();
+      var id = String(node.id);
+      var min = null;
+      var max = null;
+      var count = 0;
+      var over = 0;
+      activeLinks.forEach(function (l) {
+        if (!l || (l.meta && l.meta.flow_only)) return;
+        var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
+        var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
+        var sid = String(s);
+        var tid = String(t);
+        if (sid !== id && tid !== id) return;
+        var otherId = sid === id ? tid : sid;
+        var other = nodeById[otherId];
+        if (!other) return;
+        var dx = (node.x || 0) - (other.x || 0);
+        var dy = (node.y || 0) - (other.y || 0);
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (!isFinite(dist)) return;
+        count += 1;
+        if (min === null || dist < min) min = dist;
+        if (max === null || dist > max) max = dist;
+        if (dist > softPinRadius) over += 1;
+      });
+      if (!count) {
+        el.textContent = "link dist: no direct links";
+        el.style.display = "block";
+        return;
+      }
+      var zoom = 1;
+      try {
+        if (Graph && typeof Graph.zoom === "function") {
+          zoom = Graph.zoom() || 1;
+        }
+      } catch (_e) {
+        zoom = 1;
+      }
+      var thrPx = softPinRadius * zoom;
+      var minPx = min * zoom;
+      var maxPx = max * zoom;
+      el.textContent =
+        "link dist (graph units)\n" +
+        "min: " +
+        min.toFixed(1) +
+        "  max: " +
+        max.toFixed(1) +
+        "\nthreshold: " +
+        softPinRadius.toFixed(1) +
+        "  (px≈" +
+        thrPx.toFixed(1) +
+        ")\n" +
+        "min/max px≈ " +
+        minPx.toFixed(1) +
+        " / " +
+        maxPx.toFixed(1) +
+        "\nlinks > threshold: " +
+        over +
+        " / " +
+        count;
+      el.style.display = "block";
+    }
 
     function linkIds(l) {
       var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
@@ -319,17 +469,310 @@
       return colorWithAlpha(color, factor);
     }
 
+    function linkStrokeColor(l) {
+      if (l.meta && l.meta.flow_only) {
+        return "rgba(0,0,0,0)";
+      }
+      var c = isKanjiComponent(l) ? componentColor() : layerColor(l.layer, layerColors);
+      if (l.layer === "reference" && l.meta && l.meta.manual === false) {
+        return colorWithAlpha(c, autoRefOpacity);
+      }
+      if (isKanjiComponent(l)) {
+        return colorWithAlpha(c, kanjiComponentOpacity);
+      }
+      if (l.meta && l.meta.same_prio) {
+        return colorWithAlpha(c, samePrioOpacity);
+      }
+      if (!isLinkConnected(l)) {
+        return applyDim(c, 0.2);
+      }
+      return c;
+    }
+
+    function linkDashStyle(l) {
+      var style = isKanjiComponent(l)
+        ? kanjiComponentStyle || "solid"
+        : layerStyles[l.layer] || "solid";
+      if (style === "dashed") return [6, 4];
+      if (style === "pointed") return [1, 4];
+      return [];
+    }
+
+    function isLinkVisibleForPhysics(l) {
+      if (!l) return false;
+      if (l.meta && l.meta.flow_only) return false;
+      if (!isLayerEnabled(l.layer)) return false;
+      if (!kanjiComponentsEnabled && isKanjiComponent(l)) return false;
+      if (kanjiComponentsEnabled && kanjiComponentFocusOnly && isKanjiComponent(l)) {
+        if (!componentFocusSet || componentFocusSet.size === 0) return false;
+        var s0 = l.source && typeof l.source === "object" ? l.source.id : l.source;
+        var t0 = l.target && typeof l.target === "object" ? l.target.id : l.target;
+        if (s0 === undefined || s0 === null) s0 = l.a;
+        if (t0 === undefined || t0 === null) t0 = l.b;
+        if (!componentFocusSet.has(String(s0)) || !componentFocusSet.has(String(t0))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     function getLinkStrength(l) {
-      if (l && l.meta && l.meta.flow_only) return 0;
+      if (!isLinkVisibleForPhysics(l)) return 0;
       if (!l) return physics.link_strength;
+      function resolveStrength(raw) {
+        if (typeof raw !== "number" || !isFinite(raw)) return null;
+        if (raw < 0) return 0;
+        return raw;
+      }
       if (l.layer === "kanji" && l.meta && l.meta.kind === "component") {
-        if (typeof linkStrengths.kanji_component === "number")
-          return linkStrengths.kanji_component;
+        var k = resolveStrength(linkStrengths.kanji_component);
+        if (k !== null) {
+          var tuneK = hubLinkTuning(l);
+          return tuneK ? k * tuneK.strength : k;
+        }
       }
-      if (linkStrengths && typeof linkStrengths[l.layer] === "number") {
-        return linkStrengths[l.layer];
+      var v = resolveStrength(linkStrengths[l.layer]);
+      var strength = v !== null ? v : physics.link_strength;
+      var tune = hubLinkTuning(l);
+      if (tune) strength = strength * tune.strength;
+      var boost = springBoost();
+      if (boost !== 1) strength = strength * boost;
+      return strength;
+    }
+
+    function linkStrokeWidth(l) {
+      if (l && l.meta && l.meta.flow_only) return 0;
+      return l && l.layer === "reference" ? 0.8 : 1.2;
+    }
+
+    function linkBaseColor(l) {
+      if (l && l.meta && l.meta.flow_only) {
+        return "rgba(0,0,0,0)";
       }
-      return physics.link_strength;
+      var c = isKanjiComponent(l) ? componentColor() : layerColor(l.layer, layerColors);
+      if (l.layer === "reference" && l.meta && l.meta.manual === false) {
+        return colorWithAlpha(c, autoRefOpacity);
+      }
+      if (isKanjiComponent(l)) {
+        return colorWithAlpha(c, kanjiComponentOpacity);
+      }
+      if (l.meta && l.meta.same_prio) {
+        return colorWithAlpha(c, samePrioOpacity);
+      }
+      if (!isLinkConnected(l)) {
+        return applyDim(c, 0.2);
+      }
+      return c;
+    }
+
+    function linkDashPattern(l) {
+      var style = isKanjiComponent(l)
+        ? kanjiComponentStyle || "solid"
+        : layerStyles[l.layer] || "solid";
+      if (style === "dashed") return [2, 1];
+      if (style === "pointed") return [0.3, 1];
+      return [];
+    }
+
+    function particleColor(l) {
+      var alpha = 0.7;
+      if (l.layer === "reference" && l.meta && l.meta.manual === false) {
+        alpha = Math.min(1, alpha * autoRefOpacity);
+      }
+      if (isKanjiComponent(l)) {
+        alpha = Math.min(1, alpha * kanjiComponentOpacity);
+      }
+      if (l.meta && l.meta.same_prio) {
+        alpha = Math.min(1, alpha * samePrioOpacity);
+      }
+      var baseCol = isKanjiComponent(l)
+        ? componentColor()
+        : layerColor(l.layer, layerColors);
+      return colorWithAlpha(baseCol, alpha);
+    }
+
+    function linkCurveValue(l) {
+      var c = l && typeof l.curve === "number" ? l.curve : 0;
+      if (!c) return 0;
+      return c;
+    }
+
+    function curveControlPoint(sx, sy, tx, ty, curve) {
+      if (!curve) return null;
+      var dx = tx - sx;
+      var dy = ty - sy;
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var mx = sx + dx * 0.5;
+      var my = sy + dy * 0.5;
+      var nx = -dy / len;
+      var ny = dx / len;
+      var offset = curve * len;
+      return { x: mx + nx * offset, y: my + ny * offset };
+    }
+
+    function drawLinkPath(ctx, s, t, curve) {
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      if (!curve) {
+        ctx.lineTo(t.x, t.y);
+        return;
+      }
+      var cp = curveControlPoint(s.x, s.y, t.x, t.y, curve);
+      var cx = cp ? cp.x : (s.x + t.x) * 0.5;
+      var cy = cp ? cp.y : (s.y + t.y) * 0.5;
+      ctx.quadraticCurveTo(cx, cy, t.x, t.y);
+    }
+
+    function linkLabelPoint(l) {
+      var info = linkHubInfo(l);
+      var s = info.s;
+      var t = info.t;
+      if (!s || !t) return null;
+      var sx = s.x;
+      var sy = s.y;
+      var tx = t.x;
+      var ty = t.y;
+      if (isExpandedHubExternalLink(l)) {
+        var pts = manualLinkPoints(l);
+        if (pts) {
+          sx = pts.sx;
+          sy = pts.sy;
+          tx = pts.tx;
+          ty = pts.ty;
+        }
+      }
+      if (
+        typeof sx !== "number" ||
+        typeof sy !== "number" ||
+        typeof tx !== "number" ||
+        typeof ty !== "number"
+      ) {
+        return null;
+      }
+      var curve = linkCurveValue(l);
+      if (!curve) {
+        return { x: (sx + tx) * 0.5, y: (sy + ty) * 0.5 };
+      }
+      var cp = curveControlPoint(sx, sy, tx, ty, curve);
+      if (!cp) {
+        return { x: (sx + tx) * 0.5, y: (sy + ty) * 0.5 };
+      }
+      var tmid = 0.5;
+      var inv = 1 - tmid;
+      var x = inv * inv * sx + 2 * inv * tmid * cp.x + tmid * tmid * tx;
+      var y = inv * inv * sy + 2 * inv * tmid * cp.y + tmid * tmid * ty;
+      return { x: x, y: y };
+    }
+
+    function getDragClusterSet() {
+      if (!dragNodeId) return null;
+      if (
+        debugClusterCache.id === dragNodeId &&
+        debugClusterCache.version === activeLinksVersion &&
+        debugClusterCache.set
+      ) {
+        return debugClusterCache.set;
+      }
+      var adj = {};
+      if (activeLinks && activeLinks.length) {
+        activeLinks.forEach(function (l) {
+          if (!l || (l.meta && l.meta.flow_only)) return;
+          var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
+          var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
+          var sk = String(s);
+          var tk = String(t);
+          if (!adj[sk]) adj[sk] = new Set();
+          if (!adj[tk]) adj[tk] = new Set();
+          adj[sk].add(tk);
+          adj[tk].add(sk);
+        });
+      }
+      var seen = new Set();
+      var stack = [String(dragNodeId)];
+      seen.add(String(dragNodeId));
+      while (stack.length) {
+        var cur = stack.pop();
+        var nbrs = adj[cur];
+        if (!nbrs) continue;
+        nbrs.forEach(function (nid) {
+          if (!seen.has(nid)) {
+            seen.add(nid);
+            stack.push(nid);
+          }
+        });
+      }
+      debugClusterCache = { id: dragNodeId, version: activeLinksVersion, set: seen };
+      return seen;
+    }
+
+    function drawLinkDistanceLabel(l, ctx, globalScale) {
+      if (!debugEnabled) return;
+      if (!debugLinkLabels || !debugLinkLabels.enabled) return;
+      if (debugLinkLabels.mode === "dragged") {
+        if (!dragNodeId) return;
+        var s0 = l.source && typeof l.source === "object" ? l.source.id : l.source;
+        var t0 = l.target && typeof l.target === "object" ? l.target.id : l.target;
+        if (String(s0) !== dragNodeId && String(t0) !== dragNodeId) return;
+      } else if (debugLinkLabels.mode === "cluster") {
+        if (!dragNodeId) return;
+        var set = getDragClusterSet();
+        if (!set) return;
+        var s1 = l.source && typeof l.source === "object" ? l.source.id : l.source;
+        var t1 = l.target && typeof l.target === "object" ? l.target.id : l.target;
+        if (!set.has(String(s1)) || !set.has(String(t1))) return;
+      }
+      var pt = linkLabelPoint(l);
+      if (!pt) return;
+      var dist = linkLength(l);
+      if (!isFinite(dist)) return;
+      var scale = globalScale || 1;
+      var fontSize = 10 / scale;
+      if (fontSize < 8) fontSize = 8;
+      if (fontSize > 28) fontSize = 28;
+      ctx.save();
+      ctx.font = fontSize + "px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = Math.max(1, 3 / scale);
+      ctx.strokeStyle = "rgba(0,0,0,0.65)";
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      var text = dist.toFixed(1);
+      ctx.strokeText(text, pt.x, pt.y);
+      ctx.fillText(text, pt.x, pt.y);
+      ctx.restore();
+    }
+
+    function isHubMemberOf(node, hubNode) {
+      if (!node || !hubNode) return false;
+      if (!node.__hub_parent) return false;
+      return String(node.__hub_parent) === String(hubNode.id);
+    }
+
+    function getLinkDistance(l) {
+      var base = physics.link_distance;
+      if (!l) return base;
+      if (!isLinkVisibleForPhysics(l)) return base;
+      var info = linkHubInfo(l);
+      var tune = hubLinkTuning(l);
+      if (tune) base = base * tune.distance;
+      var s = info.s;
+      var t = info.t;
+      var sHub = s && s.__hub_parent ? String(s.__hub_parent) : "";
+      var tHub = t && t.__hub_parent ? String(t.__hub_parent) : "";
+      if (sHub && sHub === tHub && expandedHubs.has(sHub)) {
+        var hubNode = nodeById[sHub];
+        if (hubNode) {
+          return Math.min(base, hubExpandedRadius(hubNode));
+        }
+      }
+      var extra = 0;
+      if (s && isHubExpanded(s) && !isHubMemberOf(t, s)) {
+        extra += hubExpandedRadius(s);
+      }
+      if (t && isHubExpanded(t) && !isHubMemberOf(s, t)) {
+        extra += hubExpandedRadius(t);
+      }
+      return base + extra;
     }
 
     function isKanjiComponent(l) {
@@ -350,6 +793,940 @@
       return false;
     }
 
+    function isNoteTypeHub(node) {
+      return !!(node && node.kind === "note_type_hub");
+    }
+
+    function isHubNode(node) {
+      if (!node) return false;
+      return node.kind === "family" || node.kind === "note_type_hub" || node.kind === "kanji_hub";
+    }
+
+    function hubLinkTuning(l) {
+      if (!hubClusterTuning) return null;
+      var info = linkHubInfo(l);
+      var sHub = isHubNode(info.s);
+      var tHub = isHubNode(info.t);
+      if (!sHub && !tHub) return null;
+      var strength =
+        typeof hubClusterTuning.link_strength_mult === "number"
+          ? hubClusterTuning.link_strength_mult
+          : 1;
+      var distance =
+        typeof hubClusterTuning.link_distance_mult === "number"
+          ? hubClusterTuning.link_distance_mult
+          : 1;
+      return { strength: strength, distance: distance };
+    }
+
+    function clusterRepulsionMult(node) {
+      if (!clusterRepulsion || !clusterRepulsion.enabled) return 1;
+      var size = node && node.__cluster_size ? node.__cluster_size : 1;
+      var ref = clusterRepulsion.size_ref || 1;
+      if (size <= ref) return 1;
+      var ratio = size / ref;
+      var exp = typeof clusterRepulsion.exp === "number" ? clusterRepulsion.exp : 0.7;
+      var mult = 1 / Math.pow(ratio, exp);
+      var minMult = typeof clusterRepulsion.min_mult === "number" ? clusterRepulsion.min_mult : 0.2;
+      if (mult < minMult) mult = minMult;
+      return mult;
+    }
+
+    function springBoost() {
+      if (!springTighten || !springTighten.enabled) return 1;
+      var dur = springTighten.duration_ms || 0;
+      if (dur <= 0) return springTighten.mult || 1;
+      var t = nowMs() - lastReheatAt;
+      if (t <= 0) return springTighten.mult || 1;
+      if (t >= dur) return 1;
+      var base = springTighten.mult || 1;
+      var k = 1 - t / dur;
+      return 1 + (base - 1) * k;
+    }
+
+    function graphViewBounds() {
+      if (!Graph || typeof Graph.screen2GraphCoords !== "function") return null;
+      var rect = graphEl.getBoundingClientRect();
+      var tl = Graph.screen2GraphCoords(0, 0);
+      var br = Graph.screen2GraphCoords(rect.width, rect.height);
+      var minX = Math.min(tl.x, br.x);
+      var maxX = Math.max(tl.x, br.x);
+      var minY = Math.min(tl.y, br.y);
+      var maxY = Math.max(tl.y, br.y);
+      return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+    }
+
+    function nodeInView(node, bounds) {
+      if (!node || !bounds) return false;
+      var pad = (linkPull && linkPull.view_pad) || 0;
+      var z = 1;
+      try {
+        if (Graph && typeof Graph.zoom === "function") {
+          z = Graph.zoom();
+        }
+      } catch (_e) {
+        z = 1;
+      }
+      if (z && z > 0) pad = pad / z;
+      var x = node.x || 0;
+      var y = node.y || 0;
+      return (
+        x >= bounds.minX - pad &&
+        x <= bounds.maxX + pad &&
+        y >= bounds.minY - pad &&
+        y <= bounds.maxY + pad
+      );
+    }
+
+    function queuePullToAnchor(startId, anchorId, blocked) {
+      if (!linkPull || !linkPull.enabled) return;
+      var dur = linkPull.duration_ms || 0;
+      if (dur <= 0) return;
+      var start = String(startId);
+      var anchor = String(anchorId);
+      var stop = new Set();
+      if (blocked && typeof blocked.forEach === "function") {
+        blocked.forEach(function (id) {
+          stop.add(String(id));
+        });
+      }
+      stop.add(anchor);
+      var comp = collectComponent(start, stop);
+      if (!comp || !comp.size) return;
+      var until = nowMs() + dur;
+      comp.forEach(function (nid) {
+        var n = nodeById[nid];
+        if (!n) return;
+        n.__pull_anchor = anchor;
+        n.__pull_until = until;
+      });
+    }
+
+    function hubBaseRadius(node) {
+      var base = 3.5;
+      var count = node && node.hub_count ? node.hub_count : 1;
+      var scale = 1 + Math.min(count, 50) * 0.01;
+      return Math.max(base * 1.6 * scale, 6);
+    }
+
+    function hubExpandedRadius(node) {
+      var count = node && node.hub_count ? node.hub_count : 1;
+      var base = hubBaseRadius(node) * 3.0;
+      var extra = Math.pow(Math.min(count, 5000), 0.75) * 1.6 * 1.4;
+      return Math.max(base + extra, 18);
+    }
+
+    function hubPlusRadius(node) {
+      return Math.max(2.5, hubBaseRadius(node) * 0.45);
+    }
+
+    function isHubExpanded(node) {
+      return isNoteTypeHub(node) && expandedHubs.has(String(node.id));
+    }
+
+    var hubLocalPhysics = {
+      enabled: true,
+      damping: 0.86,
+      center: 0.02,
+      boundary: 0.18,
+      sleep_speed: 0.04,
+      sleep_frames: 16,
+      max_members: 80,
+      charge: -1.6,
+      min_dist: 6,
+      push: 0.22,
+      count_falloff: 0.35,
+      link_strength: 0.08,
+      link_max_strength: 0.18,
+    };
+    var hubLocalBurst = {
+      duration_ms: 2000,
+      cooldown_ms: 1200,
+      cooldown_damp: 0.7,
+    };
+    var hubClusterTuning = {
+      link_strength_mult: 1.35,
+      link_distance_mult: 0.8,
+      gravity: 0.02,
+      gravity_max_dist: 1200,
+      charge_mult: 0.6,
+    };
+    var clusterRepulsion = {
+      enabled: true,
+      size_ref: 90,
+      min_mult: 0.2,
+      exp: 0.7,
+    };
+    var springTighten = {
+      enabled: true,
+      duration_ms: 1400,
+      mult: 1.4,
+    };
+    var linkPull = {
+      enabled: true,
+      duration_ms: 2200,
+      strength: 0.08,
+      max_speed: 6,
+      view_pad: 60,
+    };
+    var lastReheatAt = 0;
+    var hubLocalLastTs = null;
+    var dragCollision = {
+      enabled: true,
+      strength: 0.9,
+      pad: 2.0,
+      max_checks: 800,
+    };
+    var dragNonClusterDamp = 0.2;
+    var collisionAlways = {
+      enabled: true,
+      pad: 0.6,
+      max_pairs: 0,
+    };
+    var hubExpandReheat = {
+      enabled: true,
+      duration: 12400,
+      slowdown_ms: 10000,
+      slowdown_step: 50,
+      slowdown_damp: 0.85,
+      slowdown_floor: 0.02,
+      max_nodes: 600,
+    };
+    var hubExpandReheatTimer = null;
+    var hubExpandReheatSlowStart = null;
+    var hubExpandReheatSlowInterval = null;
+    var hubExpandReheatToken = 0;
+
+    function isExpandedHubMemberNode(node) {
+      if (!node || !node.__hub_parent) return false;
+      return expandedHubs.has(String(node.__hub_parent));
+    }
+
+    function nodeSeed(node) {
+      if (!node) return 0;
+      if (node.__seed !== undefined && node.__seed !== null) return node.__seed;
+      var sid = String(node.id || "");
+      var h = 0;
+      for (var i = 0; i < sid.length; i++) {
+        h = (h * 31 + sid.charCodeAt(i)) % 100000;
+      }
+      node.__seed = h;
+      return h;
+    }
+
+    function nodeBaseRadius(node) {
+      if (!node) return 3.5;
+      var deg = node.__deg || 0;
+      var scale = 1 + Math.min(deg, 20) * 0.08;
+      var baseR = 3.5;
+      if (isNoteTypeHub(node)) {
+        return isHubExpanded(node) ? hubExpandedRadius(node) : hubBaseRadius(node);
+      }
+      if (node.kind === "family") return baseR * scale * 0.75;
+      return baseR * scale;
+    }
+
+    var pulseScale = 1.3;
+    var pulseAmp = 0.1;
+    function nodePulseRadius(node, nowTs) {
+      var radius = nodeBaseRadius(node);
+      var t = (nowTs || Date.now()) / 600;
+      var seed = nodeSeed(node);
+      var pulse = 1 + pulseAmp * Math.sin(t + seed);
+      return radius * pulseScale * pulse;
+    }
+
+    function nodeMaxPulseRadius(node) {
+      var radius = nodeBaseRadius(node);
+      return radius * pulseScale * (1 + pulseAmp);
+    }
+
+    function nodeCollisionRadius(node, nowTs) {
+      if (!node) return 3.5;
+      return nodeMaxPulseRadius(node) * 0.8;
+    }
+
+    function clampToHub(node, hubNode, maxR) {
+      if (!node || !hubNode) return;
+      var dx = node.x - hubNode.x;
+      var dy = node.y - hubNode.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (dist > maxR) {
+        var scale = maxR / dist;
+        node.x = hubNode.x + dx * scale;
+        node.y = hubNode.y + dy * scale;
+        if (node.fx != null) node.fx = node.x;
+        if (node.fy != null) node.fy = node.y;
+      }
+    }
+
+    function applyDragCollision(node) {
+      if (!dragCollision.enabled || !frozenLayout) return;
+      if (!node || !activeNodes || !activeNodes.length) return;
+      var dragHubId = node.__hub_parent ? String(node.__hub_parent) : null;
+      var now = Date.now();
+      var r1 = nodeCollisionRadius(node, now);
+      var maxChecks = dragCollision.max_checks || 0;
+      var checks = 0;
+      for (var i = 0; i < activeNodes.length; i++) {
+        var n = activeNodes[i];
+        if (!n || n === node) continue;
+        if (isNoteTypeHub(node) && n.__hub_parent && String(n.__hub_parent) === String(node.id)) {
+          continue;
+        }
+        if (node.__hub_parent && String(node.__hub_parent) === String(n.id)) {
+          continue;
+        }
+        if (n.__hub_parent) {
+          var nHubId = String(n.__hub_parent);
+          if (expandedHubs.has(nHubId) && (!dragHubId || dragHubId !== nHubId)) {
+            continue;
+          }
+        }
+        var r2 = nodeCollisionRadius(n, now);
+        var minDist = r1 + r2 + dragCollision.pad;
+        var dx = n.x - node.x;
+        var dy = n.y - node.y;
+        var dist2 = dx * dx + dy * dy;
+        if (dist2 > minDist * minDist) continue;
+        if (dist2 < 0.0001) {
+          dx = (Math.random() - 0.5) * 0.2;
+          dy = (Math.random() - 0.5) * 0.2;
+          dist2 = dx * dx + dy * dy;
+        }
+        var dist = Math.sqrt(dist2) || 1;
+        var push = ((minDist - dist) / dist) * dragCollision.strength;
+        n.x += dx * push;
+        n.y += dy * push;
+        if (n.__hub_parent) {
+          var hubNode = nodeById[String(n.__hub_parent)];
+          if (hubNode && isHubExpanded(hubNode)) {
+            clampToHub(n, hubNode, hubExpandedRadius(hubNode) * 0.85);
+          }
+        }
+        if (n.__frozen || n.__soft_pinned || n.fx != null || n.fy != null) {
+      n.__frozen = false;
+      if (n.__soft_pinned) {
+        n.__soft_pinned = false;
+        n.__pin_x = null;
+        n.__pin_y = null;
+      }
+      n.fx = null;
+      n.fy = null;
+    }
+        checks += 1;
+        if (maxChecks && checks >= maxChecks) break;
+      }
+    }
+
+    function resolveOverlaps(nowTs) {
+      if (!collisionAlways.enabled || !activeNodes || activeNodes.length < 2) return;
+      var nodes = activeNodes;
+      var now = nowTs || Date.now();
+      var maxR = 0;
+      nodes.forEach(function (n, idx) {
+        if (!n) return;
+        n.__collide_id = idx;
+        var r = nodeCollisionRadius(n, now) + collisionAlways.pad;
+        n.__collide_r = r;
+        if (r > maxR) maxR = r;
+      });
+      var cellSize = Math.max(8, maxR * 2);
+      var grid = {};
+      nodes.forEach(function (n) {
+        if (!n) return;
+        var cx = Math.floor((n.x || 0) / cellSize);
+        var cy = Math.floor((n.y || 0) / cellSize);
+        var key = cx + "," + cy;
+        if (!grid[key]) grid[key] = [];
+        grid[key].push(n);
+      });
+      var pairs = 0;
+      var maxPairs = collisionAlways.max_pairs || 0;
+      function separate(a, b) {
+        if (!a || !b) return;
+        if (a.__hub_parent && String(a.__hub_parent) === String(b.id)) return;
+        if (b.__hub_parent && String(b.__hub_parent) === String(a.id)) return;
+        var ax = a.x || 0;
+        var ay = a.y || 0;
+        var bx = b.x || 0;
+        var by = b.y || 0;
+        var dx = bx - ax;
+        var dy = by - ay;
+        var dist2 = dx * dx + dy * dy;
+        var ra = a.__collide_r || nodeCollisionRadius(a, now);
+        var rb = b.__collide_r || nodeCollisionRadius(b, now);
+        var minDist = ra + rb;
+        if (dist2 >= minDist * minDist) return;
+        if (dist2 < 0.0001) {
+          dx = (Math.random() - 0.5) * 0.2;
+          dy = (Math.random() - 0.5) * 0.2;
+          dist2 = dx * dx + dy * dy;
+        }
+        var dist = Math.sqrt(dist2) || 1;
+        var overlap = (minDist - dist) / dist;
+        var moveA = 0.5;
+        var moveB = 0.5;
+        var aIsHub = isNoteTypeHub(a);
+        var bIsHub = isNoteTypeHub(b);
+        if (a.__dragging) {
+          moveA = 0;
+          moveB = 1;
+        } else if (b.__dragging) {
+          moveA = 1;
+          moveB = 0;
+        } else if (aIsHub && !bIsHub) {
+          moveA = 0;
+          moveB = 1;
+        } else if (bIsHub && !aIsHub) {
+          moveA = 1;
+          moveB = 0;
+        }
+        if (aIsHub && b.__dragging) {
+          moveA = 1;
+          moveB = 0;
+        } else if (bIsHub && a.__dragging) {
+          moveA = 0;
+          moveB = 1;
+        }
+        a.x -= dx * overlap * moveA;
+        a.y -= dy * overlap * moveA;
+        b.x += dx * overlap * moveB;
+        b.y += dy * overlap * moveB;
+        if (a.__hub_parent) {
+          var ha = nodeById[String(a.__hub_parent)];
+        if (ha && isHubExpanded(ha)) clampToHub(a, ha, hubExpandedRadius(ha) * 0.85);
+        }
+        if (b.__hub_parent) {
+          var hb = nodeById[String(b.__hub_parent)];
+        if (hb && isHubExpanded(hb)) clampToHub(b, hb, hubExpandedRadius(hb) * 0.85);
+        }
+        if (a.fx != null) a.fx = a.x;
+        if (a.fy != null) a.fy = a.y;
+        if (b.fx != null) b.fx = b.x;
+        if (b.fy != null) b.fy = b.y;
+      }
+      Object.keys(grid).forEach(function (key) {
+        if (maxPairs && pairs >= maxPairs) return;
+        var parts = key.split(",");
+        var cx = parseInt(parts[0], 10);
+        var cy = parseInt(parts[1], 10);
+        var cellNodes = grid[key] || [];
+        for (var gx = -1; gx <= 1; gx++) {
+          for (var gy = -1; gy <= 1; gy++) {
+            var nkey = (cx + gx) + "," + (cy + gy);
+            var other = grid[nkey];
+            if (!other) continue;
+            for (var i = 0; i < cellNodes.length; i++) {
+              var a = cellNodes[i];
+              if (!a) continue;
+              for (var j = 0; j < other.length; j++) {
+                var b = other[j];
+                if (!b || a === b) continue;
+                if (a.__collide_id >= b.__collide_id) continue;
+                separate(a, b);
+                pairs += 1;
+                if (maxPairs && pairs >= maxPairs) return;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function applyHubClusterGravity() {
+      if (!hubClusterTuning || !hubClusterTuning.gravity) return;
+      if (!activeLinks || !activeLinks.length) return;
+      var gravity = hubClusterTuning.gravity;
+      var maxDist = hubClusterTuning.gravity_max_dist || 0;
+      activeLinks.forEach(function (l) {
+        if (!l || (l.meta && l.meta.flow_only)) return;
+        var info = linkHubInfo(l);
+        var s = info.s;
+        var t = info.t;
+        if (!s || !t) return;
+        if (!isHubNode(s) && !isHubNode(t)) return;
+        var dx = (t.x || 0) - (s.x || 0);
+        var dy = (t.y || 0) - (s.y || 0);
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (maxDist && dist > maxDist) return;
+        var falloff = maxDist ? (1 - dist / maxDist) : 1;
+        var pull = gravity * falloff;
+        if (!pull) return;
+        var ux = dx / dist;
+        var uy = dy / dist;
+        if (s.fx == null && !s.__dragging) {
+          s.vx = (s.vx || 0) + ux * pull;
+          s.vy = (s.vy || 0) + uy * pull;
+        }
+        if (t.fx == null && !t.__dragging) {
+          t.vx = (t.vx || 0) - ux * pull;
+          t.vy = (t.vy || 0) - uy * pull;
+        }
+      });
+    }
+
+    function applyLinkPulls() {
+      if (!linkPull || !linkPull.enabled) return;
+      if (!activeNodes || !activeNodes.length) return;
+      var now = nowMs();
+      var strength = linkPull.strength || 0;
+      if (strength <= 0) return;
+      var maxSpeed = linkPull.max_speed || 0;
+      activeNodes.forEach(function (n) {
+        if (!n || !n.__pull_until || now > n.__pull_until) {
+          if (n && n.__pull_until && now > n.__pull_until) {
+            n.__pull_until = 0;
+            n.__pull_anchor = null;
+          }
+          return;
+        }
+        if (dragActive) return;
+        if (n.__dragging) return;
+        if (n.__soft_pinned || n.__frozen || n.fx != null || n.fy != null) {
+          n.__soft_pinned = false;
+          n.__pin_x = null;
+          n.__pin_y = null;
+          n.__frozen = false;
+          n.fx = null;
+          n.fy = null;
+        }
+        var anchorId = n.__pull_anchor;
+        if (!anchorId) return;
+        var anchor = nodeById[String(anchorId)];
+        if (!anchor) {
+          n.__pull_until = 0;
+          n.__pull_anchor = null;
+          return;
+        }
+        var dx = (anchor.x || 0) - (n.x || 0);
+        var dy = (anchor.y || 0) - (n.y || 0);
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (!dist) return;
+        var k = strength;
+        var falloff = Math.min(1, dist / 200);
+        k = k * falloff;
+        var ux = dx / dist;
+        var uy = dy / dist;
+        n.vx = (n.vx || 0) + ux * k;
+        n.vy = (n.vy || 0) + uy * k;
+        if (maxSpeed > 0) {
+          var sp = Math.sqrt((n.vx || 0) * (n.vx || 0) + (n.vy || 0) * (n.vy || 0));
+          if (sp > maxSpeed) {
+            var s = maxSpeed / sp;
+            n.vx *= s;
+            n.vy *= s;
+          }
+        }
+      });
+    }
+
+
+    function collectConnectedIds(startId) {
+      var start = String(startId);
+      var visited = new Set();
+      var queue = [start];
+      while (queue.length) {
+        var cur = queue.pop();
+        if (visited.has(cur)) continue;
+        visited.add(cur);
+        var neigh = neighborMap[cur];
+        if (neigh && typeof neigh.forEach === "function") {
+          neigh.forEach(function (nid) {
+            if (!visited.has(nid)) queue.push(nid);
+          });
+        }
+        if (visited.size > hubExpandReheat.max_nodes) break;
+      }
+      return visited;
+    }
+
+    function pulseConnectedPhysics(startId) {
+      if (!hubExpandReheat.enabled) return;
+      if (dragActive) return;
+      var ids = collectConnectedIds(startId);
+      if (!ids || !ids.size) return;
+      var released = [];
+      ids.forEach(function (id) {
+        var n = nodeById[id];
+        if (!n) return;
+        if (isNoteTypeHub(n)) {
+          n.fx = n.x;
+          n.fy = n.y;
+          return;
+        }
+        if (n.__soft_pinned) {
+          n.__soft_pinned = false;
+          n.__pin_x = null;
+          n.__pin_y = null;
+        }
+        if (n.__frozen) n.__frozen = false;
+        if (!n.__dragging) {
+          n.fx = null;
+          n.fy = null;
+        }
+        released.push(n);
+      });
+      if (typeof Graph.d3ReheatSimulation === "function") {
+        Graph.d3ReheatSimulation();
+      }
+      if (typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
+      hubExpandReheatToken += 1;
+      var token = hubExpandReheatToken;
+      if (hubExpandReheatTimer) clearTimeout(hubExpandReheatTimer);
+      if (hubExpandReheatSlowStart) clearTimeout(hubExpandReheatSlowStart);
+      if (hubExpandReheatSlowInterval) clearInterval(hubExpandReheatSlowInterval);
+      var duration = Math.max(0, hubExpandReheat.duration || 0);
+      var slowMs = Math.max(0, hubExpandReheat.slowdown_ms || 0);
+      if (slowMs > duration) slowMs = duration;
+      if (slowMs > 0) {
+        var slowStart = Math.max(0, duration - slowMs);
+        hubExpandReheatSlowStart = setTimeout(function () {
+          if (token !== hubExpandReheatToken) return;
+          var step = Math.max(16, hubExpandReheat.slowdown_step || 50);
+          var damp = hubExpandReheat.slowdown_damp || 0.85;
+          var floor = Math.max(0, hubExpandReheat.slowdown_floor || 0);
+          var endAt = Date.now() + slowMs;
+          hubExpandReheatSlowInterval = setInterval(function () {
+            if (token !== hubExpandReheatToken) {
+              clearInterval(hubExpandReheatSlowInterval);
+              hubExpandReheatSlowInterval = null;
+              return;
+            }
+            var done = Date.now() >= endAt;
+            released.forEach(function (n) {
+              if (!n || n.__dragging) return;
+              if (typeof n.vx === "number") n.vx *= damp;
+              if (typeof n.vy === "number") n.vy *= damp;
+              if (floor > 0) {
+                var vx = typeof n.vx === "number" ? n.vx : 0;
+                var vy = typeof n.vy === "number" ? n.vy : 0;
+                if (Math.abs(vx) + Math.abs(vy) < floor) {
+                  n.vx = 0;
+                  n.vy = 0;
+                }
+              }
+            });
+            if (done) {
+              clearInterval(hubExpandReheatSlowInterval);
+              hubExpandReheatSlowInterval = null;
+            }
+          }, step);
+        }, slowStart);
+      }
+      hubExpandReheatTimer = setTimeout(function () {
+        if (token !== hubExpandReheatToken) return;
+        released.forEach(function (n) {
+          if (!n || n.__dragging) return;
+          n.__soft_pinned = true;
+          n.__pin_x = n.x;
+          n.__pin_y = n.y;
+          n.fx = n.x;
+          n.fy = n.y;
+        });
+      }, duration);
+    }
+
+    function resetHubMemberPhysics(members) {
+      (members || []).forEach(function (n) {
+        if (!n) return;
+        n.__hub_vx = 0;
+        n.__hub_vy = 0;
+      });
+    }
+
+    function startHubLocalBurst(hubNode) {
+      if (!hubNode) return;
+      var now = Date.now();
+      var dur = Math.max(0, hubLocalBurst.duration_ms || 0);
+      var cd = Math.max(0, hubLocalBurst.cooldown_ms || 0);
+      hubNode.__hub_local_until = now + dur;
+      hubNode.__hub_local_cooldown_until = now + dur + cd;
+      hubNode.__hub_sleep = false;
+      hubNode.__hub_sleep_frames = 0;
+    }
+
+    function wakeHubLocalPhysics(hubNode) {
+      if (!hubNode) return;
+      hubNode.__hub_sleep = false;
+      hubNode.__hub_sleep_frames = 0;
+    }
+
+    function stepHubLocalPhysics(nowTs) {
+      if (!hubLocalPhysics.enabled || !expandedHubs.size) {
+        hubLocalLastTs = nowTs || null;
+        return;
+      }
+      if (dragActive) {
+        hubLocalLastTs = nowTs || null;
+        return;
+      }
+      var now = nowTs || Date.now();
+      if (!hubLocalLastTs) {
+        hubLocalLastTs = now;
+        return;
+      }
+      var dt = (now - hubLocalLastTs) / 1000;
+      hubLocalLastTs = now;
+      if (!isFinite(dt) || dt <= 0) return;
+      if (dt > 0.05) dt = 0.016;
+
+      expandedHubs.forEach(function (hid) {
+        var hubNode = nodeById[hid];
+        if (!hubNode || !nodeVisible(hubNode)) return;
+        var entry = noteTypeHubMembers[hid];
+        if (!entry || !entry.nodes) return;
+        var nowTsLocal = now;
+        var burstUntil = hubNode.__hub_local_until || 0;
+        var cooldownUntil = hubNode.__hub_local_cooldown_until || 0;
+        var inBurst = burstUntil > nowTsLocal;
+        var inCooldown = !inBurst && cooldownUntil > nowTsLocal;
+        var allowSleep = !inBurst;
+        if (inBurst) {
+          hubNode.__hub_sleep = false;
+          hubNode.__hub_sleep_frames = 0;
+        }
+        var members = entry.nodes.filter(function (n) {
+          return n && n.__hub_parent === hid && nodeVisible(n);
+        });
+        var count = members.length;
+        if (!count) return;
+        var memberMap = {};
+        var forceWake = false;
+        members.forEach(function (n) {
+          if (!n) return;
+          memberMap[String(n.id)] = n;
+          if (n.__dragging) forceWake = true;
+        });
+        if (!forceWake && hubNode.__hub_sleep && allowSleep) {
+          var maxLenCheck = hubExpandedRadius(hubNode);
+          var edgesCheck = entry.edges || [];
+          for (var eIdx = 0; eIdx < edgesCheck.length; eIdx++) {
+            var lChk = edgesCheck[eIdx];
+            if (!lChk || (lChk.meta && lChk.meta.flow_only)) continue;
+            var sIdChk = lChk.source && typeof lChk.source === "object" ? lChk.source.id : lChk.source;
+            var tIdChk = lChk.target && typeof lChk.target === "object" ? lChk.target.id : lChk.target;
+            var aChk = memberMap[String(sIdChk)];
+            var bChk = memberMap[String(tIdChk)];
+            if (!aChk || !bChk) continue;
+            var dxChk = (bChk.x || 0) - (aChk.x || 0);
+            var dyChk = (bChk.y || 0) - (aChk.y || 0);
+            var distChk = Math.sqrt(dxChk * dxChk + dyChk * dyChk);
+            if (distChk > maxLenCheck) {
+              forceWake = true;
+              break;
+            }
+          }
+        }
+        if (forceWake) {
+          hubNode.__hub_sleep = false;
+          hubNode.__hub_sleep_frames = 0;
+        }
+        var maxR = hubExpandedRadius(hubNode) * 0.85;
+        var maxR2 = maxR * maxR;
+        if (hubNode.__hub_sleep && allowSleep) {
+          members.forEach(function (n) {
+            if (!n || n.__dragging) return;
+            clampToHub(n, hubNode, maxR);
+            n.fx = n.x;
+            n.fy = n.y;
+          });
+          return;
+        }
+        if (count > hubLocalPhysics.max_members && !(inBurst || inCooldown)) {
+          members.forEach(function (n) {
+            if (!n || n.__dragging) return;
+            var dx = n.x - hubNode.x;
+            var dy = n.y - hubNode.y;
+            var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            clampToHub(n, hubNode, maxR);
+            n.fx = n.x;
+            n.fy = n.y;
+          });
+          return;
+        }
+
+        var baseCharge = (hubLocalPhysics.charge !== undefined && hubLocalPhysics.charge !== null)
+          ? hubLocalPhysics.charge
+          : (physics.charge || -80);
+        var chargeScale = Math.abs(baseCharge) / 80;
+        chargeScale = Math.max(0.2, Math.min(5, chargeScale));
+        var repelK = (maxR * maxR) * 0.18 * chargeScale;
+        var falloff = hubLocalPhysics.count_falloff || 0.5;
+        var repelScale = 1 / Math.max(1, Math.pow(count, falloff));
+        var minDist = hubLocalPhysics.min_dist || 4;
+
+        members.forEach(function (n) {
+          if (!n || n.__dragging) return;
+          if (typeof n.x !== "number") n.x = hubNode.x + (Math.random() - 0.5) * 2;
+          if (typeof n.y !== "number") n.y = hubNode.y + (Math.random() - 0.5) * 2;
+          if (typeof n.__hub_vx !== "number") n.__hub_vx = 0;
+          if (typeof n.__hub_vy !== "number") n.__hub_vy = 0;
+          n.__hub_fx = 0;
+          n.__hub_fy = 0;
+        });
+
+        for (var i = 0; i < count; i++) {
+          var a = members[i];
+          if (!a || a.__dragging) continue;
+          for (var j = i + 1; j < count; j++) {
+            var b = members[j];
+            if (!b || b.__dragging) continue;
+            var dx = b.x - a.x;
+            var dy = b.y - a.y;
+            var dist2 = dx * dx + dy * dy + 0.01;
+            var dist = Math.sqrt(dist2);
+            var force = (repelK * repelScale) / dist2;
+            var fx = (dx / dist) * force;
+            var fy = (dy / dist) * force;
+            a.__hub_fx -= fx;
+            a.__hub_fy -= fy;
+            b.__hub_fx += fx;
+            b.__hub_fy += fy;
+            if (dist < minDist) {
+              var push = (minDist - dist) * (hubLocalPhysics.push || 0.12);
+              var nx = dx / (dist || 1);
+              var ny = dy / (dist || 1);
+              a.__hub_fx -= nx * push;
+              a.__hub_fy -= ny * push;
+              b.__hub_fx += nx * push;
+              b.__hub_fy += ny * push;
+            }
+          }
+        }
+
+        var edges = entry.edges || [];
+        if (edges.length) {
+          var maxLen = hubExpandedRadius(hubNode);
+          var restLen = Math.min(physics.link_distance, maxLen);
+          var linkK = hubLocalPhysics.link_strength || 0.08;
+          var maxK = hubLocalPhysics.link_max_strength || 0.18;
+          edges.forEach(function (l) {
+            if (!l || (l.meta && l.meta.flow_only)) return;
+            if (!isLayerEnabled(l.layer)) return;
+            if (!kanjiComponentsEnabled && isKanjiComponent(l)) return;
+            if (kanjiComponentsEnabled && kanjiComponentFocusOnly && isKanjiComponent(l)) {
+              if (!componentFocusSet || componentFocusSet.size === 0) return;
+              var s0 = l.source && typeof l.source === "object" ? l.source.id : l.source;
+              var t0 = l.target && typeof l.target === "object" ? l.target.id : l.target;
+              if (!componentFocusSet.has(String(s0)) || !componentFocusSet.has(String(t0))) {
+                return;
+              }
+            }
+            var sId = l.source && typeof l.source === "object" ? l.source.id : l.source;
+            var tId = l.target && typeof l.target === "object" ? l.target.id : l.target;
+            var a = memberMap[String(sId)];
+            var b = memberMap[String(tId)];
+            if (!a || !b) return;
+            var aDrag = !!a.__dragging;
+            var bDrag = !!b.__dragging;
+            if (aDrag && bDrag) return;
+            var dx = b.x - a.x;
+            var dy = b.y - a.y;
+            var dist2 = dx * dx + dy * dy + 0.01;
+            var dist = Math.sqrt(dist2);
+            var force = 0;
+            if (dist > maxLen) {
+              force = (dist - maxLen) * maxK;
+            } else if (restLen > 0) {
+              force = (dist - restLen) * linkK;
+            }
+            if (!force) return;
+            var fx = (dx / dist) * force;
+            var fy = (dy / dist) * force;
+            if (!aDrag) {
+              a.__hub_fx += fx;
+              a.__hub_fy += fy;
+            }
+            if (!bDrag) {
+              b.__hub_fx -= fx;
+              b.__hub_fy -= fy;
+            }
+          });
+        }
+
+        members.forEach(function (n) {
+          if (!n || n.__dragging) return;
+          var dx = n.x - hubNode.x;
+          var dy = n.y - hubNode.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          n.__hub_fx -= dx * hubLocalPhysics.center;
+          n.__hub_fy -= dy * hubLocalPhysics.center;
+          if (dist > maxR) {
+            var over = dist - maxR;
+            var s = (over / dist) * hubLocalPhysics.boundary;
+            n.__hub_fx -= dx * s;
+            n.__hub_fy -= dy * s;
+          }
+        });
+
+        var maxSpeed = 0;
+        var dead = hubLocalPhysics.sleep_speed || 0;
+        if (inBurst) dead = 0;
+        members.forEach(function (n) {
+          if (!n || n.__dragging) return;
+          n.__hub_vx = (n.__hub_vx + n.__hub_fx * dt) * hubLocalPhysics.damping;
+          n.__hub_vy = (n.__hub_vy + n.__hub_fy * dt) * hubLocalPhysics.damping;
+          if (inCooldown) {
+            var cdTotal = Math.max(1, hubLocalBurst.cooldown_ms || 1);
+            var cdT = Math.max(0, Math.min(1, (cooldownUntil - nowTsLocal) / cdTotal));
+            var cdDamp = hubLocalBurst.cooldown_damp + (1 - hubLocalBurst.cooldown_damp) * cdT;
+            n.__hub_vx *= cdDamp;
+            n.__hub_vy *= cdDamp;
+          }
+          var sp = Math.abs(n.__hub_vx) + Math.abs(n.__hub_vy);
+          if (dead > 0 && sp < dead) {
+            n.__hub_vx = 0;
+            n.__hub_vy = 0;
+            sp = 0;
+          }
+          if (sp > maxSpeed) maxSpeed = sp;
+          n.x += n.__hub_vx;
+          n.y += n.__hub_vy;
+          var dx = n.x - hubNode.x;
+          var dy = n.y - hubNode.y;
+          var dist2 = dx * dx + dy * dy;
+          if (dist2 > maxR2) {
+            var dist = Math.sqrt(dist2) || 1;
+            var scale = maxR / dist;
+            n.x = hubNode.x + dx * scale;
+            n.y = hubNode.y + dy * scale;
+            n.__hub_vx *= 0.5;
+            n.__hub_vy *= 0.5;
+          }
+          n.fx = n.x;
+          n.fy = n.y;
+        });
+        var sleepSpeed = hubLocalPhysics.sleep_speed || 0;
+        var sleepFrames = hubLocalPhysics.sleep_frames || 0;
+        if (allowSleep && sleepSpeed > 0 && sleepFrames > 0) {
+          if (maxSpeed < sleepSpeed) {
+            hubNode.__hub_sleep_frames = (hubNode.__hub_sleep_frames || 0) + 1;
+          } else {
+            hubNode.__hub_sleep_frames = 0;
+          }
+          if (hubNode.__hub_sleep_frames >= sleepFrames) {
+            hubNode.__hub_sleep = true;
+            members.forEach(function (n) {
+              if (!n) return;
+              n.__hub_vx = 0;
+              n.__hub_vy = 0;
+              n.fx = n.x;
+              n.fy = n.y;
+            });
+          }
+        }
+      });
+    }
+
+    function linkHubInfo(l) {
+      var s = l.source && typeof l.source === "object" ? l.source : nodeById[String(l.source)];
+      var t = l.target && typeof l.target === "object" ? l.target : nodeById[String(l.target)];
+      return { s: s, t: t };
+    }
+
     function linkLength(l) {
       if (!l) return 1;
       var s = l.source;
@@ -359,6 +1736,171 @@
       var dx = ((s && s.x) || 0) - ((t && t.x) || 0);
       var dy = ((s && s.y) || 0) - ((t && t.y) || 0);
       return Math.sqrt(dx * dx + dy * dy) || 1;
+    }
+
+    function isExpandedHubExternalLink(l) {
+      if (!l || !expandedHubs.size) return false;
+      var info = linkHubInfo(l);
+      var s = info.s;
+      var t = info.t;
+      if (!s || !t) return false;
+      if (isNoteTypeHub(s) && isHubExpanded(s) && !isHubMemberOf(t, s)) return true;
+      if (isNoteTypeHub(t) && isHubExpanded(t) && !isHubMemberOf(s, t)) return true;
+      return false;
+    }
+
+    function manualLinkPoints(l) {
+      if (!l) return null;
+      var info = linkHubInfo(l);
+      var s = info.s;
+      var t = info.t;
+      if (!s || !t) return null;
+      if (typeof s.x !== "number" || typeof s.y !== "number") return null;
+      if (typeof t.x !== "number" || typeof t.y !== "number") return null;
+      var sx = s.x;
+      var sy = s.y;
+      var tx = t.x;
+      var ty = t.y;
+      var dx = tx - sx;
+      var dy = ty - sy;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ux = dx / dist;
+      var uy = dy / dist;
+      if (isNoteTypeHub(s) && isHubExpanded(s) && !isHubMemberOf(t, s)) {
+        var rs = hubExpandedRadius(s) || 0;
+        sx = s.x + ux * rs;
+        sy = s.y + uy * rs;
+      }
+      if (isNoteTypeHub(t) && isHubExpanded(t) && !isHubMemberOf(s, t)) {
+        var rt = hubExpandedRadius(t) || 0;
+        tx = t.x - ux * rt;
+        ty = t.y - uy * rt;
+      }
+      return { sx: sx, sy: sy, tx: tx, ty: ty };
+    }
+
+    function drawManualHubLink(l, ctx, globalScale) {
+      if (!isExpandedHubExternalLink(l)) return;
+      if (l.meta && l.meta.flow_only) return;
+      var pts = manualLinkPoints(l);
+      if (!pts) return;
+      var curve = linkCurveValue(l);
+      var color = linkBaseColor(l);
+      var scale = globalScale || 1;
+      var width = linkStrokeWidth(l) / scale;
+      if (width <= 0) return;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      var dash = linkDashPattern(l);
+      if (dash && dash.length) ctx.setLineDash(dash);
+      drawLinkPath(
+        ctx,
+        { x: pts.sx, y: pts.sy },
+        { x: pts.tx, y: pts.ty },
+        curve
+      );
+      ctx.stroke();
+      ctx.restore();
+
+      var len = Math.sqrt(
+        (pts.tx - pts.sx) * (pts.tx - pts.sx) + (pts.ty - pts.sy) * (pts.ty - pts.sy)
+      ) || 1;
+      var count = 0;
+      if (isKanjiComponent(l)) {
+        if (kanjiComponentFlow) count = Math.max(2, Math.min(10, Math.round(len / 120)));
+      } else if (layerFlow[l.layer]) {
+        count = Math.max(2, Math.min(10, Math.round(len / 160)));
+      }
+      if (count > 0) {
+        var speed = 0;
+        if (isKanjiComponent(l)) {
+          speed = kanjiComponentFlow ? (flowSpeed * 2) / Math.max(30, len) : 0;
+        } else if (layerFlow[l.layer]) {
+          speed = flowSpeed / Math.max(30, len);
+        }
+        if (speed > 0) {
+          var now = (typeof performance !== "undefined" && performance.now)
+            ? performance.now()
+            : Date.now();
+          var t = (now * speed * 0.06) % 1;
+          var cp = curveControlPoint(pts.sx, pts.sy, pts.tx, pts.ty, curve);
+          ctx.save();
+          ctx.fillStyle = particleColor(l);
+          for (var i = 0; i < count; i++) {
+            var p = (t + i / count) % 1;
+            var x;
+            var y;
+            if (cp) {
+              var inv = 1 - p;
+              x = inv * inv * pts.sx + 2 * inv * p * cp.x + p * p * pts.tx;
+              y = inv * inv * pts.sy + 2 * inv * p * cp.y + p * p * pts.ty;
+            } else {
+              x = pts.sx + (pts.tx - pts.sx) * p;
+              y = pts.sy + (pts.ty - pts.sy) * p;
+            }
+            ctx.beginPath();
+            ctx.arc(x, y, 2 / scale, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    function layoutHubMembers(hubNode, entry, force) {
+      if (!hubNode || !entry) return;
+      var members = entry.nodes || [];
+      if (!members.length) return;
+      var spawnR = Math.max(1.5, hubExpandedRadius(hubNode) * 0.08);
+      members.forEach(function (n, idx) {
+        if (!n) return;
+        if (!force && n.__hub_layout && n.__hub_parent === String(hubNode.id)) return;
+        var ang = Math.random() * Math.PI * 2;
+        var r = Math.random() * spawnR;
+        var px = hubNode.x + Math.cos(ang) * r;
+        var py = hubNode.y + Math.sin(ang) * r;
+        n.x = px;
+        n.y = py;
+        n.__hub_layout = true;
+        n.__hub_parent = String(hubNode.id);
+      });
+      resetHubMemberPhysics(members);
+      wakeHubLocalPhysics(hubNode);
+    }
+
+    function toggleHubExpanded(node) {
+      if (!isNoteTypeHub(node)) return;
+      var id = String(node.id);
+      var wasExpanded = expandedHubs.has(id);
+      if (wasExpanded) {
+        expandedHubs.delete(id);
+        showToast("Collapse hub");
+      } else {
+        expandedHubs.add(id);
+        var entry = noteTypeHubMembers[id];
+        if (entry && entry.nodes) {
+          entry.nodes.forEach(function (n) {
+            if (n) n.__hub_layout = false;
+          });
+          layoutHubMembers(node, entry, true);
+        }
+        startHubLocalBurst(node);
+        showToast("Expand hub");
+      }
+      wakeHubLocalPhysics(node);
+      applyFilters({ reheat: false, toast_visible: true });
+      pulseConnectedPhysics(id);
+    }
+
+    function isHubToggleClick(node, evt) {
+      if (!node || !isNoteTypeHub(node)) return false;
+      var pos = eventGraphPos(evt);
+      if (!pos) return false;
+      var r = hubPlusRadius(node);
+      var dx = pos.x - node.x;
+      var dy = pos.y - node.y;
+      return dx * dx + dy * dy <= r * r;
     }
 
     function isNoteTypeVisible(n) {
@@ -389,35 +1931,22 @@
         return 1 + Math.min(deg, 20) * 0.06;
       })
       .linkColor(function (l) {
-        if (l.meta && l.meta.flow_only) {
-          return "rgba(0,0,0,0)";
-        }
-        var c = isKanjiComponent(l) ? componentColor() : layerColor(l.layer, layerColors);
-        if (l.layer === "reference" && l.meta && l.meta.manual === false) {
-          return colorWithAlpha(c, autoRefOpacity);
-        }
-        if (isKanjiComponent(l)) {
-          return colorWithAlpha(c, kanjiComponentOpacity);
-        }
-        if (l.meta && l.meta.same_prio) {
-          return colorWithAlpha(c, samePrioOpacity);
-        }
-        if (!isLinkConnected(l)) {
-          return applyDim(c, 0.2);
-        }
-        return c;
+        if (isExpandedHubExternalLink(l)) return "rgba(0,0,0,0)";
+        return linkBaseColor(l);
       })
       .linkLineDash(function (l) {
-        var style = isKanjiComponent(l)
-          ? kanjiComponentStyle || "solid"
-          : layerStyles[l.layer] || "solid";
-        if (style === "dashed") return [6, 4];
-        if (style === "pointed") return [1, 4];
-        return [];
+        return linkDashPattern(l);
       })
       .linkWidth(function (l) {
-        if (l.meta && l.meta.flow_only) return 0;
-        return l.layer === "reference" ? 0.8 : 1.2;
+        if (isExpandedHubExternalLink(l)) return 0;
+        return linkStrokeWidth(l);
+      })
+      .linkCanvasObjectMode(function (l) {
+        return isExpandedHubExternalLink(l) ? "replace" : "after";
+      })
+      .linkCanvasObject(function (l, ctx, globalScale) {
+        drawManualHubLink(l, ctx, globalScale);
+        drawLinkDistanceLabel(l, ctx, globalScale);
       })
       .linkDirectionalArrowLength(function (l) {
         var style = layerStyles[l.layer] || "solid";
@@ -429,6 +1958,7 @@
       })
       .autoPauseRedraw(false)
       .linkDirectionalParticles(function (l) {
+        if (isExpandedHubExternalLink(l)) return 0;
         if (l && l.__particle_count !== undefined) return l.__particle_count;
         if (isKanjiComponent(l)) {
           if (!kanjiComponentFlow) return 0;
@@ -453,27 +1983,14 @@
       })
       .linkDirectionalParticleWidth(2)
       .linkDirectionalParticleColor(function (l) {
-        var alpha = 0.7;
-        if (l.layer === "reference" && l.meta && l.meta.manual === false) {
-          alpha = Math.min(1, alpha * autoRefOpacity);
-        }
-        if (isKanjiComponent(l)) {
-          alpha = Math.min(1, alpha * kanjiComponentOpacity);
-        }
-        if (l.meta && l.meta.same_prio) {
-          alpha = Math.min(1, alpha * samePrioOpacity);
-        }
-        var baseCol = isKanjiComponent(l)
-          ? componentColor()
-          : layerColor(l.layer, layerColors);
-        var col = colorWithAlpha(baseCol, alpha);
+        var col = particleColor(l);
         if (!isLinkConnected(l)) {
-            if (isKanjiComponent(l) && kanjiComponentFocusOnly && componentFocusSet && componentFocusSet.size) {
-              return col;
-            }
-            return applyDim(col, 0.2);
+          if (isKanjiComponent(l) && kanjiComponentFocusOnly && componentFocusSet && componentFocusSet.size) {
+            return col;
           }
-          return col;
+          return applyDim(col, 0.2);
+        }
+        return col;
       })
       .cooldownTicks(80)
       .d3VelocityDecay(0.35);
@@ -488,23 +2005,80 @@
       node.fx = node.x;
       node.fy = node.y;
       node.__dragging = false;
+      dragNodeId = null;
+      hideDebugLinkDist();
+      if (node && node.__hub_parent) {
+        node.__hub_vx = 0;
+        node.__hub_vy = 0;
+        var hubNode = nodeById[String(node.__hub_parent)];
+        wakeHubLocalPhysics(hubNode);
+      }
       node.__soft_pinned = true;
       node.__pin_x = node.x;
       node.__pin_y = node.y;
+      var movedThreshold = 1.0;
+      if (activeNodes && activeNodes.length) {
+        activeNodes.forEach(function (n) {
+          if (!n || n === node) return;
+          var moved = false;
+          if (n.__soft_pinned && typeof n.__pin_x === "number" && typeof n.__pin_y === "number") {
+            var dxp = (n.x || 0) - n.__pin_x;
+            var dyp = (n.y || 0) - n.__pin_y;
+            if (dxp * dxp + dyp * dyp > movedThreshold * movedThreshold) moved = true;
+          }
+          if ((n.__frozen || n.fx != null || n.fy != null) && typeof n.fx === "number" && typeof n.fy === "number") {
+            var dxf = (n.x || 0) - n.fx;
+            var dyf = (n.y || 0) - n.fy;
+            if (dxf * dxf + dyf * dyf > movedThreshold * movedThreshold) moved = true;
+          }
+          if (moved) {
+            n.__soft_pinned = false;
+            n.__pin_x = null;
+            n.__pin_y = null;
+            n.__frozen = false;
+            n.fx = null;
+            n.fy = null;
+          }
+        });
+        // sync remaining soft pins to their new positions to avoid snapping back
+        activeNodes.forEach(function (n) {
+          if (!n) return;
+          if (n.__soft_pinned) {
+            n.__pin_x = n.x;
+            n.__pin_y = n.y;
+            if (n.fx === undefined || n.fx === null) {
+              n.fx = n.x;
+              n.fy = n.y;
+            }
+          }
+        });
+      }
       dragActive = false;
-      // stop physics again after drag settles
-      freezeNodes();
+      if (typeof Graph.d3ReheatSimulation === "function") {
+        Graph.d3ReheatSimulation();
+      }
+      if (typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
       scheduleFlowUpdate();
     });
     if (typeof Graph.onNodeDragStart === "function") {
       Graph.onNodeDragStart(function (node) {
         dragActive = true;
-        // freeze everything first so only released nodes move
-        freezeNodes();
-        if (node) {
-          node.__dragging = true;
-          node.fx = node.x;
-          node.fy = node.y;
+      if (node) {
+        node.__dragging = true;
+        node.fx = node.x;
+        node.fy = node.y;
+        dragNodeId = String(node.id);
+        updateDebugLinkDist(node);
+        if (node.__hub_parent) {
+          var hubNode = nodeById[String(node.__hub_parent)];
+          wakeHubLocalPhysics(hubNode);
+        }
+        if (isNoteTypeHub(node) && isHubExpanded(node)) {
+          node.__drag_last_x = node.x;
+          node.__drag_last_y = node.y;
+        }
         }
         unfreezeForDrag(node);
       });
@@ -513,14 +2087,80 @@
       Graph.onNodeDrag(function (node) {
         if (!dragActive) {
           dragActive = true;
-          freezeNodes();
         }
         if (node) {
           node.__dragging = true;
           node.fx = node.x;
           node.fy = node.y;
+          if (!dragNodeId) dragNodeId = String(node.id);
+          updateDebugLinkDist(node);
+          if (isNoteTypeHub(node) && isHubExpanded(node)) {
+            var lastX = node.__drag_last_x;
+            var lastY = node.__drag_last_y;
+            if (typeof lastX === "number" && typeof lastY === "number") {
+              var dx = node.x - lastX;
+              var dy = node.y - lastY;
+              node.__drag_last_x = node.x;
+              node.__drag_last_y = node.y;
+              var entry = noteTypeHubMembers[String(node.id)];
+              if (entry && entry.nodes) {
+                entry.nodes.forEach(function (m) {
+                  if (!m) return;
+                  m.x = (m.x || 0) + dx;
+                  m.y = (m.y || 0) + dy;
+                  if (m.fx != null) m.fx = m.x;
+                  if (m.fy != null) m.fy = m.y;
+                });
+              }
+            }
+          } else if (node.__hub_parent) {
+            var hubNode = nodeById[String(node.__hub_parent)];
+            if (hubNode && isHubExpanded(hubNode)) {
+              clampToHub(node, hubNode, hubExpandedRadius(hubNode) * 0.85);
+            }
+          }
         }
+        applyDragCollision(node);
         unfreezeForDrag(node);
+        // keep soft-pin anchors synced during drag to avoid snapping back
+        if (activeNodes && activeNodes.length) {
+          activeNodes.forEach(function (n) {
+            if (!n || !n.__soft_pinned) return;
+            n.__pin_x = n.x;
+            n.__pin_y = n.y;
+            if (n.fx != null || n.fy != null) {
+              n.fx = n.x;
+              n.fy = n.y;
+            }
+          });
+        }
+      });
+    }
+    if (typeof Graph.onEngineTick === "function") {
+      Graph.onEngineTick(function () {
+        if (dragActive && dragNodeId && activeNodes && activeNodes.length) {
+          var set = getDragClusterSet();
+          if (set && set.size) {
+            activeNodes.forEach(function (n) {
+              if (!n) return;
+              if (set.has(String(n.id))) return;
+              if (typeof n.vx === "number") n.vx *= dragNonClusterDamp;
+              if (typeof n.vy === "number") n.vy *= dragNonClusterDamp;
+            });
+          }
+        }
+        if (!expandedHubs.size) return;
+        expandedHubs.forEach(function (hid) {
+          var hubNode = nodeById[hid];
+          if (!hubNode) return;
+          var entry = noteTypeHubMembers[hid];
+          if (!entry || !entry.nodes) return;
+          var maxR = hubExpandedRadius(hubNode) * 0.85;
+          entry.nodes.forEach(function (n) {
+            if (!n || n.__hub_parent !== hid) return;
+            clampToHub(n, hubNode, maxR);
+          });
+        });
       });
     }
     function showCardPopup(node) {
@@ -628,6 +2268,10 @@
     }
 
     Graph.onNodeClick(function (node, evt) {
+      if (node && isNoteTypeHub(node) && isHubToggleClick(node, evt)) {
+        toggleHubExpanded(node);
+        return;
+      }
       if (node && cardDotsEnabled) {
         if (isCardPlusClick(node, evt)) {
           showCardPopup(node);
@@ -717,29 +2361,23 @@
       var isActiveNode = selectedId && nodeId === selectedId;
       var isCtxNode = ctxMenuId && nodeId === ctxMenuId;
       var connected = isConnected(nodeId);
-      var showPulse = node.kind === "family"
+      var isNtHub = isNoteTypeHub(node);
+      var hubExpanded = isHubExpanded(node);
+      var showPulse = (node.kind === "family" || isNtHub)
         ? (isActiveNode || isCtxNode)
         : (connected || isActiveNode || isCtxNode);
       var color = nodeColor(node, noteTypeColors, layerColors);
-      var deg = node.__deg || 0;
-      var scale = 1 + Math.min(deg, 20) * 0.08;
-      var baseR = 3.5;
-      var radius = baseR * scale;
+      var radius = nodeBaseRadius(node);
       var t = Date.now() / 600;
-      var seed = node.__seed;
-      if (seed === undefined || seed === null) {
-        var sid = String(node.id || "");
-        var h = 0;
-        for (var i = 0; i < sid.length; i++) {
-          h = (h * 31 + sid.charCodeAt(i)) % 100000;
-        }
-        node.__seed = h;
-        seed = h;
-      }
+      var seed = nodeSeed(node);
       var pulse = showPulse ? 1 + 0.1 * Math.sin(t + seed) : 1;
       var haloR = radius * 1.3 * pulse;
       var alpha = (connected || showPulse) ? 1 : 0.2;
       if (showPulse) {
+        ctx.save();
+        if (node.kind === "family" || isNtHub) {
+          ctx.globalCompositeOperation = "destination-over";
+        }
         ctx.beginPath();
         ctx.arc(node.x, node.y, haloR, 0, 2 * Math.PI);
         ctx.fillStyle = colorWithAlpha(color, 0.5 * alpha);
@@ -747,23 +2385,7 @@
         ctx.lineWidth = 0.25;
         ctx.strokeStyle = colorWithAlpha(color, 0.75 * alpha);
         ctx.stroke();
-        if (isActiveNode && !isCtxNode) {
-          var ringR = haloR + 2;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, ringR, 0, 2 * Math.PI);
-          ctx.lineWidth = 1.2;
-          ctx.strokeStyle = colorWithAlpha(color, 0.9);
-          ctx.stroke();
-        }
-        if (isCtxNode) {
-          var ctxRingR = haloR + 0.8;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, ctxRingR, 0, 2 * Math.PI);
-          ctx.lineWidth = 0.36;
-          ctx.strokeStyle = "rgba(239,68,68,0.9)";
-          ctx.stroke();
-        }
-        if (showPulse && node.kind === "family" && !isCtxNode) {
+        if (node.kind === "family" && !isCtxNode && !isActiveNode) {
           var hubOuterR = haloR + 2.2;
           ctx.beginPath();
           ctx.arc(node.x, node.y, hubOuterR, 0, 2 * Math.PI);
@@ -771,12 +2393,15 @@
           ctx.strokeStyle = colorWithAlpha(color, 0.75 * alpha);
           ctx.stroke();
         }
+        ctx.restore();
       }
-      // mask link lines under the node so they stop at the inner circle
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius + 0.6, 0, 2 * Math.PI);
-      ctx.fillStyle = "#0f1216";
-      ctx.fill();
+      if (!(isNtHub && hubExpanded)) {
+        // mask link lines under the node so they stop at the inner circle
+        ctx.beginPath();
+        var maskR = radius + (node.kind === "family" ? 0.2 : 0.6);
+        ctx.arc(node.x, node.y, maskR, 0, 2 * Math.PI);
+        ctx.fillStyle = "#0f1216";
+        ctx.fill();
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
         ctx.fillStyle = (connected || showPulse) ? color : applyDim(color, 0.2);
@@ -786,13 +2411,58 @@
           if (count > 0) {
             ctx.save();
             ctx.fillStyle = "#f3f4f6";
-            ctx.font = Math.max(5, radius * 0.35) + "px Arial";
+            ctx.font = Math.max(5, radius * 0.2625) + "px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(String(count), node.x, node.y + radius * 0.08);
             ctx.restore();
           }
         }
+        if (isNtHub && !hubExpanded) {
+          var pr = hubPlusRadius(node) * 0.7;
+          ctx.save();
+          ctx.strokeStyle = colorWithAlpha(mixWithWhite(color, 0.2), 0.9);
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(node.x - pr, node.y);
+          ctx.lineTo(node.x + pr, node.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(node.x, node.y - pr);
+          ctx.lineTo(node.x, node.y + pr);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = colorWithAlpha(color, 0.85);
+        ctx.stroke();
+        // minus sign for expanded hub
+        var mr = hubPlusRadius(node);
+        ctx.save();
+        ctx.strokeStyle = colorWithAlpha(color, 0.9);
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(node.x - mr, node.y);
+        ctx.lineTo(node.x + mr, node.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (isActiveNode || isCtxNode) {
+        var ringPad = isCtxNode ? (1.6 * 0.3) : (1.6 * 0.7);
+        var ringR = haloR + ringPad;
+        ctx.save();
+        ctx.lineWidth = isCtxNode ? 0.3 : 0.6;
+        ctx.strokeStyle = isCtxNode
+          ? "rgba(239,68,68,0.9)"
+          : colorWithAlpha(color, 0.9);
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, ringR, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
         var zoomLevel = 1;
         try {
           if (Graph && typeof Graph.zoom === "function") {
@@ -889,15 +2559,24 @@
       });
     if (typeof Graph.nodePointerAreaPaint === "function") {
       Graph.nodePointerAreaPaint(function (node, color, ctx) {
-        var deg = node.__deg || 0;
-        var scale = 1 + Math.min(deg, 20) * 0.08;
-        var baseR = 3.5;
-        var radius = baseR * scale;
+        var radius = nodeBaseRadius(node);
         var r = radius + 2;
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
         ctx.fill();
+      });
+    }
+
+    if (typeof Graph.onRenderFramePre === "function") {
+      Graph.onRenderFramePre(function () {
+        var now = (typeof performance !== "undefined" && performance.now)
+          ? performance.now()
+          : Date.now();
+        stepHubLocalPhysics(now);
+        applyHubClusterGravity();
+        applyLinkPulls();
+        resolveOverlaps(now);
       });
     }
 
@@ -974,13 +2653,13 @@
         data.nodes.forEach(function (node) {
           var label = node.label || node.id;
           if (!label) return;
+          if (isNoteTypeHub(node) && isHubExpanded(node)) return;
           var connected = isConnected(String(node.id));
           var labelColor = connected ? "#e5e7eb" : "rgba(229,231,235,0.2)";
-          var deg = node.__deg || 0;
-          var scale = 1 + Math.min(deg, 20) * 0.08;
-          var baseR = 3.5;
-          var radius = baseR * scale;
-          var offset = radius + 4;
+          var radius = nodeBaseRadius(node);
+          var pad = 4;
+          if (node.__hub_parent) pad = pad * 0.5;
+          var offset = radius + pad;
           ctx.fillStyle = labelColor;
           var lines = wrapLabel(label, maxLabelWidth);
           if (!lines.length) return;
@@ -1085,6 +2764,24 @@
       return 0;
     }
 
+    function nodeVisible(n) {
+      if (!n) return false;
+      if (Array.isArray(n.layers) && n.layers.length) {
+        var ok = false;
+        n.layers.forEach(function (layer) {
+          if (layer === "family_hub") {
+            if (isLayerEnabled("family_hub")) ok = true;
+          } else if (isLayerEnabled(layer)) {
+            ok = true;
+          }
+        });
+        if (!ok) return false;
+      }
+      if (n.kind === "family" && !isLayerEnabled("family_hub")) return false;
+      if ((n.kind === "kanji" || n.kind === "kanji_hub") && !isLayerEnabled("kanji")) return false;
+      return isNoteTypeVisible(n);
+    }
+
     function applyFilters(opts) {
       opts = opts || {};
       var componentFocus = null;
@@ -1113,21 +2810,8 @@
       }
         componentFocusSet = componentFocus;
       activeNodes = nodes.filter(function (n) {
-          if (Array.isArray(n.layers) && n.layers.length) {
-            var ok = false;
-            n.layers.forEach(function (layer) {
-              if (layer === "family_hub") {
-                if (isLayerEnabled("family_hub")) ok = true;
-              } else if (isLayerEnabled(layer)) {
-                ok = true;
-              }
-            });
-            if (!ok) return false;
-          }
-          if (n.kind === "family" && !isLayerEnabled("family_hub")) return false;
-          if ((n.kind === "kanji" || n.kind === "kanji_hub") && !isLayerEnabled("kanji")) return false;
-          return isNoteTypeVisible(n);
-        });
+        return nodeVisible(n);
+      });
       var activeIds = {};
       activeNodes.forEach(function (n) {
         activeIds[String(n.id)] = true;
@@ -1208,6 +2892,58 @@
           activeLinks = activeLinks.concat(hubLinks);
         }
       }
+
+      if (expandedHubs.size) {
+        var expandedNodes = [];
+        var expandedEdges = [];
+        var expandedNodeIds = {};
+        expandedHubs.forEach(function (hid) {
+          var hubNode = nodeById[hid];
+          if (!hubNode) return;
+          var isActiveHub = false;
+          for (var i = 0; i < activeNodes.length; i++) {
+            if (String(activeNodes[i].id) === String(hid)) {
+              isActiveHub = true;
+              break;
+            }
+          }
+          if (!isActiveHub) return;
+          var entry = noteTypeHubMembers[hid];
+          if (!entry) return;
+          layoutHubMembers(hubNode, entry);
+          var localSet = {};
+          (entry.nodes || []).forEach(function (n) {
+            if (!nodeVisible(n)) return;
+            var nid = String(n.id);
+            if (expandedNodeIds[nid]) return;
+            expandedNodeIds[nid] = true;
+            localSet[nid] = true;
+            expandedNodes.push(n);
+          });
+          (entry.edges || []).forEach(function (l) {
+            if (!isLayerEnabled(l.layer)) return;
+            if (!kanjiComponentsEnabled && isKanjiComponent(l)) return;
+            if (kanjiComponentsEnabled && kanjiComponentFocusOnly && isKanjiComponent(l)) {
+              if (!componentFocus || componentFocus.size === 0) return;
+              var s0 = l.source && typeof l.source === "object" ? l.source.id : l.source;
+              var t0 = l.target && typeof l.target === "object" ? l.target.id : l.target;
+              if (!componentFocus.has(String(s0)) || !componentFocus.has(String(t0))) {
+                return;
+              }
+            }
+            var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
+            var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
+            if (!localSet[String(s)] || !localSet[String(t)]) return;
+            expandedEdges.push(l);
+          });
+        });
+        if (expandedNodes.length) {
+          activeNodes = activeNodes.concat(expandedNodes);
+        }
+        if (expandedEdges.length) {
+          activeLinks = activeLinks.concat(expandedEdges);
+        }
+      }
       // Ensure links only reference currently active nodes
       var activeIdMapPre = {};
       activeNodes.forEach(function (n) {
@@ -1236,7 +2972,7 @@
       var degree = {};
       neighborMap = {};
       activeLinks.forEach(function (l) {
-        if (l.meta && l.meta.flow_only) return;
+        if (!isLinkVisibleForPhysics(l)) return;
         if (l.layer === "family" && l.meta && l.meta.same_prio) return;
         var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
         var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
@@ -1249,6 +2985,32 @@
         neighborMap[sk].add(tk);
         neighborMap[tk].add(sk);
       });
+      (function assignClusterSizes() {
+        var visited = {};
+        activeNodes.forEach(function (n) {
+          var id = String(n.id);
+          if (visited[id]) return;
+          var stack = [id];
+          var comp = [];
+          visited[id] = true;
+          while (stack.length) {
+            var cur = stack.pop();
+            comp.push(cur);
+            var nbrs = neighborMap[cur];
+            if (!nbrs) continue;
+            nbrs.forEach(function (nid) {
+              if (visited[nid]) return;
+              visited[nid] = true;
+              stack.push(nid);
+            });
+          }
+          var size = comp.length || 1;
+          comp.forEach(function (cid) {
+            var node = nodeById[cid];
+            if (node) node.__cluster_size = size;
+          });
+        });
+      })();
       activeNodes.forEach(function (n) {
         n.__deg = degree[String(n.id)] || 0;
         if (n.kind === "family") {
@@ -1309,6 +3071,7 @@
           l.curve = 0;
         }
       });
+      activeLinksVersion += 1;
       Graph.graphData({ nodes: activeNodes, links: activeLinks });
       scheduleFlowUpdate();
       if (typeof Graph.linkCurvature === "function") {
@@ -1446,7 +3209,15 @@
     function freezeNodes() {
       frozenLayout = true;
       activeNodes.forEach(function (n) {
-        if (n.__soft_pinned) return;
+        if (n.__soft_pinned) {
+          n.__pin_x = n.x;
+          n.__pin_y = n.y;
+          if (n.fx === undefined || n.fx === null) {
+            n.fx = n.x;
+            n.fy = n.y;
+          }
+          return;
+        }
         if (n.fx === undefined || n.fx === null) {
           n.__frozen = true;
           n.fx = n.x;
@@ -1467,6 +3238,8 @@
         }
       });
     }
+
+
 
     function unfreezeForDrag(node) {
       if (!node) return;
@@ -1508,10 +3281,11 @@
           if (dist > softPinRadius) {
             if (sRel) {
               release.add(tk);
-            } else {
+              changed = true;
+            } else if (tRel) {
               release.add(sk);
+              changed = true;
             }
-            changed = true;
           }
         });
       }
@@ -1615,7 +3389,10 @@
       if (dragActive) return;
       var toRelease = new Set();
       var blocked = anchors || new Set();
+      var viewBounds = graphViewBounds();
+      var pullQueued = false;
       edges.forEach(function (edge) {
+        if (edge && !isLinkVisibleForPhysics(edge)) return;
         var a = String(edge.a);
         var b = String(edge.b);
         var anchor = null;
@@ -1640,6 +3417,21 @@
           start = a;
         }
         if (!start) return;
+        if (viewBounds && linkPull && linkPull.enabled) {
+          var na = nodeById[a];
+          var nb = nodeById[b];
+          if (na && nb) {
+            var aIn = nodeInView(na, viewBounds);
+            var bIn = nodeInView(nb, viewBounds);
+            if (aIn && !bIn) {
+              queuePullToAnchor(b, a, blocked);
+              pullQueued = true;
+            } else if (bIn && !aIn) {
+              queuePullToAnchor(a, b, blocked);
+              pullQueued = true;
+            }
+          }
+        }
         var comp = collectComponent(start, blocked);
         comp.forEach(function (nid) {
           if (blocked.has(nid)) return;
@@ -1666,12 +3458,60 @@
       if (releasedCount > 0 && typeof Graph.resumeAnimation === "function") {
         Graph.resumeAnimation();
       }
+      if (pullQueued && typeof Graph.d3ReheatSimulation === "function") {
+        Graph.d3ReheatSimulation();
+      }
+      if (pullQueued && typeof Graph.resumeAnimation === "function") {
+        Graph.resumeAnimation();
+      }
       if (releaseTimer) {
         clearTimeout(releaseTimer);
       }
-      releaseTimer = setTimeout(function () {
+      function shouldHold() {
+        var now = nowMs();
+        var hold = false;
+        toRelease.forEach(function (rid) {
+          var n0 = nodeById[rid];
+          if (n0 && n0.__pull_until && now < n0.__pull_until) {
+            hold = true;
+          }
+        });
+        if (hold) return true;
+        activeLinks.forEach(function (l) {
+          if (l.meta && l.meta.flow_only) return;
+          var s = l.source && typeof l.source === "object" ? l.source.id : l.source;
+          var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
+          var sk = String(s);
+          var tk = String(t);
+          if (!toRelease.has(sk) && !toRelease.has(tk)) return;
+          var n1 = nodeById[sk];
+          var n2 = nodeById[tk];
+          if (!n1 || !n2) return;
+          var dx = (n1.x || 0) - (n2.x || 0);
+          var dy = (n1.y || 0) - (n2.y || 0);
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var maxLen = getLinkDistance(l);
+          if (dist > maxLen) {
+            hold = true;
+          }
+        });
+        return hold;
+      }
+      function freezeWhenReady() {
+        if (dragActive) {
+          releaseTimer = setTimeout(freezeWhenReady, 200);
+          return;
+        }
+        if (shouldHold()) {
+          if (typeof Graph.resumeAnimation === "function") {
+            Graph.resumeAnimation();
+          }
+          releaseTimer = setTimeout(freezeWhenReady, 200);
+          return;
+        }
         freezeNodes();
-      }, 900);
+      }
+      releaseTimer = setTimeout(freezeWhenReady, 200);
       log("js release edges=" + edges.length + " nodes=" + releasedCount);
     }
 
@@ -2066,6 +3906,44 @@
       if (!list) return;
       list.innerHTML = "";
 
+      var softPinRow = document.createElement("div");
+      softPinRow.className = "layer-row";
+      var softPinLabel = document.createElement("span");
+      softPinLabel.textContent = "Soft pin distance";
+      softPinLabel.style.flex = "1";
+      var softPinRange = document.createElement("input");
+      softPinRange.type = "range";
+      softPinRange.min = "20";
+      softPinRange.max = "600";
+      softPinRange.step = "5";
+      softPinRange.value = softPinRadius;
+      var softPinInput = document.createElement("input");
+      softPinInput.type = "number";
+      softPinInput.step = "5";
+      softPinInput.min = "20";
+      softPinInput.max = "600";
+      softPinInput.value = softPinRadius;
+      var setSoftPin = function (v, notify) {
+        if (isNaN(v)) return;
+        softPinRadius = v;
+        softPinRange.value = v;
+        softPinInput.value = v;
+        if (window.pycmd) {
+          pycmd("softpin:" + softPinRadius);
+        }
+        if (notify) showToast("Soft pin distance: " + softPinRadius);
+      };
+      softPinRange.addEventListener("input", function () {
+        setSoftPin(parseFloat(softPinRange.value), false);
+      });
+      softPinInput.addEventListener("change", function () {
+        setSoftPin(parseFloat(softPinInput.value), true);
+      });
+      softPinRow.appendChild(softPinLabel);
+      softPinRow.appendChild(softPinRange);
+      softPinRow.appendChild(softPinInput);
+      list.appendChild(softPinRow);
+
       var flowRow = document.createElement("div");
       flowRow.className = "layer-row";
       var flowLabel = document.createElement("span");
@@ -2168,54 +4046,6 @@
         return row;
       }
 
-      function strengthRow(group, layer, labelText) {
-        var row = document.createElement("div");
-        row.className = "layer-row";
-        var label = document.createElement("span");
-        label.textContent = labelText || "Strength";
-        label.style.flex = "1";
-        var range = document.createElement("input");
-        range.type = "range";
-        range.min = "0";
-        range.max = "2";
-        range.step = "0.05";
-        var input = document.createElement("input");
-        input.type = "number";
-        input.min = "0";
-        input.max = "2";
-        input.step = "0.05";
-        var current =
-          typeof linkStrengths[layer] === "number"
-            ? linkStrengths[layer]
-            : physics.link_strength;
-        range.value = current;
-        input.value = current;
-        var setStrength = function (v, notify) {
-          if (isNaN(v)) return;
-          linkStrengths[layer] = v;
-          range.value = v;
-          input.value = v;
-          if (window.pycmd) {
-            pycmd("lstrength:" + layer + ":" + v);
-          }
-          applyPhysics(false);
-          if (notify) {
-            showToast("Link strength: " + v);
-          }
-        };
-        range.addEventListener("input", function () {
-          setStrength(parseFloat(range.value), false);
-        });
-        input.addEventListener("change", function () {
-          setStrength(parseFloat(input.value), true);
-        });
-        row.appendChild(label);
-        row.appendChild(range);
-        row.appendChild(input);
-        group.appendChild(row);
-        return row;
-      }
-
       function toggleRow(group, labelText, checked, onChange) {
         var row = document.createElement("div");
         row.className = "layer-row-toggle";
@@ -2235,7 +4065,6 @@
 
       var familyGroup = addGroup("Family Gate");
       layerRow(familyGroup, "family", "Family Gate");
-      strengthRow(familyGroup, "family", "Strength");
 
       var opRow = document.createElement("div");
       opRow.className = "layer-row";
@@ -2293,7 +4122,6 @@
 
       var hubGroup = addGroup("Family Hubs");
       layerRow(hubGroup, "family_hub", "Family Hubs");
-      strengthRow(hubGroup, "family_hub", "Strength");
       toggleRow(hubGroup, "Chain family levels", familyChainEdges, function (val) {
         familyChainEdges = val;
         if (window.pycmd) {
@@ -2304,7 +4132,6 @@
 
       var refGroup = addGroup("Linked Notes");
       layerRow(refGroup, "reference", "Linked Notes");
-      strengthRow(refGroup, "reference", "Strength");
       var autoRow = document.createElement("div");
       autoRow.className = "layer-row";
       var autoLabel = document.createElement("span");
@@ -2346,11 +4173,9 @@
 
       var exampleGroup = addGroup("Example Gate");
       layerRow(exampleGroup, "example", "Example Gate");
-      strengthRow(exampleGroup, "example", "Strength");
 
       var kanjiGroup = addGroup("Kanji Gate");
       layerRow(kanjiGroup, "kanji", "Kanji Gate");
-      strengthRow(kanjiGroup, "kanji", "Strength");
 
       var compRow = toggleRow(kanjiGroup, "Kanji Parts", kanjiComponentsEnabled, function (val) {
         kanjiComponentsEnabled = val;
@@ -2418,7 +4243,6 @@
       compColorRow.appendChild(compFlowToggle);
       partsWrap.appendChild(compColorRow);
 
-      strengthRow(partsWrap, "kanji_component", "Strength");
 
       var compOpacityRow = document.createElement("div");
       compOpacityRow.className = "layer-row";
@@ -2595,14 +4419,16 @@
 
       function focusNode(n) {
         if (!n) return;
+        var id = String(n.id || n);
+        var cur = nodeById[id] || n;
         if (typeof Graph.centerAt === "function") {
-          Graph.centerAt(n.x, n.y, 800);
+          Graph.centerAt(cur.x, cur.y, 800);
         }
         if (typeof Graph.zoom === "function") {
           Graph.zoom(2, 800);
         }
-        log("search hit " + n.id);
-        showToast("Focus: " + (n.label || n.id));
+        log("search hit " + id);
+        showToast("Focus: " + (cur.label || id));
       }
 
       function buildHits(q) {
@@ -2638,7 +4464,7 @@
           }
           div.textContent = title;
           div.addEventListener("click", function () {
-            selectedHit = n;
+            selectedHit = String(n.id);
             suggest.classList.remove("open");
             focusNode(n);
           });
@@ -2717,27 +4543,18 @@
     applyFilters({ reheat: true, toast_visible: "count" });
 
     function loadPhysics() {
-      try {
-        var raw = localStorage.getItem("ajpc_graph_physics");
-        if (raw) {
-          var obj = JSON.parse(raw);
-          physics = Object.assign({}, physicsDefaults, obj || {});
-          return;
-        }
-      } catch (_e) {}
       physics = Object.assign({}, physicsDefaults);
-    }
-
-    function storePhysics() {
-      try {
-        localStorage.setItem("ajpc_graph_physics", JSON.stringify(physics));
-      } catch (_e) {}
+      if (data.meta && data.meta.physics && typeof data.meta.physics === "object") {
+        physics = Object.assign(physics, data.meta.physics);
+      }
     }
 
     function applyPhysics(reheat) {
       if (!Graph) return;
       if (typeof Graph.linkDistance === "function") {
-        Graph.linkDistance(physics.link_distance);
+        Graph.linkDistance(function (l) {
+          return getLinkDistance(l);
+        });
       }
       if (typeof Graph.linkStrength === "function") {
         Graph.linkStrength(function (l) {
@@ -2759,13 +4576,28 @@
       if (typeof Graph.d3Force === "function") {
         var charge = Graph.d3Force("charge");
         if (charge && typeof charge.strength === "function") {
-          charge.strength(physics.charge);
+          var chargeStrength = physics.charge;
+          var hubMult = hubClusterTuning && typeof hubClusterTuning.charge_mult === "number"
+            ? hubClusterTuning.charge_mult
+            : 1;
+          var useFn = hubMult !== 1 || (clusterRepulsion && clusterRepulsion.enabled);
+          if (useFn && typeof chargeStrength === "number") {
+            charge.strength(function (node) {
+              var s = chargeStrength;
+              if (isHubNode(node)) s = s * hubMult;
+              s = s * clusterRepulsionMult(node);
+              return s;
+            });
+          } else {
+            charge.strength(chargeStrength);
+          }
         }
         if (charge && typeof charge.distanceMax === "function") {
           charge.distanceMax(physics.max_radius || 0);
         }
       }
       if (reheat !== false && typeof Graph.d3ReheatSimulation === "function") {
+        lastReheatAt = nowMs();
         Graph.d3ReheatSimulation();
       }
       log(
@@ -2776,15 +4608,19 @@
           " strength=" +
           physics.link_strength
       );
-      storePhysics();
     }
 
+
+    function persistPhysics(key, val) {
+      if (!window.pycmd) return;
+      pycmd("phys:" + key + ":" + val);
+    }
 
     function bindRange(key, rangeId, numId, label) {
       var range = document.getElementById(rangeId);
       var num = document.getElementById(numId);
       if (!range || !num) return;
-      var setVal = function (val, silent) {
+      var setVal = function (val, silent, persist) {
         if (isNaN(val)) return;
         physics[key] = val;
         range.value = val;
@@ -2793,15 +4629,18 @@
         if (!silent && label) {
           showToast("Physics: " + label + " " + val);
         }
+        if (persist) {
+          persistPhysics(key, val);
+        }
       };
       range.addEventListener("input", function () {
-        setVal(parseFloat(range.value), true);
+        setVal(parseFloat(range.value), true, false);
       });
       range.addEventListener("change", function () {
-        setVal(parseFloat(range.value), false);
+        setVal(parseFloat(range.value), false, true);
       });
       num.addEventListener("change", function () {
-        setVal(parseFloat(num.value), false);
+        setVal(parseFloat(num.value), false, true);
       });
       range.value = physics[key];
       num.value = physics[key];
@@ -2818,7 +4657,6 @@
       loadPhysics();
       bindRange("charge", "phys-charge", "phys-charge-num", "charge");
       bindRange("link_distance", "phys-link-distance", "phys-link-distance-num", "link distance");
-      bindRange("link_strength", "phys-link-strength", "phys-link-strength-num", "link strength");
       bindRange("velocity_decay", "phys-vel-decay", "phys-vel-decay-num", "velocity decay");
       bindRange("alpha_decay", "phys-alpha-decay", "phys-alpha-decay-num", "alpha decay");
       bindRange("max_radius", "phys-max-radius", "phys-max-radius-num", "repulsion range");
@@ -2830,13 +4668,19 @@
           physics = Object.assign({}, physicsDefaults);
           setControlValue("phys-charge", "phys-charge-num", physics.charge);
           setControlValue("phys-link-distance", "phys-link-distance-num", physics.link_distance);
-          setControlValue("phys-link-strength", "phys-link-strength-num", physics.link_strength);
           setControlValue("phys-vel-decay", "phys-vel-decay-num", physics.velocity_decay);
           setControlValue("phys-alpha-decay", "phys-alpha-decay-num", physics.alpha_decay);
           setControlValue("phys-max-radius", "phys-max-radius-num", physics.max_radius);
           setControlValue("phys-cooldown", "phys-cooldown-num", physics.cooldown_ticks);
           setControlValue("phys-warmup", "phys-warmup-num", physics.warmup_ticks);
           applyPhysics();
+          persistPhysics("charge", physics.charge);
+          persistPhysics("link_distance", physics.link_distance);
+          persistPhysics("velocity_decay", physics.velocity_decay);
+          persistPhysics("alpha_decay", physics.alpha_decay);
+          persistPhysics("max_radius", physics.max_radius);
+          persistPhysics("cooldown_ticks", physics.cooldown_ticks);
+          persistPhysics("warmup_ticks", physics.warmup_ticks);
           showToast("Physics reset");
         });
       }
@@ -2852,6 +4696,10 @@
         if (dotCard && dotCard.id) {
           ctxDot = { nodeId: String(node.id), cardId: dotCard.id };
         }
+      }
+      var menuSelectedId = selectedId;
+      if (!menuSelectedId && node && node.kind === "note") {
+        menuSelectedId = String(node.id);
       }
       menu.innerHTML = "";
       function addItem(label, cb) {
@@ -2998,14 +4846,14 @@
       groups.push(openGroup);
 
       var selectedNode =
-        selectedId && nodeById[selectedId] ? nodeById[selectedId] : null;
+        menuSelectedId && nodeById[menuSelectedId] ? nodeById[menuSelectedId] : null;
       var selectedKind = selectedNode ? selectedNode.kind || "" : "";
       var isSelectedNote = selectedNode && selectedKind === "note";
       var isSelectedFamily = selectedNode && selectedKind === "family";
       var isNodeNote = node && node.kind === "note";
       var isNodeFamily = node && node.kind === "family";
-      var isDifferent = selectedNode && String(node.id) !== String(selectedId);
-      var isSame = selectedNode && String(node.id) === String(selectedId);
+      var isDifferent = selectedNode && String(node.id) !== String(menuSelectedId);
+      var isSame = selectedNode && String(node.id) === String(menuSelectedId);
 
       function getPrimaryFamily(n) {
         if (!n) return "";
@@ -3065,7 +4913,7 @@
               function doConnect(families) {
                 showToast("Connect family");
                 var payload = {
-                  source: String(selectedId),
+                  source: String(menuSelectedId),
                   target: String(node.id),
                   source_kind: selectedKind,
                   source_label: selectedNode.label || "",
@@ -3091,7 +4939,7 @@
           if (selectedKind === "family") {
             connectGroup.push({
               label: "Connect selected to Family",
-              cb: doConnectWithMode("Select hub families", ""),
+              cb: doConnectWithMode("Select hub families", "hub_zero"),
             });
           } else if (selectedKind === "note") {
             connectGroup.push({
@@ -3123,7 +4971,7 @@
               showToast("Connect family");
               var payload = {
                 source: String(node.id),
-                target: String(selectedId),
+                target: String(menuSelectedId),
                 source_kind: "family",
                 source_label: hubFid2,
                 prio_mode: "hub_zero",
@@ -3139,7 +4987,7 @@
 
       var linkInfo = { ab: false, ba: false };
       if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
-        linkInfo = manualLinkInfo(String(selectedId), String(node.id));
+        linkInfo = manualLinkInfo(String(menuSelectedId), String(node.id));
       }
 
       var appendItems = [];
@@ -3154,7 +5002,7 @@
             cb: function () {
               showToast("Append link");
               var payload = {
-                source: String(selectedId),
+                source: String(menuSelectedId),
                 target: String(node.id),
                 label: selectedNode.label || "",
               };
@@ -3171,7 +5019,7 @@
               showToast("Append link");
               var payload = {
                 source: String(node.id),
-                target: String(selectedId),
+                target: String(menuSelectedId),
                 label: node.label || "",
               };
               if (window.pycmd) {
@@ -3186,7 +5034,7 @@
             cb: function () {
               showToast("Append links");
               var payload = {
-                source: String(selectedId),
+                source: String(menuSelectedId),
                 target: String(node.id),
                 source_label: selectedNode.label || "",
                 target_label: node.label || "",
@@ -3238,7 +5086,7 @@
               function doDisconnect(families) {
                 showToast("Disconnect family");
                 var payload = {
-                  source: String(selectedId),
+                  source: String(menuSelectedId),
                   target: String(node.id),
                   source_kind: selectedKind,
                   source_label: selectedNode.label || "",
@@ -3246,7 +5094,7 @@
                 if (isNodeFamily && isSelectedNote) {
                   var hubFid3 = node.label || String(node.id).replace("family:", "");
                   payload.source = String(node.id);
-                  payload.target = String(selectedId);
+                  payload.target = String(menuSelectedId);
                   payload.source_kind = "family";
                   payload.source_label = hubFid3;
                 }
@@ -3279,7 +5127,7 @@
             cb: function () {
               showToast("Remove link");
               var payload = {
-                source: String(selectedId),
+                source: String(menuSelectedId),
                 target: String(node.id),
               };
               if (window.pycmd) {
@@ -3295,7 +5143,7 @@
               showToast("Remove link");
               var payload = {
                 source: String(node.id),
-                target: String(selectedId),
+                target: String(menuSelectedId),
               };
               if (window.pycmd) {
                 pycmd("ctx:unlink_active:" + encodeURIComponent(JSON.stringify(payload)));
@@ -3309,7 +5157,7 @@
             cb: function () {
               showToast("Remove links");
               var payload = {
-                source: String(selectedId),
+                source: String(menuSelectedId),
                 target: String(node.id),
               };
               if (window.pycmd) {
@@ -3491,9 +5339,7 @@
         }
         if (newData.meta && newData.meta.link_strengths) {
           Object.keys(newData.meta.link_strengths).forEach(function (k) {
-            if (linkStrengths[k] === undefined) {
-              linkStrengths[k] = newData.meta.link_strengths[k];
-            }
+            linkStrengths[k] = newData.meta.link_strengths[k];
           });
         }
         if (newData.meta && newData.meta.card_dot_colors) {
@@ -3506,6 +5352,10 @@
         }
         if (newData.meta && newData.meta.layer_flow_speed !== undefined) {
           flowSpeed = newData.meta.layer_flow_speed;
+        }
+        if (newData.meta && newData.meta.soft_pin_radius !== undefined) {
+          var sp2 = parseFloat(newData.meta.soft_pin_radius);
+          if (!isNaN(sp2)) softPinRadius = sp2;
         }
           if (
             newData.meta &&
@@ -3547,6 +5397,11 @@
         if (newData.meta && newData.meta.family_same_prio_opacity !== undefined) {
           samePrioOpacity = newData.meta.family_same_prio_opacity;
         }
+        if (newData.meta && newData.meta.note_type_hub_members) {
+          noteTypeHubMembers = buildNoteTypeHubMembers(
+            newData.meta.note_type_hub_members
+          );
+        }
 
         nodes = (newData.nodes || []).map(function (n) {
           var copy = {};
@@ -3582,13 +5437,14 @@
           var b = String(t);
           var key = (l.layer || "") + "|" + (a < b ? a + "|" + b : b + "|" + a);
           if (!prevKeys[key]) {
-            addedEdges.push({ a: a, b: b });
+            addedEdges.push({ a: a, b: b, layer: l.layer || "", meta: l.meta || null });
           }
         });
         nodeById = {};
         nodes.forEach(function (n) {
           nodeById[String(n.id)] = n;
         });
+        addHubMembersToNodeMap();
 
         var neighbors = {};
         links.forEach(function (l) {

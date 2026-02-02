@@ -39,6 +39,17 @@ DEFAULT_CFG: dict[str, Any] = {
         "kanji": 1.0,
         "kanji_component": 1.0,
     },
+    "physics": {
+        "charge": -80,
+        "link_distance": 30,
+        "link_strength": 1,
+        "velocity_decay": 0.35,
+        "alpha_decay": 0.02,
+        "cooldown_ticks": 80,
+        "warmup_ticks": 180,
+        "max_radius": 1400,
+    },
+    "soft_pin_radius": 140,
     "layer_flow_speed": 0.35,
     "family_chain_edges": True,
     "selected_decks": [],
@@ -73,6 +84,13 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
+    if "physics" not in cfg or not isinstance(cfg.get("physics"), dict):
+        cfg["physics"] = DEFAULT_CFG.get("physics", {}).copy()
+    else:
+        for pkey, pval in DEFAULT_CFG.get("physics", {}).items():
+            cur = cfg["physics"].get(pkey)
+            if not isinstance(cur, (int, float)):
+                cfg["physics"][pkey] = pval
     if not isinstance(cfg.get("family_same_prio_edges"), bool):
         cfg["family_same_prio_edges"] = False
     if not isinstance(cfg.get("family_same_prio_opacity"), (int, float)):
@@ -81,6 +99,8 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["family_chain_edges"] = DEFAULT_CFG["family_chain_edges"]
     if not isinstance(cfg.get("layer_flow_speed"), (int, float)):
         cfg["layer_flow_speed"] = DEFAULT_CFG["layer_flow_speed"]
+    if not isinstance(cfg.get("soft_pin_radius"), (int, float)):
+        cfg["soft_pin_radius"] = DEFAULT_CFG["soft_pin_radius"]
     if not isinstance(cfg.get("selected_decks"), list):
         cfg["selected_decks"] = []
     if not isinstance(cfg.get("reference_auto_opacity"), (int, float)):
@@ -261,6 +281,31 @@ def set_layer_flow_speed(speed: float) -> None:
     cfg = load_graph_config()
     try:
         cfg["layer_flow_speed"] = float(speed)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_physics_value(key: str, value: float) -> None:
+    cfg = load_graph_config()
+    key = (key or "").strip()
+    if not key:
+        return
+    if "physics" not in cfg or not isinstance(cfg.get("physics"), dict):
+        cfg["physics"] = DEFAULT_CFG.get("physics", {}).copy()
+    if key not in DEFAULT_CFG.get("physics", {}):
+        return
+    try:
+        cfg["physics"][key] = float(value)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_soft_pin_radius(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["soft_pin_radius"] = float(value)
     except Exception:
         return
     save_graph_config(cfg)
