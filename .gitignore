@@ -6,5 +6,7 @@ __pycache__/
 .idea/
 .vscode/
 meta.json
-config.json
+graph_config.json
 *.log
+AGENTS.md
+.devdocs/
