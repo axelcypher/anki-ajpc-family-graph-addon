@@ -51,7 +51,7 @@
     "mass_linker": false
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 2.0,
+  "layer_flow_speed": 1.06,
   "note_type_linked_fields": {
     "1768669148068": "LinkedCards",
     "1768654427037": "LinkedCards",
@@ -132,12 +132,12 @@
     "charge": -90.0,
     "link_distance": 100.0,
     "link_strength": 1,
-    "velocity_decay": 0.2,
-    "alpha_decay": 0.014,
+    "velocity_decay": 0.16,
+    "alpha_decay": 0.006,
     "cooldown_ticks": -1.0,
     "warmup_ticks": 10.0,
-    "max_radius": 600.0,
-    "center_force": 1.0,
+    "max_radius": 750.0,
+    "center_force": 0.44,
     "cooldown_time": -1.0
   },
   "soft_pin_radius": 90.0,

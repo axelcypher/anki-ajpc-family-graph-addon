@@ -4264,15 +4264,11 @@
               var t = l.target && typeof l.target === "object" ? l.target.id : l.target;
               var sk = String(s);
               var tk = String(t);
-              var kindS = idKind[sk] || "";
-              var kindT = idKind[tk] || "";
-              if (l.layer === "family_hub" || kindS === "family" || kindT === "family") {
-                return;
-              }
               linkIdSet[sk] = true;
               linkIdSet[tk] = true;
             });
             activeNodes = activeNodes.filter(function (n) {
+              if (n && n.kind === "family") return true;
               return linkIdSet[String(n.id)];
             });
           }

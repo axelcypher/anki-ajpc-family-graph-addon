@@ -1392,6 +1392,19 @@ def build_graph(col: Collection) -> dict[str, Any]:
 
     if edges and not show_unlinked:
         linked_ids = {str(e.get("source")) for e in edges} | {str(e.get("target")) for e in edges}
+        # include family gate + family hub edges (kept in meta lists)
+        for e in (family_edges_direct + family_edges_chain + family_hub_edges_direct + family_hub_edges_chain):
+            linked_ids.add(str(e.get("source")))
+            linked_ids.add(str(e.get("target")))
+        # include hub members (note_type hubs) so hubs/members aren't dropped
+        for hub_id, entry in hub_members.items():
+            linked_ids.add(str(hub_id))
+            for node in (entry.get("nodes") or []):
+                if node and node.get("id") is not None:
+                    linked_ids.add(str(node.get("id")))
+            for e in (entry.get("edges") or []):
+                linked_ids.add(str(e.get("source")))
+                linked_ids.add(str(e.get("target")))
         nodes = {nid: n for nid, n in nodes.items() if nid in linked_ids}
 
     note_ids: list[int] = []
