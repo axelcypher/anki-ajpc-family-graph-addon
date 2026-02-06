@@ -9,27 +9,31 @@
   },
   "note_type_visible": {
     "1769281677593": false,
-    "1768963265679": false,
-    "1768738698248": false,
+    "1768963265679": true,
+    "1768738698248": true,
     "1769741511321": true,
     "1769454350497": true,
     "1769220678917": false,
     "1769367768468": false,
-    "1751376700451": false
+    "1751376700451": false,
+    "1768669162567": true,
+    "1768654427037": true
   },
   "note_type_colors": {
     "1768669162567": "#8b489e",
     "1768654427037": "#7d2224",
     "1768669148068": "#387835",
-    "1769220678917": "#ffb7ff",
+    "1769220678917": "#ff9cff",
     "1769454350497": "#550000",
     "1769741511321": "#005500",
     "1768738698248": "#6a314c",
-    "1768963265679": "#ff47d7"
+    "1768963265679": "#ff47d7",
+    "1769367768468": "#4d4d4d"
   },
   "layer_colors": {
     "family": "#3d95e7",
-    "family_hub": "#34d399"
+    "family_hub": "#34d399",
+    "mass_linker": "#f56e0d"
   },
   "family_same_prio_edges": false,
   "layer_styles": {
@@ -39,42 +43,54 @@
     "kanji": "solid"
   },
   "layer_flow": {
-    "family": true,
+    "family": false,
     "family_hub": false,
-    "reference": true,
+    "reference": false,
     "kanji": true,
-    "example": true
+    "example": true,
+    "mass_linker": false
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 0.35,
+  "layer_flow_speed": 2.0,
   "note_type_linked_fields": {
     "1768669148068": "LinkedCards",
     "1768654427037": "LinkedCards",
     "1768669162567": "LinkedCards",
     "1769741511321": "LinkedNotes",
-    "1769454350497": "LinkedNotes"
+    "1769454350497": "LinkedNotes",
+    "1769220678917": "FamilyID"
   },
   "family_same_prio_opacity": 0.15,
   "note_type_tooltip_fields": {
     "1768669162567": [
-      "Vocab",
       "VocabKanji",
-      "VocabReading"
+      "VocabReading",
+      "VocabHepburn"
     ],
     "1768654427037": [
-      "Vocab",
       "VocabKanji",
-      "VocabReading"
+      "VocabReading",
+      "VocabHepburn"
     ],
     "1768669148068": [
-      "Vocab",
       "VocabKanji",
-      "VocabReading"
+      "VocabReading",
+      "VocabHepburn"
     ],
     "1768738698248": [
       "Kanji",
       "KanjiMeaningDE",
       "KanjiParts"
+    ],
+    "1769454350497": [
+      "StructureIchidan",
+      "StructureGodan",
+      "StructureSuru"
+    ],
+    "1769741511321": [
+      "StructureIKeiyoushi",
+      "StructureNaKeiyoushi",
+      "StructureNoKeiyoushi"
     ]
   },
   "selected_decks": [
@@ -93,12 +109,13 @@
   "card_dot_buried_color": "#f55831",
   "card_dots_enabled": true,
   "link_strengths": {
-    "family": 1.0,
-    "family_hub": 1.0,
-    "reference": 0.1,
-    "example": 1.0,
-    "kanji": 1.0,
-    "kanji_component": 1.0
+    "family": 0.76,
+    "family_hub": 0.99,
+    "reference": 1.23,
+    "example": 0.99,
+    "kanji": 0.99,
+    "kanji_component": 0.99,
+    "mass_linker": 1.5
   },
   "note_type_hubs": {
     "1769454350497": true,
@@ -107,17 +124,47 @@
   "layer_enabled": {
     "reference": true,
     "example": false,
-    "kanji": false
+    "kanji": false,
+    "mass_linker": false,
+    "family_hub": true
   },
   "physics": {
-    "charge": -121.0,
-    "link_distance": 20.0,
+    "charge": -90.0,
+    "link_distance": 100.0,
     "link_strength": 1,
-    "velocity_decay": 0.17,
-    "alpha_decay": 0.024,
-    "cooldown_ticks": 83.0,
-    "warmup_ticks": 1.0,
-    "max_radius": 400.0
+    "velocity_decay": 0.2,
+    "alpha_decay": 0.014,
+    "cooldown_ticks": -1.0,
+    "warmup_ticks": 10.0,
+    "max_radius": 600.0,
+    "center_force": 1.0,
+    "cooldown_time": -1.0
   },
-  "soft_pin_radius": 90.0
+  "soft_pin_radius": 90.0,
+  "link_distances": {
+    "mass_linker": 45.0,
+    "family_hub": 37.0,
+    "reference": 49.0,
+    "family": 21.0
+  },
+  "neighbor_scaling": {
+    "mode": "ccm",
+    "directed": "out",
+    "weights": {
+      "family": 1.4,
+      "family_hub": 0.9,
+      "reference": 0.9,
+      "mass_linker": 0.4,
+      "example": 1.0,
+      "kanji": 0.2,
+      "kanji_component": 0.0
+    }
+  },
+  "link_mst_enabled": false,
+  "hub_damping": false,
+  "reference_damping": true,
+  "kanji_tfidf_enabled": true,
+  "kanji_top_k_enabled": false,
+  "kanji_top_k": 25,
+  "kanji_quantile_norm": true
 }

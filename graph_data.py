@@ -159,6 +159,37 @@ def _note_type_name(col: Collection, mid: int) -> str:
     return str(mid)
 
 
+def _resolve_note_type_id(col: Collection, raw: Any) -> str:
+    try:
+        s = str(raw).strip()
+    except Exception:
+        return ""
+    if not s:
+        return ""
+    if s.isdigit():
+        return s
+    try:
+        for info in col.models.all_names_and_ids():
+            if str(info.get("name", "")) == s:
+                return str(info.get("id"))
+    except Exception:
+        pass
+    return s
+
+
+def _normalize_note_type_map(col: Collection, cfg_map: Any) -> dict[str, Any]:
+    if not isinstance(cfg_map, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key, val in cfg_map.items():
+        mid = _resolve_note_type_id(col, key)
+        if mid:
+            out[mid] = val
+        else:
+            out[str(key)] = val
+    return out
+
+
 def _card_status(queue: int) -> str:
     if queue == -1:
         return "suspended"
@@ -351,12 +382,16 @@ def build_graph(col: Collection) -> dict[str, Any]:
     debug_enabled = bool(cfg.get("debug_enabled", False)) if isinstance(cfg, dict) else False
 
     graph_cfg = load_graph_config()
-    label_fields = graph_cfg.get("note_type_label_fields") or {}
-    linked_fields = graph_cfg.get("note_type_linked_fields") or {}
-    tooltip_fields = graph_cfg.get("note_type_tooltip_fields") or {}
-    visible_note_types = graph_cfg.get("note_type_visible") or {}
-    note_type_colors = graph_cfg.get("note_type_colors") or {}
-    note_type_hubs = graph_cfg.get("note_type_hubs") or {}
+    label_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_label_fields") or {})
+    linked_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_linked_fields") or {})
+    tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
+    visible_note_types = _normalize_note_type_map(col, graph_cfg.get("note_type_visible") or {})
+    note_type_colors = _normalize_note_type_map(col, graph_cfg.get("note_type_colors") or {})
+    note_type_hubs = _normalize_note_type_map(col, graph_cfg.get("note_type_hubs") or {})
+    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
+    family_gate_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
+    kg_cfg = cfg.get("kanji_gate") if isinstance(cfg, dict) else {}
+    kanji_vocab_note_types = _normalize_note_type_map(col, (kg_cfg or {}).get("vocab_note_types") or {})
     layer_colors = graph_cfg.get("layer_colors") or {}
     same_prio_edges = bool(graph_cfg.get("family_same_prio_edges", False))
     same_prio_opacity = float(graph_cfg.get("family_same_prio_opacity", 0.6))
@@ -364,13 +399,25 @@ def build_graph(col: Collection) -> dict[str, Any]:
     layer_flow = graph_cfg.get("layer_flow") or {}
     layer_enabled = graph_cfg.get("layer_enabled") or {}
     link_strengths = graph_cfg.get("link_strengths") or {}
+    link_distances = graph_cfg.get("link_distances") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
     soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
     physics_cfg = graph_cfg.get("physics") or {}
+    neighbor_scaling = graph_cfg.get("neighbor_scaling") or {}
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
     reference_auto_opacity = float(graph_cfg.get("reference_auto_opacity", 1.0))
     show_unlinked = bool(graph_cfg.get("show_unlinked", False))
+    link_mst_enabled = bool(graph_cfg.get("link_mst_enabled", False))
+    hub_damping = bool(graph_cfg.get("hub_damping", False))
+    reference_damping = bool(graph_cfg.get("reference_damping", False))
+    kanji_tfidf_enabled = bool(graph_cfg.get("kanji_tfidf_enabled", False))
+    kanji_top_k_enabled = bool(graph_cfg.get("kanji_top_k_enabled", False))
+    try:
+        kanji_top_k = int(graph_cfg.get("kanji_top_k") or 0)
+    except Exception:
+        kanji_top_k = 0
+    kanji_quantile_norm = bool(graph_cfg.get("kanji_quantile_norm", False))
     kanji_hubs = bool(graph_cfg.get("kanji_hubs", True))
     kanji_components_enabled = bool(graph_cfg.get("kanji_components_enabled", True))
     kanji_component_style = str(graph_cfg.get("kanji_component_style") or "solid")
@@ -392,7 +439,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
     logger.dbg("build_graph start")
     nodes: dict[str, dict[str, Any]] = {}
     edges: list[dict[str, Any]] = []
+    family_edges_direct: list[dict[str, Any]] = []
+    family_edges_chain: list[dict[str, Any]] = []
+    family_hub_edges_direct: list[dict[str, Any]] = []
+    family_hub_edges_chain: list[dict[str, Any]] = []
     hub_members: dict[str, dict[str, Any]] = {}
+    autolink_tags: dict[str, set[int]] = {}
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -454,6 +506,13 @@ def build_graph(col: Collection) -> dict[str, Any]:
             return
         edges.append({"source": src, "target": dst, "layer": layer, "meta": meta})
 
+    def add_family_edge(
+        bucket: list[dict[str, Any]], src: str, dst: str, layer: str, **meta: Any
+    ) -> None:
+        if src == dst:
+            return
+        bucket.append({"source": src, "target": dst, "layer": layer, "meta": meta})
+
     def resolve_note_id(raw_id: int) -> int | None:
         try:
             note = col.get_note(raw_id)
@@ -475,7 +534,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         family_field = str(fg.get("family_field") or "")
         sep = str(fg.get("separator") or ";")
         default_prio = int(fg.get("default_prio") or 0)
-        note_types = fg.get("note_types") or {}
+        note_types = family_gate_note_types
         logger.dbg("family_gate enabled", "field=", family_field, "note_types=", len(note_types))
 
         family_groups: dict[str, list[tuple[int, int]]] = {}
@@ -494,23 +553,21 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 if not fams:
                     continue
                 label = _note_label(note, label_fields.get(str(note.mid)))
-                prio_val = min((p for _fid, p in fams), default=default_prio)
                 ensure_node(
                     str(nid),
                     label=label,
                     kind="note",
                     note_type_id=str(note.mid),
                     note_type=_note_type_name(col, int(note.mid)),
-                    prio=prio_val,
                     extra=_note_extra(note),
                 )
                 add_layer(str(nid), "family")
                 for fid, prio in fams:
                     node = nodes.get(str(nid))
                     if node is not None:
-                        fam_list = node.setdefault("families", [])
-                        if isinstance(fam_list, list) and fid not in fam_list:
-                            fam_list.append(fid)
+                        fam_map = node.setdefault("family_prios", {})
+                        if isinstance(fam_map, dict):
+                            fam_map[str(fid)] = int(prio)
                     family_groups.setdefault(fid, []).append((nid, prio))
 
         # build hub edges + direct family edges (limited for performance)
@@ -521,38 +578,119 @@ def build_graph(col: Collection) -> dict[str, Any]:
             hub_id = f"family:{fid}"
             ensure_node(hub_id, label=fid, kind="family")
             add_layer(hub_id, "family_hub")
-            if family_chain_edges:
-                by_prio: dict[int, list[int]] = {}
-                for nid, prio in members:
-                    by_prio.setdefault(prio, []).append(nid)
-                prios = sorted(by_prio.keys())
-                if prios:
-                    lowest = prios[0]
-                    for nid in by_prio.get(lowest, []):
-                        add_edge(str(nid), hub_id, "family_hub", prio=lowest, fid=fid, kind="hub")
-                    for idx in range(1, len(prios)):
-                        prev = prios[idx - 1]
-                        cur = prios[idx]
-                        prev_nodes = by_prio.get(prev, [])
-                        if not prev_nodes:
-                            continue
-                        anchor = prev_nodes[0]
-                        for nid in by_prio.get(cur, []):
-                            add_edge(str(anchor), str(nid), "family_hub", prio=cur, fid=fid, kind="chain")
-            else:
-                for nid, prio in members:
-                    add_edge(str(nid), hub_id, "family_hub", prio=prio, fid=fid)
+
+            # hub edges (direct variant)
+            for nid, prio in members:
+                add_family_edge(
+                    family_hub_edges_direct,
+                    str(nid),
+                    hub_id,
+                    "family_hub",
+                    prio=prio,
+                    fid=fid,
+                    kind="hub",
+                )
+
+            # hub edges (chain variant)
+            by_prio: dict[int, list[int]] = {}
+            for nid, prio in members:
+                by_prio.setdefault(prio, []).append(nid)
+            prios = sorted(by_prio.keys())
+            if prios:
+                lowest = prios[0]
+                for nid in by_prio.get(lowest, []):
+                    add_family_edge(
+                        family_hub_edges_chain,
+                        str(nid),
+                        hub_id,
+                        "family_hub",
+                        prio=lowest,
+                        fid=fid,
+                        kind="hub",
+                    )
+                for idx in range(1, len(prios)):
+                    prev = prios[idx - 1]
+                    cur = prios[idx]
+                    prev_nodes = by_prio.get(prev, [])
+                    if not prev_nodes:
+                        continue
+                    anchor = prev_nodes[0]
+                    for nid in by_prio.get(cur, []):
+                        # flow from higher prio -> lower prio (towards hub)
+                        add_family_edge(
+                            family_hub_edges_chain,
+                            str(nid),
+                            str(anchor),
+                            "family_hub",
+                            prio=cur,
+                            fid=fid,
+                            kind="chain",
+                        )
+
             if 1 < len(members) <= MAX_DIRECT_FAMILY_MEMBERS:
-                if family_chain_edges:
-                    # In chain mode, only connect same-priority or adjacent-priority members.
-                    for i in range(len(members)):
-                        for j in range(i + 1, len(members)):
-                            src, prio = members[i]
-                            dst, _prio2 = members[j]
-                            if prio == _prio2:
-                                if not same_prio_edges:
-                                    continue
-                                add_edge(
+                # direct family edges
+                for i in range(len(members)):
+                    for j in range(i + 1, len(members)):
+                        src, prio = members[i]
+                        dst, _prio2 = members[j]
+                        if not same_prio_edges and prio == _prio2:
+                            continue
+                        if prio < _prio2:
+                            # flow from higher prio to lower prio
+                            add_family_edge(
+                                family_edges_direct,
+                                str(dst),
+                                str(src),
+                                "family",
+                                prio=prio,
+                                fid=fid,
+                                same_prio=False,
+                            )
+                        elif prio > _prio2:
+                            add_family_edge(
+                                family_edges_direct,
+                                str(src),
+                                str(dst),
+                                "family",
+                                prio=_prio2,
+                                fid=fid,
+                                same_prio=False,
+                            )
+                        else:
+                            add_family_edge(
+                                family_edges_direct,
+                                str(src),
+                                str(dst),
+                                "family",
+                                prio=prio,
+                                fid=fid,
+                                same_prio=True,
+                            )
+                            add_family_edge(
+                                family_edges_direct,
+                                str(dst),
+                                str(src),
+                                "family",
+                                prio=prio,
+                                fid=fid,
+                                same_prio=True,
+                                flow_only=True,
+                            )
+
+                # chain family edges
+                by_prio_members: dict[int, list[int]] = {}
+                for nid, prio in members:
+                    by_prio_members.setdefault(prio, []).append(nid)
+                prio_levels = sorted(by_prio_members.keys())
+                # same-priority links (optional)
+                if same_prio_edges:
+                    for prio, prio_nodes in by_prio_members.items():
+                        for i in range(len(prio_nodes)):
+                            for j in range(i + 1, len(prio_nodes)):
+                                src = prio_nodes[i]
+                                dst = prio_nodes[j]
+                                add_family_edge(
+                                    family_edges_chain,
                                     str(src),
                                     str(dst),
                                     "family",
@@ -560,7 +698,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                     fid=fid,
                                     same_prio=True,
                                 )
-                                add_edge(
+                                add_family_edge(
+                                    family_edges_chain,
                                     str(dst),
                                     str(src),
                                     "family",
@@ -569,57 +708,30 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                     same_prio=True,
                                     flow_only=True,
                                 )
-                                continue
-                            if abs(prio - _prio2) != 1:
-                                continue
-                            if prio < _prio2:
-                                add_edge(
-                                    str(dst),
-                                    str(src),
-                                    "family",
-                                    prio=prio,
-                                    fid=fid,
-                                    same_prio=False,
-                                )
-                            else:
-                                add_edge(
-                                    str(src),
-                                    str(dst),
-                                    "family",
-                                    prio=_prio2,
-                                    fid=fid,
-                                    same_prio=False,
-                                )
-                else:
-                    for i in range(len(members)):
-                        for j in range(i + 1, len(members)):
-                            src, prio = members[i]
-                            dst, _prio2 = members[j]
-                            if not same_prio_edges and prio == _prio2:
-                                continue
-                            if prio < _prio2:
-                                # flow from higher prio to lower prio
-                                add_edge(str(dst), str(src), "family", prio=prio, fid=fid, same_prio=False)
-                            elif prio > _prio2:
-                                add_edge(str(src), str(dst), "family", prio=_prio2, fid=fid, same_prio=False)
-                            else:
-                                add_edge(
-                                    str(src),
-                                    str(dst),
-                                    "family",
-                                    prio=prio,
-                                    fid=fid,
-                                    same_prio=True,
-                                )
-                                add_edge(
-                                    str(dst),
-                                    str(src),
-                                    "family",
-                                    prio=prio,
-                                    fid=fid,
-                                    same_prio=True,
-                                    flow_only=True,
-                                )
+                # chain links from each higher prio to all lower prio levels (multiple prerequisites)
+                for idx in range(1, len(prio_levels)):
+                    higher_prio = prio_levels[idx]
+                    higher_nodes = by_prio_members.get(higher_prio, [])
+                    if not higher_nodes:
+                        continue
+                    lower_nodes: list[tuple[int, int]] = []
+                    for j in range(0, idx):
+                        lp = prio_levels[j]
+                        for lnid in by_prio_members.get(lp, []):
+                            lower_nodes.append((lnid, lp))
+                    if not lower_nodes:
+                        continue
+                    for nid in higher_nodes:
+                        for lower_nid, lower_prio in lower_nodes:
+                            add_family_edge(
+                                family_edges_chain,
+                                str(nid),
+                                str(lower_nid),
+                                "family",
+                                prio=lower_prio,
+                                fid=fid,
+                                same_prio=False,
+                            )
 
     # Example Gate
     eg = cfg.get("example_gate", {})
@@ -631,7 +743,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         stage_sep = str(eg.get("stage_sep") or "@")
         default_stage = int(eg.get("default_stage") or 0)
         norm_cfg = eg.get("key_norm") or {}
-        family_note_types = set((fg.get("note_types") or {}).keys())
+        family_note_types = set((family_gate_note_types or {}).keys())
 
         vocab_index: dict[str, int] = {}
         if vocab_deck and vocab_key_field:
@@ -689,12 +801,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
     # Kanji Gate
     kg = cfg.get("kanji_gate", {})
     if kg.get("enabled"):
-        kanji_mid = str(kg.get("kanji_note_type") or "")
+        kanji_mid = _resolve_note_type_id(col, kg.get("kanji_note_type") or "")
         kanji_field = str(kg.get("kanji_field") or "")
         kanji_alt_field = str(kg.get("kanji_alt_field") or "")
         components_field = str(kg.get("components_field") or "")
         kanji_rad_field = str(kg.get("kanji_radical_field") or "")
-        radical_mid = str(kg.get("radical_note_type") or "")
+        radical_mid = _resolve_note_type_id(col, kg.get("radical_note_type") or "")
         radical_field = str(kg.get("radical_field") or "")
 
         if kanji_hubs:
@@ -739,7 +851,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 add_edge(ensure_kanji_hub(src), ensure_kanji_hub(comp), "kanji", kind="component", value=comp)
 
             # vocab -> kanji hubs
-            vocab_cfg = kg.get("vocab_note_types") or {}
+            vocab_cfg = kanji_vocab_note_types
             for nt_id, vcfg in vocab_cfg.items():
                 if not isinstance(vcfg, dict):
                     continue
@@ -823,7 +935,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             # radicals intentionally ignored in graph view
 
             # vocab -> kanji
-            vocab_cfg = kg.get("vocab_note_types") or {}
+            vocab_cfg = kanji_vocab_note_types
             for nt_id, vcfg in vocab_cfg.items():
                 if not isinstance(vcfg, dict):
                     continue
@@ -868,79 +980,112 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             )
                             add_edge(str(nid), str(k_nid), "kanji", kind="vocab", value=ch)
 
-    # Note Linker (reference)
-    nl = cfg.get("note_linker", {})
-    if nl.get("enabled"):
-        rules = nl.get("rules") or {}
-        if isinstance(rules, dict):
-            logger.dbg("note_linker rules", len(rules))
-            for nt_id, rule in rules.items():
-                if not isinstance(rule, dict):
-                    continue
-                tag = str(rule.get("tag") or "").strip()
-                if not tag:
-                    continue
-                templates = {str(x) for x in (rule.get("templates") or []) if str(x).strip()}
-                label_field = str(rule.get("label_field") or "").strip()
+    # Note/Mass Linker (mass_linker)
+    linker_rules: dict[str, dict[str, Any]] = {}
+    for key in ("note_linker", "mass_linker"):
+        block = cfg.get(key, {}) if isinstance(cfg, dict) else {}
+        if not isinstance(block, dict) or not block.get("enabled"):
+            continue
+        rules = block.get("rules") or {}
+        if not isinstance(rules, dict):
+            continue
+        for nt_id, rule in rules.items():
+            if not isinstance(rule, dict):
+                continue
+            mid = _resolve_note_type_id(col, nt_id)
+            if not mid:
+                continue
+            linker_rules[str(mid)] = rule
+    if linker_rules:
+        logger.dbg("linker rules", len(linker_rules))
+        tmpl_name_cache: dict[str, set[str]] = {}
+        for nt_id, rule in linker_rules.items():
+            tag = str(rule.get("tag") or "").strip()
+            if not tag:
+                continue
+            templates_raw = [str(x).strip() for x in (rule.get("templates") or []) if str(x).strip()]
+            template_names = {t for t in templates_raw if not t.isdigit()}
+            template_ords = {int(t) for t in templates_raw if t.isdigit()}
+            label_field = str(rule.get("label_field") or "").strip()
 
-                target_nids = _note_ids_for_query(col, f"tag:{tag}")
-                if allowed_nids is not None:
-                    target_nids = [nid for nid in target_nids if nid in allowed_nids]
-                if not target_nids:
+            target_nids = _note_ids_for_query(col, f"tag:{tag}")
+            if allowed_nids is not None:
+                target_nids = [nid for nid in target_nids if nid in allowed_nids]
+            if not target_nids:
+                continue
+            autolink_tags.setdefault(tag, set()).update(target_nids)
+            target_labels: dict[int, str] = {}
+            for tnid in target_nids:
+                try:
+                    tnote = col.get_note(tnid)
+                except Exception:
                     continue
-                target_labels: dict[int, str] = {}
-                for tnid in target_nids:
-                    try:
-                        tnote = col.get_note(tnid)
-                    except Exception:
-                        continue
-                    if label_field and label_field in tnote:
-                        target_labels[tnid] = str(tnote[label_field] or "").strip() or _note_label(tnote)
-                    else:
-                        target_labels[tnid] = _note_label(tnote, label_fields.get(str(tnote.mid)))
-                    ensure_node(
-                        str(tnid),
-                        label=target_labels[tnid],
-                        kind="note",
-                        note_type_id=str(tnote.mid),
-                        note_type=_note_type_name(col, int(tnote.mid)),
-                        extra=_note_extra(tnote),
-                    )
+                if label_field and label_field in tnote:
+                    target_labels[tnid] = str(tnote[label_field] or "").strip() or _note_label(tnote)
+                else:
+                    target_labels[tnid] = _note_label(tnote, label_fields.get(str(tnote.mid)))
+                ensure_node(
+                    str(tnid),
+                    label=target_labels[tnid],
+                    kind="note",
+                    note_type_id=str(tnote.mid),
+                    note_type=_note_type_name(col, int(tnote.mid)),
+                    extra=_note_extra(tnote),
+                )
 
-                for snid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
-                    try:
-                        snote = col.get_note(snid)
-                    except Exception:
-                        continue
-                    if templates:
+            for snid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
+                try:
+                    snote = col.get_note(snid)
+                except Exception:
+                    continue
+                if templates_raw:
+                    matched = False
+                    if template_ords:
                         try:
-                            model = col.models.get(snote.mid)
-                            tmpl_names = {
-                                str(t.get("name", ""))
-                                for t in (model.get("tmpls") or [])
-                                if t.get("name")
-                            }
-                            if not (tmpl_names & templates):
-                                continue
+                            for card in snote.cards():
+                                try:
+                                    if int(card.ord) in template_ords:
+                                        matched = True
+                                        break
+                                except Exception:
+                                    continue
                         except Exception:
                             pass
-                    ensure_node(
+                    if not matched and template_names:
+                        try:
+                            mid_key = str(snote.mid)
+                            tmpl_names = tmpl_name_cache.get(mid_key)
+                            if tmpl_names is None:
+                                model = col.models.get(snote.mid)
+                                tmpl_names = {
+                                    str(t.get("name", ""))
+                                    for t in (model.get("tmpls") or [])
+                                    if t.get("name")
+                                } if model else set()
+                                tmpl_name_cache[mid_key] = tmpl_names
+                            if tmpl_names & template_names:
+                                matched = True
+                        except Exception:
+                            pass
+                    if not matched:
+                        continue
+                ensure_node(
+                    str(snid),
+                    label=_note_label(snote, label_fields.get(str(snote.mid))),
+                    kind="note",
+                    note_type_id=str(snote.mid),
+                    note_type=_note_type_name(col, int(snote.mid)),
+                    extra=_note_extra(snote),
+                )
+                for tnid in target_nids:
+                    add_edge(
                         str(snid),
-                        label=_note_label(snote, label_fields.get(str(snote.mid))),
-                        kind="note",
-                        note_type_id=str(snote.mid),
-                        note_type=_note_type_name(col, int(snote.mid)),
-                        extra=_note_extra(snote),
+                        str(tnid),
+                        "mass_linker",
+                        tag=tag,
+                        label=target_labels.get(tnid, ""),
+                        manual=False,
                     )
-                    for tnid in target_nids:
-                        add_edge(
-                            str(snid),
-                            str(tnid),
-                            "reference",
-                            tag=tag,
-                            label=target_labels.get(tnid, ""),
-                            manual=False,
-                        )
 
     # Manual linked notes (reference)
     if isinstance(linked_fields, dict) and linked_fields:
@@ -1036,6 +1181,56 @@ def build_graph(col: Collection) -> dict[str, Any]:
             if sample_raw:
                 logger.dbg("manual links sample", sample_raw)
 
+    # Include unlinked notes for configured note types (layer-gated)
+    if show_unlinked:
+        def _add_unlinked_notes(nt_ids: set[str], layer: str) -> None:
+            for nt_id in nt_ids:
+                nt_id = str(nt_id or "").strip()
+                if not nt_id:
+                    continue
+                for nid in _filter_nids(_note_ids_for_mid(col, nt_id)):
+                    try:
+                        note = col.get_note(nid)
+                    except Exception:
+                        continue
+                    ensure_node(
+                        str(nid),
+                        label=_note_label(note, label_fields.get(str(note.mid))),
+                        kind="note",
+                        note_type_id=str(note.mid),
+                        note_type=_note_type_name(col, int(note.mid)),
+                        extra=_note_extra(note),
+                    )
+                    add_layer(str(nid), layer)
+
+        if fg.get("enabled"):
+            family_nts = {str(k) for k in (family_gate_note_types or {}).keys() if str(k).strip()}
+            if family_nts:
+                _add_unlinked_notes(family_nts, "family")
+
+        if kg.get("enabled"):
+            kanji_nts: set[str] = set()
+            if kanji_mid:
+                kanji_nts.add(str(kanji_mid))
+            if radical_mid:
+                kanji_nts.add(str(radical_mid))
+            vocab_cfg = kanji_vocab_note_types
+            for k in vocab_cfg.keys():
+                if str(k).strip():
+                    kanji_nts.add(str(k))
+            if kanji_nts:
+                _add_unlinked_notes(kanji_nts, "kanji")
+
+        if linked_fields:
+            ref_nts = {str(k) for k in linked_fields.keys() if str(k).strip()}
+            if ref_nts:
+                _add_unlinked_notes(ref_nts, "reference")
+
+        if linker_rules:
+            mass_nts = {str(k) for k in linker_rules.keys() if str(k).strip()}
+            if mass_nts:
+                _add_unlinked_notes(mass_nts, "mass_linker")
+
     # Collapse duplicate reference edges (manual/auto) into a single visible edge.
     # If both directions exist, keep one visible edge and add a flow-only reverse
     # so the flow appears bidirectional on the same line.
@@ -1093,34 +1288,47 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 out_edges.append(visible)
         edges = out_edges
 
-    # Aggregate note types into hubs (optional)
-    if note_type_hubs:
+    # Aggregate autolink tags into hubs (optional)
+    if autolink_tags:
         hub_map: dict[str, str] = {}
         hub_counts: dict[str, int] = {}
-        for nid, node in list(nodes.items()):
-            if node.get("kind") != "note":
+        hub_tags: dict[str, str] = {}
+        for tag, nids in autolink_tags.items():
+            tag = str(tag or "").strip()
+            if not tag:
                 continue
-            mid = str(node.get("note_type_id") or "")
-            if not mid or not note_type_hubs.get(mid):
-                continue
-            hub_id = f"notetype:{mid}"
-            hub_map[str(nid)] = hub_id
-            hub_counts[hub_id] = hub_counts.get(hub_id, 0) + 1
-            hub_entry = hub_members.setdefault(hub_id, {"nodes": [], "edges": []})
-            hub_entry["nodes"].append(node)
+            hub_id = f"autolink:{tag}"
+            hub_tags[hub_id] = tag
+            for nid in nids:
+                node = nodes.get(str(nid))
+                if not node or node.get("kind") != "note":
+                    continue
+                hub_map[str(nid)] = hub_id
+                hub_counts[hub_id] = hub_counts.get(hub_id, 0) + 1
+                hub_entry = hub_members.setdefault(hub_id, {"nodes": [], "edges": []})
+                hub_entry["nodes"].append(node)
         if hub_map:
             for hub_id, count in hub_counts.items():
-                mid = hub_id.split(":", 1)[1]
-                try:
-                    name = _note_type_name(col, int(mid))
-                except Exception:
-                    name = mid
+                tag = hub_tags.get(hub_id, hub_id)
+                entry = hub_members.get(hub_id) or {}
+                member_ntids = {
+                    str(n.get("note_type_id"))
+                    for n in (entry.get("nodes") or [])
+                    if n.get("note_type_id")
+                }
+                mid = member_ntids.pop() if len(member_ntids) == 1 else None
+                note_type_name = None
+                if mid:
+                    try:
+                        note_type_name = _note_type_name(col, int(mid))
+                    except Exception:
+                        note_type_name = mid
                 ensure_node(
                     hub_id,
-                    label=name,
+                    label=tag,
                     kind="note_type_hub",
                     note_type_id=mid,
-                    note_type=name,
+                    note_type=note_type_name or tag,
                     hub_count=count,
                 )
             for nid in hub_map.keys():
@@ -1155,7 +1363,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 if src == dst:
                     continue
                 meta = e.get("meta") or {}
-                if str(src).startswith("notetype:") or str(dst).startswith("notetype:"):
+                if (
+                    str(src).startswith("notetype:")
+                    or str(dst).startswith("notetype:")
+                    or str(src).startswith("autolink:")
+                    or str(dst).startswith("autolink:")
+                ):
                     meta_key = _hub_meta_key(meta)
                 else:
                     try:
@@ -1287,7 +1500,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         "nodes": list(nodes.values()),
         "edges": edges,
         "meta": {
-            "layers": ["family", "family_hub", "reference", "example", "kanji"],
+            "layers": ["family", "family_hub", "reference", "mass_linker", "example", "kanji"],
             "note_types": note_type_meta,
             "layer_colors": layer_colors,
             "layer_enabled": layer_enabled,
@@ -1296,11 +1509,20 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layer_styles": layer_styles,
             "layer_flow": layer_flow,
             "link_strengths": link_strengths,
+            "link_distances": link_distances,
+            "family_edges_direct": family_edges_direct,
+            "family_edges_chain": family_edges_chain,
+            "family_hub_edges_direct": family_hub_edges_direct,
+            "family_hub_edges_chain": family_hub_edges_chain,
             "layer_flow_speed": layer_flow_speed,
             "soft_pin_radius": soft_pin_radius,
             "physics": physics_cfg,
+            "neighbor_scaling": neighbor_scaling,
             "family_chain_edges": family_chain_edges,
             "reference_auto_opacity": reference_auto_opacity,
+            "link_mst_enabled": link_mst_enabled,
+            "hub_damping": hub_damping,
+            "reference_damping": reference_damping,
             "show_unlinked": show_unlinked,
             "selected_decks": selected_decks,
             "decks": deck_names,
@@ -1311,6 +1533,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "kanji_component_opacity": kanji_component_opacity,
             "kanji_component_focus_only": kanji_component_focus_only,
             "kanji_component_flow": kanji_component_flow,
+            "kanji_tfidf_enabled": kanji_tfidf_enabled,
+            "kanji_top_k_enabled": kanji_top_k_enabled,
+            "kanji_top_k": kanji_top_k,
+            "kanji_quantile_norm": kanji_quantile_norm,
             "card_dot_colors": {
                 "suspended": card_dot_suspended_color,
                 "buried": card_dot_buried_color,

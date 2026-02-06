@@ -19,15 +19,17 @@ DEFAULT_CFG: dict[str, Any] = {
     "family_same_prio_edges": False,
     "family_same_prio_opacity": 0.15,
     "layer_styles": {
-        "family_hub": "pointed",
+        "family_hub": "dotted",
         "family": "solid",
         "reference": "dashed",
+        "mass_linker": "dashed",
         "kanji": "solid",
     },
     "layer_flow": {
         "family": True,
         "family_hub": False,
         "reference": True,
+        "mass_linker": True,
         "kanji": True,
         "example": True,
     },
@@ -35,20 +37,44 @@ DEFAULT_CFG: dict[str, Any] = {
         "family": 1.0,
         "family_hub": 1.0,
         "reference": 1.0,
+        "mass_linker": 1.0,
         "example": 1.0,
         "kanji": 1.0,
         "kanji_component": 1.0,
     },
+    "link_distances": {},
     "physics": {
         "charge": -80,
         "link_distance": 30,
         "link_strength": 1,
         "velocity_decay": 0.35,
         "alpha_decay": 0.02,
+        "center_force": 0.0,
         "cooldown_ticks": 80,
+        "cooldown_time": 15000,
         "warmup_ticks": 180,
         "max_radius": 1400,
     },
+    "neighbor_scaling": {
+        "mode": "none",
+        "directed": "undirected",
+        "weights": {
+            "family": 1.4,
+            "family_hub": 0.7,
+            "reference": 0.9,
+            "mass_linker": 0.4,
+            "example": 1.0,
+            "kanji": 0.2,
+            "kanji_component": 0.0,
+        },
+    },
+    "link_mst_enabled": False,
+    "hub_damping": False,
+    "reference_damping": False,
+    "kanji_tfidf_enabled": False,
+    "kanji_top_k_enabled": False,
+    "kanji_top_k": 10,
+    "kanji_quantile_norm": False,
     "soft_pin_radius": 140,
     "layer_flow_speed": 0.35,
     "family_chain_edges": True,
@@ -81,6 +107,7 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         "layer_styles",
         "layer_flow",
         "link_strengths",
+        "link_distances",
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
@@ -91,6 +118,27 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
             cur = cfg["physics"].get(pkey)
             if not isinstance(cur, (int, float)):
                 cfg["physics"][pkey] = pval
+    if not isinstance(cfg.get("neighbor_scaling"), dict):
+        cfg["neighbor_scaling"] = DEFAULT_CFG.get("neighbor_scaling", {}).copy()
+    nscale = cfg.get("neighbor_scaling") or {}
+    mode = nscale.get("mode")
+    if not isinstance(mode, str) or mode not in ("none", "ccm", "twohop", "jaccard", "overlap"):
+        mode = DEFAULT_CFG["neighbor_scaling"]["mode"]
+    directed = nscale.get("directed")
+    if not isinstance(directed, str) or directed not in ("undirected", "out", "in"):
+        directed = DEFAULT_CFG["neighbor_scaling"]["directed"]
+    weights_in = nscale.get("weights")
+    if not isinstance(weights_in, dict):
+        weights_in = {}
+    defaults = DEFAULT_CFG["neighbor_scaling"]["weights"]
+    weights: dict[str, float] = {}
+    for key, default in defaults.items():
+        val = weights_in.get(key)
+        if isinstance(val, (int, float)):
+            weights[key] = float(val)
+        else:
+            weights[key] = float(default)
+    cfg["neighbor_scaling"] = {"mode": mode, "directed": directed, "weights": weights}
     if not isinstance(cfg.get("family_same_prio_edges"), bool):
         cfg["family_same_prio_edges"] = False
     if not isinstance(cfg.get("family_same_prio_opacity"), (int, float)):
@@ -127,6 +175,20 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["card_dot_buried_color"] = DEFAULT_CFG["card_dot_buried_color"]
     if not isinstance(cfg.get("card_dots_enabled"), bool):
         cfg["card_dots_enabled"] = DEFAULT_CFG["card_dots_enabled"]
+    if not isinstance(cfg.get("link_mst_enabled"), bool):
+        cfg["link_mst_enabled"] = DEFAULT_CFG["link_mst_enabled"]
+    if not isinstance(cfg.get("hub_damping"), bool):
+        cfg["hub_damping"] = DEFAULT_CFG["hub_damping"]
+    if not isinstance(cfg.get("reference_damping"), bool):
+        cfg["reference_damping"] = DEFAULT_CFG["reference_damping"]
+    if not isinstance(cfg.get("kanji_tfidf_enabled"), bool):
+        cfg["kanji_tfidf_enabled"] = DEFAULT_CFG["kanji_tfidf_enabled"]
+    if not isinstance(cfg.get("kanji_top_k_enabled"), bool):
+        cfg["kanji_top_k_enabled"] = DEFAULT_CFG["kanji_top_k_enabled"]
+    if not isinstance(cfg.get("kanji_top_k"), (int, float)):
+        cfg["kanji_top_k"] = DEFAULT_CFG["kanji_top_k"]
+    if not isinstance(cfg.get("kanji_quantile_norm"), bool):
+        cfg["kanji_quantile_norm"] = DEFAULT_CFG["kanji_quantile_norm"]
     return cfg
 
 
@@ -302,6 +364,32 @@ def set_physics_value(key: str, value: float) -> None:
     save_graph_config(cfg)
 
 
+def set_neighbor_scaling(cfg_in: dict[str, Any]) -> None:
+    cfg = load_graph_config()
+    nscale = cfg.get("neighbor_scaling") or {}
+    mode = cfg_in.get("mode")
+    if isinstance(mode, str) and mode in ("none", "ccm", "twohop", "jaccard", "overlap"):
+        nscale["mode"] = mode
+    directed = cfg_in.get("directed")
+    if isinstance(directed, str) and directed in ("undirected", "out", "in"):
+        nscale["directed"] = directed
+    weights_in = cfg_in.get("weights")
+    if isinstance(weights_in, dict):
+        cleaned: dict[str, float] = {}
+        defaults = DEFAULT_CFG["neighbor_scaling"]["weights"]
+        for k, v in weights_in.items():
+            if not isinstance(k, str):
+                continue
+            if isinstance(v, (int, float)):
+                cleaned[k] = float(v)
+        if cleaned:
+            # merge with defaults so all keys exist
+            merged = {**defaults, **cleaned}
+            nscale["weights"] = merged
+    cfg["neighbor_scaling"] = nscale
+    save_graph_config(cfg)
+
+
 def set_soft_pin_radius(value: float) -> None:
     cfg = load_graph_config()
     try:
@@ -322,6 +410,20 @@ def set_link_strength(layer: str, strength: float) -> None:
         return
     cfg.setdefault("link_strengths", {})
     cfg["link_strengths"][layer] = value
+    save_graph_config(cfg)
+
+
+def set_link_distance(layer: str, distance: float) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    if not layer:
+        return
+    try:
+        value = float(distance)
+    except Exception:
+        return
+    cfg.setdefault("link_distances", {})
+    cfg["link_distances"][layer] = value
     save_graph_config(cfg)
 
 
@@ -422,4 +524,49 @@ def set_card_dot_buried_color(color: str) -> None:
 def set_card_dots_enabled(enabled: bool) -> None:
     cfg = load_graph_config()
     cfg["card_dots_enabled"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_reference_damping(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["reference_damping"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_link_mst_enabled(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["link_mst_enabled"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_hub_damping(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["hub_damping"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_tfidf_enabled(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_tfidf_enabled"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_top_k_enabled(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_top_k_enabled"] = bool(enabled)
+    save_graph_config(cfg)
+
+
+def set_kanji_top_k(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["kanji_top_k"] = int(value)
+    except Exception:
+        cfg["kanji_top_k"] = DEFAULT_CFG["kanji_top_k"]
+    save_graph_config(cfg)
+
+
+def set_kanji_quantile_norm(enabled: bool) -> None:
+    cfg = load_graph_config()
+    cfg["kanji_quantile_norm"] = bool(enabled)
     save_graph_config(cfg)

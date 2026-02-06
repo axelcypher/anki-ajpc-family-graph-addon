@@ -24,6 +24,7 @@ from anki.cards import Card
 from aqt.utils import add_close_shortcut, showInfo, restoreGeom, saveGeom, setWindowIcon
 from urllib.parse import unquote
 from aqt.webview import AnkiWebView
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from .graph_data import build_graph, _parse_family_field, _parse_link_targets
 from . import logger
@@ -33,7 +34,6 @@ from .graph_config import (
     set_note_type_tooltip_fields,
     set_note_type_visible,
     set_note_type_color,
-    set_note_type_hub,
     set_layer_color,
     set_layer_enabled,
     set_family_same_prio_edges,
@@ -41,7 +41,10 @@ from .graph_config import (
     set_layer_style,
     set_layer_flow,
     set_layer_flow_speed,
+    set_link_strength,
+    set_link_distance,
     set_physics_value,
+    set_neighbor_scaling,
     set_soft_pin_radius,
     set_family_chain_edges,
     set_selected_decks,
@@ -56,6 +59,13 @@ from .graph_config import (
     set_card_dot_suspended_color,
     set_card_dot_buried_color,
     set_card_dots_enabled,
+    set_reference_damping,
+    set_link_mst_enabled,
+    set_hub_damping,
+    set_kanji_tfidf_enabled,
+    set_kanji_top_k_enabled,
+    set_kanji_top_k,
+    set_kanji_quantile_norm,
     load_graph_config,
 )
 
@@ -63,6 +73,7 @@ ADDON_DIR = os.path.dirname(__file__)
 WEB_DIR = os.path.join(ADDON_DIR, "web")
 
 
+# --- Web assets + HTML template --------------------------------------------
 def _web_base() -> str:
     if mw is None or not getattr(mw, "addonManager", None):
         return ""
@@ -81,349 +92,38 @@ def _web_base() -> str:
 
 
 def _html(payload: dict[str, Any]) -> str:
+    # Build the HTML shell and inject static asset paths.
     web_base = _web_base()
     force_graph_src = f"{web_base}/force-graph.min.js" if web_base else ""
     graph_js_src = f"{web_base}/graph.js" if web_base else ""
+    graph_css_src = f"{web_base}/graph.css" if web_base else ""
     logger.dbg("web base", web_base, "graph js", graph_js_src)
-    html = """
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <style>
-    html, body {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      background: #0f1216; color: #e6e6e6; font-family: "Segoe UI", Arial, sans-serif;
-    }
-    #toolbar {
-      display: flex; gap: 12px; align-items: center;
-      padding: 8px 12px; background: #141820; border-bottom: 1px solid #1f2530;
-      position: fixed; top: 0; left: 0; right: 0; z-index: 5;
-    }
-    #toolbar-left, #toolbar-center, #toolbar-right {
-      display: flex; gap: 10px; align-items: center; flex-wrap: nowrap;
-    }
-    #toolbar-left { flex: 1; }
-    #toolbar-center { flex: 0; }
-    #toolbar-right { flex: 1; justify-content: flex-end; }
-    #toolbar label.layer-toggle {
-      font-size: 12px; color: #c8ced8; padding-bottom: 2px;
-      border-bottom: 2px solid transparent; cursor: pointer;
-      transition: color 0.15s ease;
-    }
-    #toolbar label.layer-toggle:hover { color: #f9fafb; }
-    #toolbar label.layer-toggle input { display: none; }
-    #toolbar label.layer-toggle.active { color: #e5e7eb; }
-    #toolbar button {
-      background: #1a6985; border: none; color: white; padding: 6px 10px;
-      border-radius: 6px; cursor: pointer; font-size: 12px;
-    }
-    #toolbar button.btn-rebuild { background: #2596be; }
-    #toolbar button.btn-settings { background: #1a6985; }
-    #deck-controls {
-      display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;
-    }
-    #deck-controls input[type=text] {
-      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
-      border-radius: 6px; padding: 4px 6px; font-size: 12px; width: 200px;
-    }
-    #deck-controls input[type=text]::placeholder { color: #6b7280; }
-    .dropdown {
-      position: relative; min-width: 160px;
-    }
-    .dropdown-trigger {
-      background: #111827; border: 1px solid #1f2937; color: #e5e7eb;
-      border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer;
-      white-space: nowrap;
-    }
-    .dropdown-menu {
-      position: absolute; top: calc(100% + 6px); left: 0; min-width: 220px;
-      max-height: 260px; overflow: auto; background: #0b0f14;
-      border: 1px solid #1f2530; border-radius: 8px; padding: 6px;
-      display: none; z-index: 12;
-    }
-    .dropdown.open .dropdown-menu { display: block; }
-    .dropdown-item {
-      display: flex; gap: 6px; align-items: center; margin-bottom: 4px;
-      font-size: 12px; color: #cbd5e1;
-    }
-    .search-wrap {
-      display: flex; gap: 6px; align-items: center;
-    }
-    .search-input {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-    #search-suggest {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: #0b0f14;
-      border: 1px solid #1f2530;
-      border-radius: 6px;
-      max-height: 220px;
-      overflow: auto;
-      display: none;
-      z-index: 14;
-    }
-    #search-suggest.open { display: block; }
-    #search-suggest .item {
-      padding: 6px 8px; font-size: 12px; color: #cbd5e1; cursor: pointer;
-    }
-    #search-suggest .item:hover { background: #111827; }
-    #settings-panel {
-      position: fixed; top: 42px; right: 12px; width: 360px;
-      max-height: 70%; overflow: hidden; background: #0b0f14;
-      border: 1px solid #1f2530; border-radius: 8px; padding: 8px;
-      display: none; z-index: 8;
-    }
-    #settings-panel.open { display: block; }
-    #settings-tabs {
-      display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: nowrap;
-    }
-    .settings-tab {
-      background: #111827; border: 1px solid #1f2530; color: #cbd5e1;
-      border-radius: 6px; padding: 4px 8px; font-size: 12px;
-      cursor: pointer; user-select: none;
-    }
-    .settings-tab.active {
-      background: #1a6985; border-color: #1a6985; color: #f9fafb;
-    }
-    .settings-pane { display: none; max-height: 55vh; overflow: auto; }
-    .settings-pane.active { display: block; }
-    #settings-panel h3 { margin: 0 0 8px 0; font-size: 12px; color: #e5e7eb; }
-    #settings-panel select,
-    #settings-panel input[type=number],
-    #settings-panel input[type=text] {
-      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
-      border-radius: 6px; padding: 2px 6px; font-size: 12px;
-    }
-    #settings-panel input[type=checkbox] {
-      appearance: none; width: 14px; height: 14px; border-radius: 4px;
-      border: 1px solid #1f2937; background: #111827; cursor: pointer;
-    }
-    #settings-panel input[type=checkbox]:checked {
-      background: #1a6985; border-color: #1a6985;
-      box-shadow: 0 0 0 1px rgba(26,105,133,0.4);
-    }
-    .dropdown-menu input[type=checkbox] {
-      appearance: none; width: 14px; height: 14px; border-radius: 4px;
-      border: 1px solid #1f2937; background: #111827; cursor: pointer;
-    }
-    .dropdown-menu input[type=checkbox]:checked {
-      background: #1a6985; border-color: #1a6985;
-      box-shadow: 0 0 0 1px rgba(26,105,133,0.4);
-    }
-    .nt-row {
-      display: flex; gap: 6px; align-items: center; margin-bottom: 4px;
-      font-size: 12px; color: #cbd5e1;
-    }
-    .nt-group {
-      border: 1px solid #1f2530; border-radius: 6px; padding: 6px;
-      margin-bottom: 8px; background: #0d1117;
-    }
-    .nt-title {
-      font-size: 12px; color: #e5e7eb; margin-bottom: 6px;
-    }
-    .nt-field {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-    }
-    .nt-field label {
-      font-size: 11px; color: #9ca3af; min-width: 90px;
-    }
-    .nt-row select {
-      flex: 1; background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
-      border-radius: 6px; padding: 2px 4px; font-size: 12px;
-    }
-    .phys-row {
-      display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
-      font-size: 12px; color: #cbd5e1;
-    }
-    .phys-row input[type=range] { flex: 1; }
-    .phys-row input[type=number] {
-      width: 64px; background: #111827; color: #e5e7eb;
-      border: 1px solid #1f2937; border-radius: 6px; padding: 2px 4px;
-    }
-    #ctx-menu {
-      position: fixed; background: #0b0f14; border: 1px solid #1f2530;
-      border-radius: 6px; padding: 4px; display: none; z-index: 20;
-      min-width: 180px; font-size: 12px; color: #e5e7eb;
-    }
-    #ctx-menu .item {
-      padding: 6px 8px; cursor: pointer; border-radius: 4px;
-    }
-    #ctx-menu .item:hover { background: #111827; }
-    #ctx-menu .divider {
-      height: 1px; background: #1f2530; margin: 4px 4px;
-    }
-    #ctx-menu .ctx-selected-dot {
-      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-      border: 1.5px solid #ef4444; background: transparent;
-      margin: 0 6px 1px 2px;
-    }
-    #ctx-picker {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-      display: flex; align-items: center; justify-content: center; z-index: 30;
-    }
-    #ctx-picker .dialog {
-      background: #0b0f14; border: 1px solid #1f2530; border-radius: 8px;
-      padding: 12px; min-width: 220px; max-width: 320px; color: #e5e7eb;
-      font-size: 12px;
-    }
-    #ctx-picker .title { font-weight: 600; margin-bottom: 6px; }
-    #ctx-picker .list { max-height: 220px; overflow: auto; margin: 8px 0; }
-    #ctx-picker .row {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-    }
-    #ctx-picker .btn-row {
-      display: flex; gap: 8px; justify-content: flex-end;
-    }
-    #ctx-picker .btn {
-      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
-      border-radius: 6px; padding: 4px 8px; cursor: pointer;
-    }
-    #ctx-picker .btn:hover { background: #1f2937; }
-    #card-popup {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-      display: flex; align-items: center; justify-content: center; z-index: 30;
-    }
-    #card-popup .dialog {
-      background: #0b0f14; border: 1px solid #1f2530; border-radius: 8px;
-      padding: 12px; min-width: 220px; max-width: 320px; color: #e5e7eb;
-      font-size: 12px;
-    }
-    #card-popup .title { font-weight: 600; margin-bottom: 6px; }
-    #card-popup .list { max-height: 220px; overflow: auto; margin: 8px 0; }
-    #card-popup .row {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
-    }
-    #card-popup .badge {
-      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-    }
-    #card-popup .btn-row {
-      display: flex; gap: 8px; justify-content: flex-end;
-    }
-    #card-popup .btn {
-      background: #111827; color: #e5e7eb; border: 1px solid #1f2937;
-      border-radius: 6px; padding: 4px 8px; cursor: pointer;
-    }
-    #card-popup .btn:hover { background: #1f2937; }
-    .layer-row, .layer-row-toggle {
-      display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
-      font-size: 12px; color: #cbd5e1;
-    }
-    #canvas-wrap { position: absolute; top: 42px; left: 0; right: 0; bottom: 0; }
-    #graph { width: 100%; height: 100%; }
-    #tooltip {
-      position: fixed; pointer-events: none; background: rgba(0,0,0,0.85);
-      color: #f4f4f4; padding: 6px 8px; border-radius: 6px; font-size: 12px;
-      max-width: 340px; display: none; z-index: 10;
-    }
-    #zoom-indicator {
-      position: fixed; right: 12px; bottom: 12px; z-index: 9;
-      background: rgba(15,18,22,0.85); border: 1px solid #1f2530;
-      color: #cbd5e1; padding: 4px 8px; border-radius: 6px; font-size: 12px;
-    }
-    #toast-container {
-      position: fixed; left: 12px; bottom: 12px; z-index: 11;
-      display: flex; flex-direction: column; gap: 6px; pointer-events: none;
-      max-width: 320px;
-    }
-    .toast {
-      background: #1f2937; border: 1px solid #374151; color: #f9fafb;
-      font-size: 12px; padding: 8px 10px; border-radius: 6px;
-      transform: translateX(-120%); opacity: 0;
-      transition: transform 0.28s ease, opacity 0.28s ease;
-    }
-    .toast.show { transform: translateX(0); opacity: 1; }
-    .toast.hide { transform: translateX(-120%); opacity: 0; }
-    #fallback {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      color: #cbd5e1; font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div id="toolbar">
-    <div id="toolbar-left">
-      <label class="layer-toggle" data-layer="family_hub"><input type="checkbox" id="layer-family-hub" checked> Family Hubs</label>
-      <label class="layer-toggle" data-layer="family"><input type="checkbox" id="layer-family" checked> Family Gate</label>
-      <label class="layer-toggle" data-layer="reference"><input type="checkbox" id="layer-reference"> Linked Notes</label>
-        <label class="layer-toggle" data-layer="example"><input type="checkbox" id="layer-example"> Example Gate</label>
-        <label class="layer-toggle" data-layer="kanji"><input type="checkbox" id="layer-kanji"> Kanji Gate</label>
-        <label class="layer-toggle"><input type="checkbox" id="toggle-unlinked"> Show Unlinked</label>
-    </div>
-    <div id="toolbar-center">
-      <div id="deck-controls">
-        <div id="deck-dropdown" class="dropdown">
-          <div id="deck-trigger" class="dropdown-trigger">Decks</div>
-          <div id="deck-menu" class="dropdown-menu"></div>
-        </div>
-          <div class="search-wrap">
-            <div class="search-input">
-              <input id="note-search" type="text" placeholder="Search note..." />
-              <div id="search-suggest"></div>
-            </div>
-            <button id="btn-search" class="btn-settings" type="button">Search</button>
-          </div>
-      </div>
-    </div>
-    <div id="toolbar-right">
-      <button id="btn-settings" class="btn-settings" type="button">Settings</button>
-      <button id="btn-rebuild" class="btn-rebuild" type="button" onclick="pycmd('refresh')">Rebuild</button>
-    </div>
-  </div>
-  <div id="canvas-wrap">
-    <div id="graph"></div>
-  </div>
-  <div id="fallback">Graph loading...</div>
-  <div id="tooltip"></div>
-  <div id="zoom-indicator">Zoom: 1.00x</div>
-  <div id="toast-container"></div>
-  <div id="settings-panel">
-  <div id="settings-tabs">
-      <div class="settings-tab active" data-tab="notes">Note Settings</div>
-      <div class="settings-tab" data-tab="cards">Card Settings</div>
-      <div class="settings-tab" data-tab="links">Link Settings</div>
-      <div class="settings-tab" data-tab="physics">Physics</div>
-    </div>
-    <div id="settings-notes" class="settings-pane active">
-      <div id="note-type-list"></div>
-    </div>
-    <div id="settings-cards" class="settings-pane">
-      <div id="card-settings"></div>
-    </div>
-    <div id="settings-links" class="settings-pane">
-      <div id="layer-color-list"></div>
-    </div>
-    <div id="settings-physics" class="settings-pane">
-      <div class="phys-row"><span title="Repulsion between nodes. More negative = further apart.">Charge (Repulsion)</span><input id="phys-charge" type="range" min="-200" max="0" step="1"><input id="phys-charge-num" type="number" min="-200" max="0" step="1"></div>
-      <div class="phys-row"><span title="Target distance between linked nodes. Smaller = tighter clusters.">Link Distance</span><input id="phys-link-distance" type="range" min="5" max="200" step="1"><input id="phys-link-distance-num" type="number" min="5" max="200" step="1"></div>
-      <div class="phys-row"><span title="Damping of movement per tick. Higher = less bounce.">Velocity Decay</span><input id="phys-vel-decay" type="range" min="0.01" max="1" step="0.01"><input id="phys-vel-decay-num" type="number" min="0.01" max="1" step="0.01"></div>
-      <div class="phys-row"><span title="How fast the simulation cools down. Higher = settles sooner.">Alpha Decay</span><input id="phys-alpha-decay" type="range" min="0.001" max="0.2" step="0.001"><input id="phys-alpha-decay-num" type="number" min="0.001" max="0.2" step="0.001"></div>
-      <div class="phys-row"><span title="Max range where repulsion affects other nodes.">Repulsion Range</span><input id="phys-max-radius" type="range" min="300" max="5000" step="50"><input id="phys-max-radius-num" type="number" min="300" max="5000" step="50"></div>
-      <div class="phys-row"><span title="Max ticks before simulation stops. Lower = stops earlier.">Cooldown Ticks</span><input id="phys-cooldown" type="range" min="0" max="300" step="1"><input id="phys-cooldown-num" type="number" min="0" max="300" step="1"></div>
-      <div class="phys-row"><span title="Extra ticks at start to stabilize layout.">Warmup Ticks</span><input id="phys-warmup" type="range" min="0" max="200" step="1"><input id="phys-warmup-num" type="number" min="0" max="200" step="1"></div>
-      <div class="phys-row"><button id="phys-reset" type="button">Reset</button></div>
-    </div>
-  </div>
-  <div id="ctx-menu"></div>
-  <script src="__FORCE_GRAPH_SRC__"></script>
-  <script src="__GRAPH_JS__"></script>
-</body>
-</html>
-"""
+    try:
+        with open(os.path.join(WEB_DIR, "graph.html"), "r", encoding="utf-8") as handle:
+            html = handle.read()
+    except Exception as exc:
+        logger.dbg("graph html load failed", str(exc))
+        html = ""
     html = html.replace("{{", "{").replace("}}", "}")
+    html = html.replace("__GRAPH_CSS__", graph_css_src)
     html = html.replace("__FORCE_GRAPH_SRC__", force_graph_src)
     html = html.replace("__GRAPH_JS__", graph_js_src)
     return html
 
 
+# --- Main window: WebView + JS bridge + refresh pipeline --------------------
 class FamilyGraphWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        try:
+            self.setWindowFlags(
+                Qt.WindowType.Window
+                | Qt.WindowType.WindowMinimizeButtonHint
+                | Qt.WindowType.WindowMaximizeButtonHint
+                | Qt.WindowType.WindowCloseButtonHint
+            )
+        except Exception:
+            pass
         self.setWindowTitle("Anki - AJpC Family Graph")
         try:
             setWindowIcon(self)
@@ -432,11 +132,24 @@ class FamilyGraphWindow(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+        # WebView hosts the graph UI; JS talks back via pycmd bridge.
         self.web = AnkiWebView(self, title="ajpc_family_graph")
+        try:
+            from PyQt6.QtWebEngineCore import QWebEngineSettings
+            self.web.page().settings().setAttribute(
+                QWebEngineSettings.WebAttribute.DeveloperExtrasEnabled, True
+            )
+        except Exception:
+            try:
+                self.web.setDeveloperExtrasEnabled(True)
+            except Exception:
+                pass
+        self._devtools = None
         self.web.set_bridge_command(self._on_bridge_cmd, self)
         self.layout.addWidget(self.web)
         self.setMinimumSize(900, 600)
         self._graph_ready = False
+        # Coalesce rebuilds when many updates arrive in a short time.
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._refresh)
@@ -461,9 +174,15 @@ class FamilyGraphWindow(QWidget):
         except Exception:
             pass
         self._unbind_note_add_hooks()
+        try:
+            if getattr(self, "_devtools", None) is not None:
+                self._devtools.close()
+        except Exception:
+            pass
         super().closeEvent(event)
 
     def _bind_note_add_hooks(self) -> None:
+        # Hook add-note events to update the graph.
         hooks = []
         try:
             hooks.append(getattr(gui_hooks, "add_cards_did_add_note", None))
@@ -487,6 +206,7 @@ class FamilyGraphWindow(QWidget):
                 continue
 
     def _unbind_note_add_hooks(self) -> None:
+        # Cleanly detach add-note hooks on close.
         for hook, fn in self._note_add_hooks:
             try:
                 hook.remove(fn)
@@ -494,7 +214,38 @@ class FamilyGraphWindow(QWidget):
                 pass
         self._note_add_hooks.clear()
 
+    def _open_devtools(self) -> None:
+        try:
+            if getattr(self, "_devtools", None) is not None:
+                try:
+                    self._devtools.raise_()
+                    self._devtools.activateWindow()
+                except Exception:
+                    pass
+                return
+            devtools = QWebEngineView()
+            devtools.setWindowTitle("AJpC Family Graph DevTools")
+            try:
+                setWindowIcon(devtools)
+            except Exception:
+                pass
+            devtools.resize(1000, 700)
+            devtools.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            self.web.page().setDevToolsPage(devtools.page())
+            devtools.show()
+            self._devtools = devtools
+            try:
+                devtools.destroyed.connect(self._on_devtools_destroyed)
+            except Exception:
+                pass
+        except Exception:
+            self._devtools = None
+
+    def _on_devtools_destroyed(self) -> None:
+        self._devtools = None
+
     def _on_note_added(self, note) -> None:
+        # Queue single note refresh.
         try:
             nid = int(getattr(note, "id", 0) or 0)
         except Exception:
@@ -505,6 +256,7 @@ class FamilyGraphWindow(QWidget):
             self._schedule_refresh("note added")
 
     def _on_notes_added(self, notes) -> None:
+        # Queue batch note refresh.
         count = 0
         for note in notes or []:
             try:
@@ -519,6 +271,7 @@ class FamilyGraphWindow(QWidget):
             self._schedule_refresh("notes added")
 
     def _on_bridge_cmd(self, message: str) -> Any:
+        # JS -> Python bridge: apply config changes and context actions.
         if message == "refresh":
             logger.dbg("bridge refresh")
             self._load()
@@ -574,15 +327,6 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("note type color", mid, color)
             except Exception:
                 logger.dbg("note type color parse failed", message)
-        elif message.startswith("nthub:"):
-            try:
-                _prefix, rest = message.split(":", 1)
-                mid, val = rest.split(":", 1)
-                set_note_type_hub(mid, val == "1")
-                logger.dbg("note type hub", mid, val)
-                self._schedule_refresh("note type hub")
-            except Exception:
-                logger.dbg("note type hub parse failed", message)
         elif message.startswith("lcol:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -617,6 +361,22 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow", layer, val)
             except Exception:
                 logger.dbg("layer flow parse failed", message)
+        elif message.startswith("lstrength:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, val = rest.split(":", 1)
+                set_link_strength(layer, float(val))
+                logger.dbg("link strength", layer, val)
+            except Exception:
+                logger.dbg("link strength parse failed", message)
+        elif message.startswith("ldistance:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, val = rest.split(":", 1)
+                set_link_distance(layer, float(val))
+                logger.dbg("link distance", layer, val)
+            except Exception:
+                logger.dbg("link distance parse failed", message)
         elif message.startswith("lflowspeed:"):
             try:
                 _prefix, val = message.split(":", 1)
@@ -624,6 +384,12 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow speed", val)
             except Exception:
                 logger.dbg("layer flow speed parse failed", message)
+        elif message == "devtools":
+            logger.dbg("devtools open")
+            try:
+                self._open_devtools()
+            except Exception:
+                pass
         elif message.startswith("phys:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -632,6 +398,17 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("physics", key, val)
             except Exception:
                 logger.dbg("physics parse failed", message)
+        elif message.startswith("neighborscale:"):
+            try:
+                _prefix, enc = message.split(":", 1)
+                raw = unquote(enc)
+                cfg = json.loads(raw) if raw else {}
+                if not isinstance(cfg, dict):
+                    cfg = {}
+                set_neighbor_scaling(cfg)
+                logger.dbg("neighbor scaling", "ok")
+            except Exception:
+                logger.dbg("neighbor scaling parse failed", message)
         elif message.startswith("softpin:"):
             try:
                 _prefix, val = message.split(":", 1)
@@ -647,6 +424,27 @@ class FamilyGraphWindow(QWidget):
                 self._schedule_refresh("reference auto opacity")
             except Exception:
                 logger.dbg("reference auto opacity parse failed", message)
+        elif message.startswith("refdamp:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_reference_damping(val == "1")
+                logger.dbg("reference damping", val)
+            except Exception:
+                logger.dbg("reference damping parse failed", message)
+        elif message.startswith("linkmst:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_link_mst_enabled(val == "1")
+                logger.dbg("link mst enabled", val)
+            except Exception:
+                logger.dbg("link mst parse failed", message)
+        elif message.startswith("hubdamp:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_hub_damping(val == "1")
+                logger.dbg("hub damping", val)
+            except Exception:
+                logger.dbg("hub damping parse failed", message)
         elif message.startswith("kcomp:"):
             try:
                 _prefix, val = message.split(":", 1)
@@ -654,6 +452,34 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("kanji components enabled", val)
             except Exception:
                 logger.dbg("kanji components parse failed", message)
+        elif message.startswith("kanjitfidf:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_kanji_tfidf_enabled(val == "1")
+                logger.dbg("kanji tfidf enabled", val)
+            except Exception:
+                logger.dbg("kanji tfidf parse failed", message)
+        elif message.startswith("kanjitopkenabled:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_kanji_top_k_enabled(val == "1")
+                logger.dbg("kanji top-k enabled", val)
+            except Exception:
+                logger.dbg("kanji top-k enabled parse failed", message)
+        elif message.startswith("kanjitopk:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_kanji_top_k(float(val))
+                logger.dbg("kanji top-k", val)
+            except Exception:
+                logger.dbg("kanji top-k parse failed", message)
+        elif message.startswith("kanjinorm:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_kanji_quantile_norm(val == "1")
+                logger.dbg("kanji quantile norm", val)
+            except Exception:
+                logger.dbg("kanji quantile norm parse failed", message)
         elif message.startswith("kcompstyle:"):
             try:
                 _prefix, enc = message.split(":", 1)
@@ -796,6 +622,13 @@ class FamilyGraphWindow(QWidget):
                     logger.dbg("ctx browsernt", payload)
                 except Exception:
                     logger.dbg("ctx browsernt failed", payload)
+            elif kind == "browsertag":
+                try:
+                    tag = unquote(payload)
+                    _open_browser_for_tag(tag)
+                    logger.dbg("ctx browsertag", tag)
+                except Exception:
+                    logger.dbg("ctx browsertag failed", payload)
             elif kind == "filter":
                 try:
                     fid = unquote(payload)
@@ -1097,6 +930,7 @@ class FamilyGraphWindow(QWidget):
         return None
 
     def _load(self) -> None:
+        # Initial graph build (background op).
         if mw is None or not getattr(mw, "col", None):
             showInfo("No collection loaded.")
             return
@@ -1133,6 +967,7 @@ class FamilyGraphWindow(QWidget):
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
 
     def _refresh(self) -> None:
+        # Incremental refresh (background op).
         if mw is None or not getattr(mw, "col", None):
             return
         if not self._graph_ready:
@@ -1179,6 +1014,7 @@ class FamilyGraphWindow(QWidget):
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
 
     def _schedule_refresh(self, reason: str) -> None:
+        # Debounced refresh trigger.
         logger.dbg("schedule refresh", reason)
         try:
             self._refresh_timer.stop()
@@ -1187,6 +1023,7 @@ class FamilyGraphWindow(QWidget):
         self._refresh_timer.start(350)
 
     def _on_operation_did_execute(self, changes, handler) -> None:
+        # Sync graph when collection changes (notes/tags/decks/notetypes).
         try:
             if not self._graph_ready:
                 return
@@ -1217,6 +1054,7 @@ class FamilyGraphWindow(QWidget):
             pass
 
 
+# --- Editor / preview helpers (context menu actions) ------------------------
 class GraphNoteEditor(QMainWindow):
     def __init__(self, nid: int) -> None:
         super().__init__(None, Qt.WindowType.Window)
@@ -1291,6 +1129,7 @@ class GraphPreviewer(Previewer):
         return changed
 
 
+# --- Family gate config access ----------------------------------------------
 def _get_family_field() -> str:
     if mw is None:
         return ""
@@ -1314,6 +1153,7 @@ def _get_family_field() -> str:
 
 
 def _get_family_cfg() -> tuple[str, str, int]:
+    # Returns (family_field, separator, default_prio).
     if mw is None:
         return "", ";", 0
     api = getattr(mw, "_ajpc_graph_api", None)
@@ -1341,6 +1181,7 @@ def _get_family_cfg() -> tuple[str, str, int]:
     return field, sep, default_prio
 
 
+# --- Family field mutation ---------------------------------------------------
 def _append_family_to_note(
     nid: int, fid: str, prio: int, field: str, sep: str, default_prio: int
 ) -> bool:
@@ -1420,6 +1261,7 @@ def _remove_family_from_note(nid: int, fid: str, field: str, sep: str, default_p
     return True
 
 
+# --- Linked notes mutation + parsing ----------------------------------------
 def _append_link_to_note(nid: int, source_nid: int, label: str) -> bool:
     if mw is None or mw.col is None:
         return False
@@ -1461,6 +1303,7 @@ _LINK_TAG_RE = re.compile(r"\[([^\]|]+)\|\s*([^\]]+?)\s*\]")
 
 
 def _token_to_nid(token: str) -> int | None:
+    # Parse nid/card id tokens from a link tag.
     token = (token or "").strip()
     if not token:
         return None
@@ -1521,6 +1364,7 @@ def _remove_link_from_note(nid: int, target_nid: int) -> bool:
     return True
 
 
+# --- Context menu actions: browser/preview/editor ---------------------------
 def _open_browser_for_note(nid: int):
     if mw is None or mw.col is None:
         return None
@@ -1564,6 +1408,27 @@ def _open_browser_for_notetype(mid: int):
             browser.search_for(query)
         else:
             browser.search_for(f"mid:{mid}")
+    except Exception:
+        pass
+    return browser
+
+
+def _open_browser_for_tag(tag: str):
+    if mw is None or mw.col is None:
+        return None
+    tag = str(tag or "").strip()
+    if not tag:
+        return None
+    try:
+        browser = aqt.dialogs.open("Browser", mw)
+    except Exception:
+        return None
+    try:
+        if " " in tag:
+            query = f'tag:"{tag}"'
+        else:
+            query = f"tag:{tag}"
+        browser.search_for(query)
     except Exception:
         pass
     return browser
@@ -1672,6 +1537,7 @@ def _open_editor(nid: int) -> None:
         pass
 
 
+# --- Browser filter helper ---------------------------------------------------
 def _filter_family(fid: str) -> None:
     if mw is None:
         return
@@ -1698,6 +1564,7 @@ def _filter_family(fid: str) -> None:
         pass
 
 
+# --- Entry point -------------------------------------------------------------
 def show_family_graph() -> None:
     if mw is None:
         return
