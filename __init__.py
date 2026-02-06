@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from aqt import gui_hooks, mw
-from aqt.deckbrowser import DeckBrowser
 from aqt.qt import QAction
 
 from .graph_view import show_family_graph
@@ -17,6 +16,7 @@ def _register_exports() -> None:
         pass
 
 
+# AJpC Menu
 def _register_menu() -> None:
     if mw is None:
         return
@@ -44,13 +44,13 @@ def _register_menu() -> None:
     mw.form.menuTools.addAction(action)
     mw._ajpc_family_graph_fallback_action = action
 
-
 _register_menu()
 _register_exports()
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_menu())
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_exports())
 
 
+# Browser Sidebar Link
 def _register_sidebar_item() -> None:
     if mw is None:
         return
@@ -68,7 +68,7 @@ def _register_sidebar_item() -> None:
             item = model.item_for_index(index) if model else None
         except Exception:
             item = None
-        if item and item.item_type == SidebarItemType.CUSTOM and item.name == "AJpC Graph":
+        if item and item.item_type == SidebarItemType.CUSTOM and item.name == "Graph":
             show_family_graph()
             return
         return _orig_on_search(self, index)
@@ -88,12 +88,12 @@ def _register_sidebar_item() -> None:
             return handled
         for child in getattr(root, "children", []):
             try:
-                if child.item_type == SidebarItemType.CUSTOM and child.name == "AJpC Graph":
+                if child.item_type == SidebarItemType.CUSTOM and child.name == "Graph":
                     return handled
             except Exception:
                 continue
         item = SidebarItem(
-            name="AJpC Graph",
+            name="Graph",
             icon="",
             item_type=SidebarItemType.CUSTOM,
         )
@@ -104,20 +104,45 @@ def _register_sidebar_item() -> None:
     gui_hooks.browser_will_build_tree.append(_add_item)
     mw._ajpc_family_graph_sidebar_registered = True
 
-
 _register_sidebar_item()
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_sidebar_item())
 
 
-def _inject_onigiri_sidebar(web_content, context) -> None:
+# Onigiri Sidebar Support
+def _load_graph_icon_svg() -> str:
+    try:
+        import os
+        svg_path = os.path.join(os.path.dirname(__file__), "web", "graph-icon.svg")
+        with open(svg_path, "r", encoding="utf-8") as handle:
+            svg = handle.read().strip()
+    except Exception:
+        return ""
+    if svg.startswith("<?xml"):
+        start = svg.find("<svg")
+        if start != -1:
+            svg = svg[start:]
+    return svg
+
+def _register_onigiri_sidebar_action() -> None:
     if mw is None:
         return
-    if not isinstance(context, DeckBrowser):
+    if getattr(mw, "_ajpc_family_graph_onigiri_registered", False):
         return
-    addon_pkg = mw.addonManager.addonFromModule(__name__)
-    web_content.js.append(f"/_addons/{addon_pkg}/web/onigiri_sidebar.js")
-    web_content.css.append(f"/_addons/{addon_pkg}/web/onigiri_sidebar.css")
-
+    try:
+        import Onigiri
+    except Exception:
+        return
+    icon_svg = _load_graph_icon_svg()
+    try:
+        Onigiri.register_sidebar_action(
+            entry_id="ajpc_family_graph.open_panel",
+            label="Graph",
+            command="ajpc_family_graph_open",
+            icon_svg=icon_svg,
+        )
+    except Exception:
+        return
+    mw._ajpc_family_graph_onigiri_registered = True
 
 def _on_webview_cmd(handled, message, context):
     if message == "ajpc_family_graph_open":
@@ -126,5 +151,6 @@ def _on_webview_cmd(handled, message, context):
     return handled
 
 
-gui_hooks.webview_will_set_content.append(_inject_onigiri_sidebar)
 gui_hooks.webview_did_receive_js_message.append(_on_webview_cmd)
+_register_onigiri_sidebar_action()
+gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_onigiri_sidebar_action())

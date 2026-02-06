@@ -80,3 +80,11 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 ## External Resources:
 https://www.svgrepo.com/svg/451006/knowledge-graph
 ---
+
+## Third-Party Licenses
+- `web/d3-force.min.js` — see `third_party/d3-force/LICENSE`
+- `web/force-graph.min.js` — see `third_party/force-graph/LICENSE`
+See `THIRD_PARTY_NOTICES.md` for a summary.
+
+## License
+MIT — see `LICENSE`.
