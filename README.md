@@ -78,7 +78,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - All actions are visual only, except the context actions that explicitly write to your notes.
 
 ## External Resources:
-https://www.svgrepo.com/svg/451006/knowledge-graph
+Icon: Knowledge Graph (CC0) - source: https://www.svgrepo.com/svg/451006/knowledge-graph
 ---
 
 ## Third-Party Licenses

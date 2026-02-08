@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import html
+import os
 import re
+import sys
 import unicodedata
 from typing import Any, Iterable
 
@@ -16,9 +18,38 @@ _HTML_RE = re.compile(r"<.*?>", re.DOTALL)
 _FURIGANA_BR_RE = re.compile(r"\[[^\]]*\]")
 _KANJI_RE = re.compile(r"[\u2E80-\u2EFF\u2F00-\u2FDF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]")
 _LINK_TAG_RE = re.compile(r"\[([^\]|]+)\|\s*([^\]]+?)\s*\]")
+_CLOZE_RE = re.compile(r"\{\{c\d+::(.*?)(?:::(.*?))?\}\}", re.DOTALL)
+_FORCE_NID_TAG_RE = re.compile(r"^force_nid:(\d+)$", re.IGNORECASE)
+_FORCE_NID_VAL_RE = re.compile(r"(\d+)")
 
 MAX_COMPONENT_DEPTH = 5
 MAX_DIRECT_FAMILY_MEMBERS = 80
+
+_FUGASHI_TAGGER = None
+_FUGASHI_READY = False
+
+
+def _tools_vendor_path() -> str | None:
+    if mw is None:
+        return None
+    api = getattr(mw, "_ajpc_graph_api", None)
+    if not isinstance(api, dict):
+        return None
+    getter = api.get("get_config")
+    if not callable(getter):
+        return None
+    mod_name = str(getattr(getter, "__module__", "") or "").strip()
+    if not mod_name:
+        return None
+    mod = sys.modules.get(mod_name)
+    mod_file = str(getattr(mod, "__file__", "") or "").strip() if mod is not None else ""
+    if not mod_file:
+        return None
+    addon_dir = os.path.dirname(os.path.dirname(os.path.abspath(mod_file)))
+    vendor = os.path.join(addon_dir, "vendor")
+    if os.path.isdir(vendor):
+        return vendor
+    return None
 
 
 def _get_tools_config() -> dict[str, Any] | None:
@@ -120,19 +151,94 @@ def _parse_family_field(raw: str, sep: str, default_prio: int) -> list[tuple[str
     return out
 
 
-def _parse_example_key(raw: str, sep: str, default_stage: int, norm_cfg: dict[str, Any]) -> tuple[str, int]:
-    s = _norm_text(raw or "", norm_cfg)
-    if not s:
-        return "", default_stage
-    if sep and sep in s:
-        left, right = s.rsplit(sep, 1)
-        key = _norm_text(left, norm_cfg)
+def _extract_first_cloze_target(note, norm_cfg: dict[str, Any]) -> str:
+    try:
+        for fname in note.keys():
+            raw = str(note[fname] or "")
+            if not raw:
+                continue
+            m = _CLOZE_RE.search(raw)
+            if not m:
+                continue
+            return _norm_text(_strip_html(m.group(1) or ""), norm_cfg)
+    except Exception:
+        pass
+    return ""
+
+
+def _parse_force_nid(note) -> int | None:
+    for fname in ("force_nid", "ForceNid", "forceNid", "Force NID"):
         try:
-            stage = int(right.strip())
+            if fname not in note:
+                continue
+            raw = str(note[fname] or "").strip()
+            if not raw:
+                continue
+            m = _FORCE_NID_VAL_RE.search(raw)
+            if m:
+                return int(m.group(1))
         except Exception:
-            stage = default_stage
-        return key, stage
-    return s, default_stage
+            continue
+    try:
+        for tag in note.tags or []:
+            m = _FORCE_NID_TAG_RE.match(str(tag or "").strip())
+            if m:
+                return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def _fugashi_tagger():
+    global _FUGASHI_READY, _FUGASHI_TAGGER
+    if _FUGASHI_READY:
+        return _FUGASHI_TAGGER
+    _FUGASHI_READY = True
+    try:
+        import fugashi  # type: ignore
+
+        _FUGASHI_TAGGER = fugashi.Tagger()
+        return _FUGASHI_TAGGER
+    except Exception:
+        pass
+    # Optional fallback to tools vendor (if not globally importable).
+    try:
+        tools_vendor = _tools_vendor_path()
+        if tools_vendor and tools_vendor not in sys.path:
+            sys.path.insert(0, tools_vendor)
+        import fugashi  # type: ignore
+
+        _FUGASHI_TAGGER = fugashi.Tagger()
+    except Exception:
+        _FUGASHI_TAGGER = None
+    return _FUGASHI_TAGGER
+
+
+def _lemma_from_surface(surface: str, norm_cfg: dict[str, Any]) -> tuple[str, str]:
+    s = _norm_text(surface or "", norm_cfg)
+    if not s:
+        return "", "empty_surface"
+    tagger = _fugashi_tagger()
+    if tagger is None:
+        return s, "lemma_backend_unavailable"
+    try:
+        tokens = [t for t in tagger(s) if str(getattr(t, "surface", "") or "").strip()]
+    except Exception:
+        return s, "lemma_backend_failed"
+    if len(tokens) != 1:
+        return s, "ambiguous_tokenization"
+    tok = tokens[0]
+    feat = getattr(tok, "feature", None)
+    lemma = (
+        getattr(feat, "lemma", None)
+        or getattr(feat, "dictionary_form", None)
+        or getattr(feat, "base_form", None)
+        or str(getattr(tok, "surface", "") or "")
+    )
+    lemma = str(lemma or "").strip()
+    if not lemma or lemma == "*":
+        lemma = str(getattr(tok, "surface", "") or "").strip()
+    return _norm_text(lemma, norm_cfg), "ok"
 
 
 def _note_label(note, prefer_field: str | None = None) -> str:
@@ -390,6 +496,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
     note_type_hubs = _normalize_note_type_map(col, graph_cfg.get("note_type_hubs") or {})
     fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
     family_gate_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
+    cs_cfg = cfg.get("card_stages") if isinstance(cfg, dict) else {}
+    card_stages_note_types = _normalize_note_type_map(col, (cs_cfg or {}).get("note_types") or {})
     kg_cfg = cfg.get("kanji_gate") if isinstance(cfg, dict) else {}
     kanji_vocab_note_types = _normalize_note_type_map(col, (kg_cfg or {}).get("vocab_note_types") or {})
     layer_colors = graph_cfg.get("layer_colors") or {}
@@ -738,28 +846,24 @@ def build_graph(col: Collection) -> dict[str, Any]:
     if eg.get("enabled"):
         vocab_deck = str(eg.get("vocab_deck") or "")
         example_deck = str(eg.get("example_deck") or "")
-        vocab_key_field = str(eg.get("vocab_key_field") or "")
-        example_key_field = str(eg.get("example_key_field") or "")
-        stage_sep = str(eg.get("stage_sep") or "@")
-        default_stage = int(eg.get("default_stage") or 0)
+        key_field = str(eg.get("key_field") or eg.get("vocab_key_field") or "").strip()
         norm_cfg = eg.get("key_norm") or {}
-        family_note_types = set((family_gate_note_types or {}).keys())
 
-        vocab_index: dict[str, int] = {}
-        if vocab_deck and vocab_key_field:
+        vocab_index: dict[str, list[int]] = {}
+        vocab_by_nid: dict[int, str] = {}
+        if vocab_deck and key_field:
             for nid in _filter_nids(_note_ids_for_deck(col, vocab_deck)):
                 try:
                     note = col.get_note(nid)
                 except Exception:
                     continue
-                if family_note_types and str(note.mid) not in family_note_types:
+                if key_field not in note:
                     continue
-                if vocab_key_field not in note:
+                key = _norm_text(str(note[key_field] or ""), norm_cfg)
+                if not key:
                     continue
-                key = _norm_text(str(note[vocab_key_field] or ""), norm_cfg)
-                if not key or key in vocab_index:
-                    continue
-                vocab_index[key] = nid
+                vocab_index.setdefault(key, []).append(int(nid))
+                vocab_by_nid[int(nid)] = key
                 ensure_node(
                     str(nid),
                     label=_note_label(note, label_fields.get(str(note.mid))),
@@ -771,22 +875,41 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 add_layer(str(nid), "example")
 
         logger.dbg("example_gate vocab keys", len(vocab_index))
-        if example_deck and example_key_field:
+        if example_deck and key_field:
             for nid in _filter_nids(_note_ids_for_deck(col, example_deck)):
                 try:
                     note = col.get_note(nid)
                 except Exception:
                     continue
-                if example_key_field not in note:
-                    continue
-                key, stage = _parse_example_key(
-                    str(note[example_key_field] or ""), stage_sep, default_stage, norm_cfg
-                )
-                if not key:
-                    continue
-                src = vocab_index.get(key)
-                if not src:
-                    continue
+
+                source_nid: int | None = None
+                lookup_reason = ""
+                force_nid = _parse_force_nid(note)
+                if force_nid is not None:
+                    if int(force_nid) in vocab_by_nid:
+                        source_nid = int(force_nid)
+                        lookup_reason = "force_nid"
+                    else:
+                        lookup_reason = "force_nid_not_found"
+                if source_nid is None:
+                    cloze_surface = _extract_first_cloze_target(note, norm_cfg)
+                    if not cloze_surface:
+                        continue
+                    lemma, lemma_status = _lemma_from_surface(cloze_surface, norm_cfg)
+                    candidates = vocab_index.get(lemma, [])
+                    if len(candidates) == 1:
+                        source_nid = int(candidates[0])
+                        lookup_reason = f"lemma:{lemma_status}"
+                    elif len(candidates) > 1:
+                        continue
+                    else:
+                        surface_candidates = vocab_index.get(cloze_surface, [])
+                        if len(surface_candidates) == 1:
+                            source_nid = int(surface_candidates[0])
+                            lookup_reason = "surface_match"
+                        else:
+                            continue
+
                 ensure_node(
                     str(nid),
                     label=_note_label(note, label_fields.get(str(note.mid))),
@@ -796,7 +919,13 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     extra=_note_extra(note),
                 )
                 add_layer(str(nid), "example")
-                add_edge(str(src), str(nid), "example", key=key, stage=stage)
+                add_edge(
+                    str(source_nid),
+                    str(nid),
+                    "example",
+                    key=vocab_by_nid.get(int(source_nid), ""),
+                    lookup=lookup_reason,
+                )
 
     # Kanji Gate
     kg = cfg.get("kanji_gate", {})
@@ -855,7 +984,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             for nt_id, vcfg in vocab_cfg.items():
                 if not isinstance(vcfg, dict):
                     continue
-                field = str(vcfg.get("furigana_field") or "").strip()
+                field = str(vcfg.get("reading_field") or vcfg.get("furigana_field") or "").strip()
                 if not field:
                     continue
                 for nid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
@@ -939,7 +1068,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             for nt_id, vcfg in vocab_cfg.items():
                 if not isinstance(vcfg, dict):
                     continue
-                field = str(vcfg.get("furigana_field") or "").strip()
+                field = str(vcfg.get("reading_field") or vcfg.get("furigana_field") or "").strip()
                 if not field:
                     continue
                 for nid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
@@ -980,22 +1109,19 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             )
                             add_edge(str(nid), str(k_nid), "kanji", kind="vocab", value=ch)
 
-    # Note/Mass Linker (mass_linker)
+    # Mass Linker
     linker_rules: dict[str, dict[str, Any]] = {}
-    for key in ("note_linker", "mass_linker"):
-        block = cfg.get(key, {}) if isinstance(cfg, dict) else {}
-        if not isinstance(block, dict) or not block.get("enabled"):
-            continue
-        rules = block.get("rules") or {}
-        if not isinstance(rules, dict):
-            continue
-        for nt_id, rule in rules.items():
-            if not isinstance(rule, dict):
-                continue
-            mid = _resolve_note_type_id(col, nt_id)
-            if not mid:
-                continue
-            linker_rules[str(mid)] = rule
+    mass_block = cfg.get("mass_linker", {}) if isinstance(cfg, dict) else {}
+    if isinstance(mass_block, dict) and mass_block.get("enabled"):
+        rules = mass_block.get("rules") or {}
+        if isinstance(rules, dict):
+            for nt_id, rule in rules.items():
+                if not isinstance(rule, dict):
+                    continue
+                mid = _resolve_note_type_id(col, nt_id)
+                if not mid:
+                    continue
+                linker_rules[str(mid)] = rule
     if linker_rules:
         logger.dbg("linker rules", len(linker_rules))
         tmpl_name_cache: dict[str, set[str]] = {}
@@ -1207,6 +1333,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             family_nts = {str(k) for k in (family_gate_note_types or {}).keys() if str(k).strip()}
             if family_nts:
                 _add_unlinked_notes(family_nts, "family")
+        if isinstance(cs_cfg, dict) and cs_cfg.get("enabled"):
+            stage_nts = {str(k) for k in (card_stages_note_types or {}).keys() if str(k).strip()}
+            if stage_nts:
+                _add_unlinked_notes(stage_nts, "family")
 
         if kg.get("enabled"):
             kanji_nts: set[str] = set()
@@ -1539,6 +1669,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "show_unlinked": show_unlinked,
             "selected_decks": selected_decks,
             "decks": deck_names,
+            "card_stages_enabled": bool((cs_cfg or {}).get("enabled", False)),
+            "card_stages_note_types": sorted(
+                [str(k) for k in (card_stages_note_types or {}).keys() if str(k).strip()]
+            ),
             "note_type_hub_members": hub_members_payload,
             "kanji_components_enabled": kanji_components_enabled,
             "kanji_component_style": kanji_component_style,
