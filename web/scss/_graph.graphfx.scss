@@ -1,0 +1,25 @@
+﻿#hover-tip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 100;
+  min-width: 180px;
+  max-width: 340px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--border-dark), transparent 20%);
+  backdrop-filter: blur(5px);
+  color: var(--text-main);
+  padding: 8px 10px;
+  font-size: 12px;
+  display: none;
+  line-height: 1.35;
+}
+
+#hover-tip .tip-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#hover-tip .tip-muted {
+  color: var(--text-soft);
+}

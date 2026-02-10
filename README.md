@@ -32,6 +32,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 
 **Link Settings**
 - Flow speed (global)
+- Link metric mode + direction (None, Jaccard, Overlap, Common Neighbors, Clustering Coeff, 2-Hop)
 - Chain family levels (hub -> prio chain)
 - Per layer: color, line style, flow on/off
 - Same-priority links toggle + opacity
@@ -77,13 +78,39 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
 - All actions are visual only, except the context actions that explicitly write to your notes.
 
+## Frontend architecture (dev)
+- Runtime entry points: `window.ajpcGraphInit(data)` and `window.ajpcGraphUpdate(data)`.
+- Frontend runtime is split into prefixed modules under `web/graph.*.js`:
+  - `graph.state.js`, `graph.bridge.js`, `graph.utils.js`, `graph.payload.js`
+  - `graph.flow.js`, `graph.engine.sigma.js`, `graph.ui.js`, `graph.main.js`
+- Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
+- Engine runtime is now `sigma.js` via local asset `web/sigma.min.js`.
+- Engine runtime implementation is in `web/graph.engine.sigma.js`.
+- `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
+- Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
+- Sigma runtime includes a lightweight built-in layout loop (`layout_enabled`, start/stop aware).
+- Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
+- Flow overlay in `web/graph.flow.js` samples conic curves in graph-space and projects to screen.
+- Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.
+- Flow particles are rendered on `#flow-canvas` above the graph layer.
+- Pulse and ring are rendered in separate passes (pulse first, ring second) and scale proportionally with node screen radius (zoom-coupled).
+- Node fills are rendered opaque in engine styling to avoid translucency artifacts.
+- Overlay effects can be toggled via `OVERLAY_EFFECTS_ENABLED` in `web/graph.state.js` (currently `false` for perf baseline testing).
+- Styling source can be maintained in SCSS:
+  - Entry file: `web/graph.scss`
+  - Partials: `web/scss/_graph.*.scss`
+  - Runtime file remains `web/graph.css` (loaded by Anki webview).
+- Engine migration planning sheet:
+  - `.devdocs/ENGINE_FEATURE_SHEET.md` (Sigma.js vs AntV G6 vs Cytoscape.js against AJpC feature requirements)
+
 ## External Resources:
 Icon: Knowledge Graph (CC0) - source: https://www.svgrepo.com/svg/451006/knowledge-graph
 ---
 
 ## Third-Party Licenses
-- `web/d3-force.min.js` — see `third_party/d3-force/LICENSE`
-- `web/force-graph.min.js` — see `third_party/force-graph/LICENSE`
+- `web/sigma.min.js` — see `third_party/sigma/LICENSE`
+- Sigma project: `sigma.js` (MIT)
+- Legacy bundled asset (currently not active runtime): `web/cosmos-graph.min.js` — see `third_party/cosmos/LICENSE`
 See `THIRD_PARTY_NOTICES.md` for a summary.
 
 ## License

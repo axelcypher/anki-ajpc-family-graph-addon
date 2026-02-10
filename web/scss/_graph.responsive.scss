@@ -1,0 +1,23 @@
+﻿@media (max-width: 1180px) {
+  #toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  #main-layout {
+    overflow: hidden;
+  }
+
+  #settings-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(92vw, 420px);
+    z-index: 120;
+    border-left: 1px solid var(--border);
+  }
+
+  #search-suggest {
+    right: 0;
+  }
+}

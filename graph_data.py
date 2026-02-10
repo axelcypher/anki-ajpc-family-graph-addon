@@ -486,6 +486,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         logger.dbg("config missing: _ajpc_graph_api unavailable")
         return {"nodes": [], "edges": [], "meta": {"error": "missing_tools_config"}}
     debug_enabled = bool(cfg.get("debug_enabled", False)) if isinstance(cfg, dict) else False
+    debug_mode = str(cfg.get("debug_mode") or "").strip().lower() if isinstance(cfg, dict) else ""
 
     graph_cfg = load_graph_config()
     label_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_label_fields") or {})
@@ -510,7 +511,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
     link_distances = graph_cfg.get("link_distances") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
     soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
-    physics_cfg = graph_cfg.get("physics") or {}
+    solver_cfg = graph_cfg.get("solver") or {}
+    engine_cfg = graph_cfg.get("engine") or {}
+    renderer_cfg = graph_cfg.get("renderer") or {}
+    node_cfg = graph_cfg.get("node") or {}
     neighbor_scaling = graph_cfg.get("neighbor_scaling") or {}
     family_chain_edges = bool(graph_cfg.get("family_chain_edges", False))
     selected_decks = graph_cfg.get("selected_decks") or []
@@ -669,7 +673,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     note_type=_note_type_name(col, int(note.mid)),
                     extra=_note_extra(note),
                 )
-                add_layer(str(nid), "family")
+                add_layer(str(nid), "notes")
                 for fid, prio in fams:
                     node = nodes.get(str(nid))
                     if node is not None:
@@ -685,7 +689,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 continue
             hub_id = f"family:{fid}"
             ensure_node(hub_id, label=fid, kind="family")
-            add_layer(hub_id, "family_hub")
+            add_layer(hub_id, "families")
 
             # hub edges (direct variant)
             for nid, prio in members:
@@ -693,7 +697,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     family_hub_edges_direct,
                     str(nid),
                     hub_id,
-                    "family_hub",
+                    "families",
                     prio=prio,
                     fid=fid,
                     kind="hub",
@@ -711,7 +715,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                         family_hub_edges_chain,
                         str(nid),
                         hub_id,
-                        "family_hub",
+                        "families",
                         prio=lowest,
                         fid=fid,
                         kind="hub",
@@ -729,7 +733,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             family_hub_edges_chain,
                             str(nid),
                             str(anchor),
-                            "family_hub",
+                            "families",
                             prio=cur,
                             fid=fid,
                             kind="chain",
@@ -749,7 +753,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                 family_edges_direct,
                                 str(dst),
                                 str(src),
-                                "family",
+                                "priority",
                                 prio=prio,
                                 fid=fid,
                                 same_prio=False,
@@ -759,7 +763,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                 family_edges_direct,
                                 str(src),
                                 str(dst),
-                                "family",
+                                "priority",
                                 prio=_prio2,
                                 fid=fid,
                                 same_prio=False,
@@ -769,7 +773,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                 family_edges_direct,
                                 str(src),
                                 str(dst),
-                                "family",
+                                "priority",
                                 prio=prio,
                                 fid=fid,
                                 same_prio=True,
@@ -778,7 +782,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                 family_edges_direct,
                                 str(dst),
                                 str(src),
-                                "family",
+                                "priority",
                                 prio=prio,
                                 fid=fid,
                                 same_prio=True,
@@ -801,7 +805,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                     family_edges_chain,
                                     str(src),
                                     str(dst),
-                                    "family",
+                                    "priority",
                                     prio=prio,
                                     fid=fid,
                                     same_prio=True,
@@ -810,7 +814,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                     family_edges_chain,
                                     str(dst),
                                     str(src),
-                                    "family",
+                                    "priority",
                                     prio=prio,
                                     fid=fid,
                                     same_prio=True,
@@ -835,7 +839,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                                 family_edges_chain,
                                 str(nid),
                                 str(lower_nid),
-                                "family",
+                                "priority",
                                 prio=lower_prio,
                                 fid=fid,
                                 same_prio=False,
@@ -872,7 +876,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     note_type=_note_type_name(col, int(note.mid)),
                     extra=_note_extra(note),
                 )
-                add_layer(str(nid), "example")
+                add_layer(str(nid), "examples")
 
         logger.dbg("example_gate vocab keys", len(vocab_index))
         if example_deck and key_field:
@@ -918,11 +922,11 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     note_type=_note_type_name(col, int(note.mid)),
                     extra=_note_extra(note),
                 )
-                add_layer(str(nid), "example")
+                add_layer(str(nid), "examples")
                 add_edge(
                     str(source_nid),
                     str(nid),
-                    "example",
+                    "examples",
                     key=vocab_by_nid.get(int(source_nid), ""),
                     lookup=lookup_reason,
                 )
@@ -1207,7 +1211,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     add_edge(
                         str(snid),
                         str(tnid),
-                        "mass_linker",
+                        "mass_links",
                         tag=tag,
                         label=target_labels.get(tnid, ""),
                         manual=False,
@@ -1283,7 +1287,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     add_edge(
                         str(nid),
                         str(resolved),
-                        "reference",
+                        "note_links",
                         label=label,
                         manual=True,
                     )
@@ -1332,11 +1336,11 @@ def build_graph(col: Collection) -> dict[str, Any]:
         if fg.get("enabled"):
             family_nts = {str(k) for k in (family_gate_note_types or {}).keys() if str(k).strip()}
             if family_nts:
-                _add_unlinked_notes(family_nts, "family")
+                _add_unlinked_notes(family_nts, "notes")
         if isinstance(cs_cfg, dict) and cs_cfg.get("enabled"):
             stage_nts = {str(k) for k in (card_stages_note_types or {}).keys() if str(k).strip()}
             if stage_nts:
-                _add_unlinked_notes(stage_nts, "family")
+                _add_unlinked_notes(stage_nts, "notes")
 
         if kg.get("enabled"):
             kanji_nts: set[str] = set()
@@ -1354,12 +1358,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
         if linked_fields:
             ref_nts = {str(k) for k in linked_fields.keys() if str(k).strip()}
             if ref_nts:
-                _add_unlinked_notes(ref_nts, "reference")
+                _add_unlinked_notes(ref_nts, "note_links")
 
         if linker_rules:
             mass_nts = {str(k) for k in linker_rules.keys() if str(k).strip()}
             if mass_nts:
-                _add_unlinked_notes(mass_nts, "mass_linker")
+                _add_unlinked_notes(mass_nts, "mass_links")
 
     # Collapse duplicate reference edges (manual/auto) into a single visible edge.
     # If both directions exist, keep one visible edge and add a flow-only reverse
@@ -1368,7 +1372,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         ref_groups: dict[tuple[str, str, bool], dict[str, list[dict[str, Any]]]] = {}
         out_edges: list[dict[str, Any]] = []
         for e in edges:
-            if e.get("layer") != "reference":
+            if e.get("layer") != "note_links":
                 out_edges.append(e)
                 continue
             s = str(e.get("source"))
@@ -1403,7 +1407,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     {
                         "source": visible.get("target"),
                         "target": visible.get("source"),
-                        "layer": "reference",
+                        "layer": "note_links",
                         "meta": {**vmeta, "flow_only": True, "manual": manual, "bidirectional": True},
                     }
                 )
@@ -1513,9 +1517,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             edges = new_edges
 
     if edges:
+        node_layers_from_edges = {"families", "examples", "mass_links", "kanji"}
         for e in edges:
             layer = str(e.get("layer") or "")
-            if not layer:
+            if not layer or layer not in node_layers_from_edges:
                 continue
             add_layer(str(e.get("source")), layer)
             add_layer(str(e.get("target")), layer)
@@ -1643,7 +1648,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
         "nodes": list(nodes.values()),
         "edges": edges,
         "meta": {
-            "layers": ["family", "family_hub", "reference", "mass_linker", "example", "kanji"],
+            "layers": ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"],
             "note_types": note_type_meta,
             "layer_colors": layer_colors,
             "layer_enabled": layer_enabled,
@@ -1659,7 +1664,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "family_hub_edges_chain": family_hub_edges_chain,
             "layer_flow_speed": layer_flow_speed,
             "soft_pin_radius": soft_pin_radius,
-            "physics": physics_cfg,
+            "solver": solver_cfg,
+            "engine": engine_cfg,
+            "renderer": renderer_cfg,
+            "node": node_cfg,
             "neighbor_scaling": neighbor_scaling,
             "family_chain_edges": family_chain_edges,
             "reference_auto_opacity": reference_auto_opacity,
@@ -1690,5 +1698,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
             },
             "card_dots_enabled": card_dots_enabled,
             "debug_enabled": debug_enabled,
+            "debug_mode": debug_mode,
         },
     }

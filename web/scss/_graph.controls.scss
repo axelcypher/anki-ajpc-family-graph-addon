@@ -1,0 +1,99 @@
+﻿@use "graph.mixins" as mixins;
+
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.line-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  @include mixins.row-chip();
+  font-size: 12px;
+
+  input[type="checkbox"] {
+    margin: 0;
+  }
+}
+
+.note-type-card {
+  @include mixins.surface-card();
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(66px, auto);
+  gap: 8px;
+  align-items: center;
+  @include mixins.row-chip($border: rgba(255, 255, 255, 0.08), $padding: 6px 7px);
+  font-size: 12px;
+
+  input[type="number"],
+  select {
+    @include mixins.form-input();
+    width: 100%;
+  }
+
+  input[type="color"] {
+    width: 100%;
+    height: 30px;
+    @include mixins.form-input($padding: 2px);
+  }
+
+  label {
+    color: var(--text-soft);
+    font-size: 11px;
+  }
+}
+
+.inline-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.note-type-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.note-type-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+
+  label {
+    display: grid;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+
+  select {
+    @include mixins.form-input();
+  }
+
+  input[type="color"] {
+    height: 30px;
+    @include mixins.form-input($padding: 2px);
+  }
+
+  select[multiple] {
+    min-height: 70px;
+  }
+}
+
+.hint {
+  margin: 0 0 8px 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}

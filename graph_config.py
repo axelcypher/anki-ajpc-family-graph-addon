@@ -15,55 +15,82 @@ DEFAULT_CFG: dict[str, Any] = {
     "note_type_colors": {},
     "note_type_hubs": {},
     "layer_enabled": {},
-    "layer_colors": {"family": "#3d95e7", "family_hub": "#34d399"},
+    "layer_colors": {
+        "notes": "#3d95e7",
+        "priority": "#6ee7b7",
+        "families": "#34d399",
+        "note_links": "#f59e0b",
+        "examples": "#60a5fa",
+        "mass_links": "#f97316",
+        "kanji": "#f87171",
+    },
     "family_same_prio_edges": False,
     "family_same_prio_opacity": 0.15,
     "layer_styles": {
-        "family_hub": "dotted",
-        "family": "solid",
-        "reference": "dashed",
-        "mass_linker": "dashed",
+        "priority": "solid",
+        "families": "dotted",
+        "note_links": "dashed",
+        "mass_links": "dashed",
         "kanji": "solid",
     },
     "layer_flow": {
-        "family": True,
-        "family_hub": False,
-        "reference": True,
-        "mass_linker": True,
+        "priority": True,
+        "families": False,
+        "note_links": True,
+        "mass_links": True,
         "kanji": True,
-        "example": True,
+        "examples": True,
     },
     "link_strengths": {
-        "family": 1.0,
-        "family_hub": 1.0,
-        "reference": 1.0,
-        "mass_linker": 1.0,
-        "example": 1.0,
+        "priority": 1.0,
+        "families": 1.0,
+        "note_links": 1.0,
+        "mass_links": 1.0,
+        "examples": 1.0,
         "kanji": 1.0,
         "kanji_component": 1.0,
     },
     "link_distances": {},
-    "physics": {
-        "charge": -80,
-        "link_distance": 30,
-        "link_strength": 1,
-        "velocity_decay": 0.35,
-        "alpha_decay": 0.02,
-        "center_force": 0.0,
-        "cooldown_ticks": 80,
-        "cooldown_time": 15000,
-        "warmup_ticks": 180,
-        "max_radius": 1400,
+    "solver": {
+        "layout_enabled": True,
+        "fa2_lin_log_mode": False,
+        "fa2_outbound_attraction_distribution": False,
+        "fa2_adjust_sizes": False,
+        "fa2_edge_weight_influence": 1.0,
+        "fa2_scaling_ratio": 4.2,
+        "fa2_strong_gravity_mode": False,
+        "fa2_gravity": 0.4,
+        "fa2_slow_down": 8.0,
+        "fa2_barnes_hut_optimize": True,
+        "fa2_barnes_hut_theta": 0.5,
+    },
+    "engine": {},
+    "renderer": {
+        "sigma_draw_labels": False,
+        "sigma_draw_hover_nodes": False,
+        "sigma_label_threshold": 8.0,
+        "sigma_hide_edges_on_move": False,
+        "sigma_batch_edges_drawing": True,
+        "sigma_mouse_wheel_enabled": True,
+        "sigma_double_click_enabled": False,
+        "sigma_min_camera_ratio": 0.01,
+        "sigma_max_camera_ratio": 6.0,
+        "sigma_side_margin": 0.0,
+        "sigma_animations_time": 0.0,
+        "sigma_enable_edge_hovering": False,
+    },
+    "node": {
+        "node_degree_size_factor": 0.18,
     },
     "neighbor_scaling": {
         "mode": "none",
         "directed": "undirected",
         "weights": {
-            "family": 1.4,
-            "family_hub": 0.7,
-            "reference": 0.9,
-            "mass_linker": 0.4,
-            "example": 1.0,
+            "priority": 1.4,
+            "families": 0.7,
+            "note_links": 0.9,
+            "mass_links": 0.4,
+            "examples": 1.0,
             "kanji": 0.2,
             "kanji_component": 0.0,
         },
@@ -93,6 +120,78 @@ DEFAULT_CFG: dict[str, Any] = {
     "card_dots_enabled": True,
 }
 
+_SOLVER_BOOL_KEYS = {
+    "layout_enabled",
+    "fa2_lin_log_mode",
+    "fa2_outbound_attraction_distribution",
+    "fa2_adjust_sizes",
+    "fa2_strong_gravity_mode",
+    "fa2_barnes_hut_optimize",
+}
+
+_ENGINE_BOOL_KEYS: set[str] = set()
+
+_RENDERER_BOOL_KEYS = {
+    "sigma_draw_labels",
+    "sigma_draw_hover_nodes",
+    "sigma_hide_edges_on_move",
+    "sigma_batch_edges_drawing",
+    "sigma_mouse_wheel_enabled",
+    "sigma_double_click_enabled",
+    "sigma_enable_edge_hovering",
+}
+
+_NODE_BOOL_KEYS: set[str] = set()
+
+_LAYER_MIGRATE = {
+    "family": "priority",
+    "family_hub": "families",
+    "reference": "note_links",
+    "example": "examples",
+    "mass_linker": "mass_links",
+}
+
+
+def _migrate_layer_map(
+    src: dict[str, Any],
+    *,
+    copy_family_to_priority: bool = True,
+    copy_family_to_notes: bool = False,
+) -> dict[str, Any]:
+    out = dict(src or {})
+    for old_key, new_key in _LAYER_MIGRATE.items():
+        if old_key in src and new_key not in out:
+            out[new_key] = src[old_key]
+    if copy_family_to_priority and "family" in src and "priority" not in out:
+        out["priority"] = src["family"]
+    if copy_family_to_notes and "family" in src and "notes" not in out:
+        out["notes"] = src["family"]
+    return out
+
+
+def _parse_bool_like(value: Any, fallback: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        raw = value.strip().lower()
+        if raw in ("1", "true", "yes", "on"):
+            return True
+        if raw in ("0", "false", "no", "off"):
+            return False
+    return fallback
+
+
+def _merge_section_defaults(section: Any, defaults: dict[str, Any]) -> dict[str, Any]:
+    src = section if isinstance(section, dict) else {}
+    out = dict(defaults)
+    for key in defaults.keys():
+        if key not in src:
+            continue
+        out[key] = src.get(key)
+    return out
+
 
 def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     for key in (
@@ -111,18 +210,22 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
-    if "physics" not in cfg or not isinstance(cfg.get("physics"), dict):
-        cfg["physics"] = DEFAULT_CFG.get("physics", {}).copy()
-    else:
-        for pkey, pval in DEFAULT_CFG.get("physics", {}).items():
-            cur = cfg["physics"].get(pkey)
-            if not isinstance(cur, (int, float)):
-                cfg["physics"][pkey] = pval
+    cfg["layer_colors"] = _migrate_layer_map(cfg.get("layer_colors", {}), copy_family_to_notes=True)
+    cfg["layer_enabled"] = _migrate_layer_map(cfg.get("layer_enabled", {}), copy_family_to_notes=True)
+    cfg["layer_styles"] = _migrate_layer_map(cfg.get("layer_styles", {}))
+    cfg["layer_flow"] = _migrate_layer_map(cfg.get("layer_flow", {}))
+    cfg["link_strengths"] = _migrate_layer_map(cfg.get("link_strengths", {}))
+    cfg["link_distances"] = _migrate_layer_map(cfg.get("link_distances", {}))
+    cfg["solver"] = _merge_section_defaults(cfg.get("solver"), DEFAULT_CFG.get("solver", {}))
+    cfg["engine"] = _merge_section_defaults(cfg.get("engine"), DEFAULT_CFG.get("engine", {}))
+    cfg["renderer"] = _merge_section_defaults(cfg.get("renderer"), DEFAULT_CFG.get("renderer", {}))
+    cfg["node"] = _merge_section_defaults(cfg.get("node"), DEFAULT_CFG.get("node", {}))
+    cfg.pop("physics", None)
     if not isinstance(cfg.get("neighbor_scaling"), dict):
         cfg["neighbor_scaling"] = DEFAULT_CFG.get("neighbor_scaling", {}).copy()
     nscale = cfg.get("neighbor_scaling") or {}
     mode = nscale.get("mode")
-    if not isinstance(mode, str) or mode not in ("none", "ccm", "twohop", "jaccard", "overlap"):
+    if not isinstance(mode, str) or mode not in ("none", "ccm", "twohop", "jaccard", "overlap", "common_neighbors"):
         mode = DEFAULT_CFG["neighbor_scaling"]["mode"]
     directed = nscale.get("directed")
     if not isinstance(directed, str) or directed not in ("undirected", "out", "in"):
@@ -130,6 +233,7 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     weights_in = nscale.get("weights")
     if not isinstance(weights_in, dict):
         weights_in = {}
+    weights_in = _migrate_layer_map(weights_in, copy_family_to_priority=True, copy_family_to_notes=False)
     defaults = DEFAULT_CFG["neighbor_scaling"]["weights"]
     weights: dict[str, float] = {}
     for key, default in defaults.items():
@@ -348,19 +452,79 @@ def set_layer_flow_speed(speed: float) -> None:
     save_graph_config(cfg)
 
 
-def set_physics_value(key: str, value: float) -> None:
+def set_solver_value(key: str, value: Any) -> None:
     cfg = load_graph_config()
     key = (key or "").strip()
     if not key:
         return
-    if "physics" not in cfg or not isinstance(cfg.get("physics"), dict):
-        cfg["physics"] = DEFAULT_CFG.get("physics", {}).copy()
-    if key not in DEFAULT_CFG.get("physics", {}):
+    if "solver" not in cfg or not isinstance(cfg.get("solver"), dict):
+        cfg["solver"] = DEFAULT_CFG.get("solver", {}).copy()
+    if key not in DEFAULT_CFG.get("solver", {}):
         return
-    try:
-        cfg["physics"][key] = float(value)
-    except Exception:
+    if key in _SOLVER_BOOL_KEYS:
+        cfg["solver"][key] = _parse_bool_like(value, bool(DEFAULT_CFG["solver"][key]))
+    else:
+        try:
+            cfg["solver"][key] = float(value)
+        except Exception:
+            return
+    save_graph_config(cfg)
+
+
+def set_renderer_value(key: str, value: Any) -> None:
+    cfg = load_graph_config()
+    key = (key or "").strip()
+    if not key:
         return
+    if "renderer" not in cfg or not isinstance(cfg.get("renderer"), dict):
+        cfg["renderer"] = DEFAULT_CFG.get("renderer", {}).copy()
+    if key not in DEFAULT_CFG.get("renderer", {}):
+        return
+    if key in _RENDERER_BOOL_KEYS:
+        cfg["renderer"][key] = _parse_bool_like(value, bool(DEFAULT_CFG["renderer"][key]))
+    else:
+        try:
+            cfg["renderer"][key] = float(value)
+        except Exception:
+            return
+    save_graph_config(cfg)
+
+
+def set_engine_value(key: str, value: Any) -> None:
+    cfg = load_graph_config()
+    key = (key or "").strip()
+    if not key:
+        return
+    if "engine" not in cfg or not isinstance(cfg.get("engine"), dict):
+        cfg["engine"] = DEFAULT_CFG.get("engine", {}).copy()
+    if key not in DEFAULT_CFG.get("engine", {}):
+        return
+    if key in _ENGINE_BOOL_KEYS:
+        cfg["engine"][key] = _parse_bool_like(value, bool(DEFAULT_CFG["engine"][key]))
+    else:
+        try:
+            cfg["engine"][key] = float(value)
+        except Exception:
+            return
+    save_graph_config(cfg)
+
+
+def set_node_value(key: str, value: Any) -> None:
+    cfg = load_graph_config()
+    key = (key or "").strip()
+    if not key:
+        return
+    if "node" not in cfg or not isinstance(cfg.get("node"), dict):
+        cfg["node"] = DEFAULT_CFG.get("node", {}).copy()
+    if key not in DEFAULT_CFG.get("node", {}):
+        return
+    if key in _NODE_BOOL_KEYS:
+        cfg["node"][key] = _parse_bool_like(value, bool(DEFAULT_CFG["node"][key]))
+    else:
+        try:
+            cfg["node"][key] = float(value)
+        except Exception:
+            return
     save_graph_config(cfg)
 
 
@@ -368,7 +532,7 @@ def set_neighbor_scaling(cfg_in: dict[str, Any]) -> None:
     cfg = load_graph_config()
     nscale = cfg.get("neighbor_scaling") or {}
     mode = cfg_in.get("mode")
-    if isinstance(mode, str) and mode in ("none", "ccm", "twohop", "jaccard", "overlap"):
+    if isinstance(mode, str) and mode in ("none", "ccm", "twohop", "jaccard", "overlap", "common_neighbors"):
         nscale["mode"] = mode
     directed = cfg_in.get("directed")
     if isinstance(directed, str) and directed in ("undirected", "out", "in"):

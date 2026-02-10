@@ -1,0 +1,149 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AJpC Family Graph</title>
+  <link rel="stylesheet" href="__GRAPH_CSS__"/>
+</head>
+<body>
+  <div id="app">
+    <header id="toolbar">
+      <div id="toolbar-left">
+        <div id="layer-pills" class="chip-row"></div>
+      </div>
+      <div id="toolbar-center">
+        <div id="search-wrap">
+          <input id="search-input" type="text" placeholder="Search node..." autocomplete="off"/>
+          <button id="search-go" type="button">Find</button>
+          <div id="search-suggest"></div>
+        </div>
+      </div>
+      <div id="toolbar-right">
+        <button id="btn-fit" type="button">Fit</button>
+        <button id="btn-dev-tools" type="button">DevTools</button>
+        <button id="btn-settings" type="button">Settings</button>
+        <button id="btn-refresh" type="button">Rebuild</button>
+      </div>
+    </header>
+
+    <main id="main-layout">
+      <div id="status-overlay-top-left">
+        <div id="statusbar">
+          <span id="status-summary">Nodes: 0 | Edges: 0</span>
+          <span id="status-fps">FPS: --</span>
+          <span id="status-coords">Coords: --, --</span>
+        </div>
+
+        <div id="status-debug-panel">
+          <span class="title">Debug mode: On</span>
+          <span id="debug-coords">
+            <div>use <span id="debug-coord-use">--</span></div>
+            <div>ratio <span id="debug-coord-ratio">--</span></div>
+            <div class="coord-table" aria-label="debug coordinates">
+              <div class="coord-key">vp</div><div class="coord-val" id="debug-coord-vp-x">--</div><div class="coord-val" id="debug-coord-vp-y">--</div>
+              <div class="coord-key">cl</div><div class="coord-val" id="debug-coord-cl-x">--</div><div class="coord-val" id="debug-coord-cl-y">--</div>
+              <div class="coord-key">cam</div><div class="coord-val" id="debug-coord-cam-x">--</div><div class="coord-val" id="debug-coord-cam-y">--</div>
+            </div>
+          </span>
+          <span id="debug-extra"></span>
+        </div>
+      </div>
+
+      <section id="graph-panel">
+        <div id="graph"></div>
+        <div id="graph-empty">Graph loading...</div>
+        <div id="hover-tip"></div>
+      </section>
+
+      <aside id="settings-panel" class="closed" aria-hidden="true">
+        <div class="settings-scroll">
+          <div class="panel-head">
+            <h2>Settings</h2>
+            <button id="btn-close-settings" type="button">Close</button>
+          </div>
+          <div id="settings-tabs">
+            <button class="settings-tab active" type="button" data-tab="notes">Notes</button>
+            <button class="settings-tab" type="button" data-tab="links">Links</button>
+            <button class="settings-tab" type="button" data-tab="physics">Physics</button>
+          </div>
+
+          <section id="tab-notes" class="tab-pane active">
+            <section class="settings-block">
+              <h3>Runtime Filters</h3>
+              <label class="line-item">
+                <input id="toggle-unlinked" type="checkbox"/>
+                <span>Show unlinked nodes</span>
+              </label>
+              <div id="layer-list" class="stack"></div>
+              <span id="node-settings"></span>
+            </section>
+
+            <section class="settings-block">
+              <h3>Note Types</h3>
+              <p class="hint">All fields here are now wired for persistence.</p>
+              <div id="note-type-list" class="stack"></div>
+            </section>
+          </section>
+
+          <section id="tab-links" class="tab-pane">
+            <section class="settings-block">
+              <h3>Link Settings</h3>
+              <div id="flow-speed-control"></div>
+            </section>
+            <section class="settings-block">
+              <h3>Link Layers</h3>
+              <div id="link-layer-list" class="stack"></div>
+            </section>
+            
+          </section>
+
+          <section id="tab-physics" class="tab-pane">
+            <section class="settings-block">
+              <h3>Engine</h3>
+              <div id="engine-list" class="stack"></div>
+            </section>
+            <section class="settings-block">
+              <h3>Solver</h3>
+              <div id="solver-list" class="stack"></div>
+            </section>
+            <section class="settings-block">
+              <h3>Renderer</h3>
+              <div id="renderer-list" class="stack"></div>
+            </section>
+          </section>
+        </div>
+      </aside>      
+
+      <div id="status-overlay-bottom-right">
+        <div id="status-zoom-pill">
+          <span id="status-zoom">Zoom: 1.00x</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+  <script src="__GRAPH_GRAPHOLOGY_SRC__"></script>
+  <script src="__GRAPH_LAYOUT_SRC__"></script>
+  <script src="__GRAPH_FA2_SRC__"></script>
+  <script src="__GRAPH_ENGINE_SRC__"></script>
+
+  <script src="__GRAPH_SIGMA_PROGRAM_EDGE_CURVED_JS__"></script>
+  <script src="__GRAPH_SIGMA_PROGRAM_EDGE_DASHED_JS__"></script>
+  <script src="__GRAPH_SIGMA_PROGRAM_EDGE_DOTTED_JS__"></script>
+  <script src="__GRAPH_SIGMA_PROGRAM_NODE_NOTE_JS__"></script>
+  <script src="__GRAPH_SIGMA_PROGRAM_NODE_HUB_JS__"></script>
+
+  <script src="__GRAPH_STATE_JS__"></script>
+  <script src="__GRAPH_BRIDGE_JS__"></script>
+  <script src="__GRAPH_UTILS_JS__"></script>
+  <script src="__GRAPH_PAYLOAD_JS__"></script>
+  <script src="__GRAPH_FLOW_JS__"></script>
+  <script src="__GRAPH_ENGINE_JS__"></script>
+  <script src="__GRAPH_DATA_JS__"></script>
+  <script src="__GRAPH_SOLVER_JS__"></script>
+  <script src="__GRAPH_RENDERER_JS__"></script>
+  <script src="__GRAPH_UI_JS__"></script>
+  <script src="__GRAPH_MAIN_JS__"></script>
+</body>
+</html>

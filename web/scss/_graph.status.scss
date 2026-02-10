@@ -1,0 +1,118 @@
+﻿@use "graph.mixins" as mixins;
+
+#status-overlay-top-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 250;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 10px;
+
+  #statusbar {
+    position: relative;
+    left: -10px;
+
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    overflow: visible;
+    padding: 0px 20px 10px 25px;
+
+    background: var(--bg-panel);
+    border-bottom-right-radius: 10px;
+    
+    color: var(--text-soft);
+    font-size: 12px;
+    
+    &::after {
+      content: "";
+      position: absolute;
+      right: calc(var(--radius-small) * -1); 
+      
+      box-sizing: border-box;
+      width: var(--radius-small);
+      height: var(--radius-small);
+
+      background: var(--bg-panel);
+      pointer-events: none;
+      mask: radial-gradient(
+        circle at 100% 100%, 
+        transparent calc(var(--radius-small) - 0px), 
+        #000 var(--radius-small)
+      );
+    }
+
+  }
+
+  #status-debug-panel {
+    @include mixins.overlay-panel($bg-color: var(--bg-panel-soft));
+      
+    width: 250px;
+    height: fit-content;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    .title{
+      margin-bottom: 10px;
+    }
+
+    .coord-table{
+      width: fit-content;
+      display: grid;
+      grid-template-columns: 52px 1fr 1fr;
+      font-size: 11px;
+      gap: 0;
+
+      .coord-key, .coord-val {
+        padding: 2px 4px;
+        border-top: 1px solid color-mix(in srgb, var(--line), transparent 45%);
+      }
+
+      .coord-key {
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-soft);
+      }
+
+      .coord-val {
+        text-align: right;
+        color: var(--text-main);
+      }
+
+      .coord-empty {
+        color: transparent;
+      }
+    }
+
+
+  }
+}
+
+#status-overlay-bottom-right {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 250;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+
+    transition: transform 180ms ease;
+
+  #status-zoom-pill {
+    @include mixins.overlay-panel();
+  }
+
+  &.sidepanel {
+      transform: translateX(calc(min(390px, 42vw) * -1));
+      pointer-events: none;
+  }
+}

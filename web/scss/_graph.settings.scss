@@ -1,0 +1,148 @@
+﻿@use "graph.mixins" as mixins;
+
+#settings-panel {
+  $cut-border-width: 2px;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(390px, 42vw);
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel);
+  transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
+  z-index: 120;
+
+  overflow: visible; /* Content darf nicht in die Cuts ragen */
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--radius-large) * -1); // Erweiterung nach links
+    top: 0;
+    width: var(--radius-large);
+    height: var(--radius-large);
+    box-shadow: -2px 0px 0px 0px var(--border);
+    background: var(--bg-panel);
+    pointer-events: none;
+    z-index: 121;
+    mask: radial-gradient(
+      circle var(--radius-large) at 0 100%,
+      transparent calc(var(--radius-large) - 0px),
+      #000 var(--radius-large)
+    );
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--radius-large) * -1);
+    top: 0;
+    width: var(--radius-large);
+    height: var(--radius-large);
+    pointer-events: none;
+    z-index: 122;
+    background: radial-gradient(
+      circle at 0 100%,
+      transparent calc(var(--radius-large) - #{$cut-border-width}),
+      var(--border) calc(var(--radius-large) - #{$cut-border-width}) var(--radius-large),
+      transparent var(--radius-large)
+    );
+  }
+
+  .settings-scroll {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px 12px;
+    box-sizing: border-box;
+    border: none;
+  }
+
+  &.closed {
+    transform: translateX(calc(100% + 16px));
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+}
+
+.settings-block {
+  @include mixins.surface-card($border: var(--line), $background: color-mix(in srgb, var(--bg-panel-soft), transparent 50%), $radius: var(--radius-small), $padding: 10px);
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+  }
+#engine-list, #solver-list, #renderer-list {
+  .control-row {
+    display: grid;
+    grid-template-columns: 9fr 2fr;
+    gap: 10px;
+    align-items: center;
+    @include mixins.row-chip($border: rgba(255, 255, 255, 0.08), $padding: 2px 7px);
+    font-size: 12px;
+
+    input[type="number"],
+    select {
+      @include mixins.form-input();
+      width: 100%;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 30px;
+      @include mixins.form-input($padding: 2px);
+    }
+
+    label {
+      color: var(--text-soft);
+      font-size: 11px;
+    }
+  }
+}
+
+}
+
+.tab-pane {
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+#settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.settings-tab {
+  @include mixins.interactive-control($radius: 8px, $background: color-mix(in srgb, var(--bg-chip-soft), transparent 50%), $padding: 7px 8px, $font-size: 12px);
+  color: var(--text-soft);
+  cursor: pointer;
+
+  &.active {
+    border-color: var(--border);
+    background: var(--bg-chip-soft);
+    color: var(--text-main);
+    font-weight: 700;
+  }
+}

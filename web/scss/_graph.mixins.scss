@@ -1,0 +1,70 @@
+@mixin interactive-control(
+  $radius: 9px,
+  $border: var(--line),
+  $background: var(--bg-panel-soft),
+  $padding: 8px 10px,
+  $font-size: 13px
+) {
+  border-radius: $radius;
+  border: 1px solid $border;
+  background: $background;
+  color: var(--text-main);
+  padding: $padding;
+  font-size: $font-size;
+}
+
+@mixin form-input(
+  $radius: 7px,
+  $border: var(--line),
+  $background: var(--bg-panel),
+  $padding: 5px 6px,
+  $font-size: 12px
+) {
+  border-radius: $radius;
+  border: 1px solid $border;
+  background: $background;
+  color: var(--text-main);
+  padding: $padding;
+  font-size: $font-size;
+}
+
+@mixin surface-card(
+  $border: var(--border),
+  $background: var(--bg-chip),
+  $radius: 8px,
+  $padding: 8px
+) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
+
+@mixin row-chip(
+  $border: var(--border),
+  $background: var(--bg-chip),
+  $radius: 8px,
+  $padding: 5px 6px
+) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
+
+@mixin overlay-panel(
+  $border: var(--border-dark),
+  $bg-color: var(--bg-panel),
+  $radius: var(--radius-small),
+  $padding: 7px 12px,
+  $color: var(--text-soft)
+) {
+  position: relative;
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: color-mix(in srgb, $bg-color, transparent 60%);
+  backdrop-filter: blur(5px);
+  padding: $padding;
+  color: var(--text-soft);
+  font-size: 12px;
+}

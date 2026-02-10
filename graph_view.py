@@ -43,7 +43,10 @@ from .graph_config import (
     set_layer_flow_speed,
     set_link_strength,
     set_link_distance,
-    set_physics_value,
+    set_engine_value,
+    set_solver_value,
+    set_renderer_value,
+    set_node_value,
     set_neighbor_scaling,
     set_soft_pin_radius,
     set_family_chain_edges,
@@ -94,10 +97,38 @@ def _web_base() -> str:
 def _html(payload: dict[str, Any]) -> str:
     # Build the HTML shell and inject static asset paths.
     web_base = _web_base()
-    force_graph_src = f"{web_base}/force-graph.min.js" if web_base else ""
-    graph_js_src = f"{web_base}/graph.js" if web_base else ""
-    graph_css_src = f"{web_base}/graph.css" if web_base else ""
-    logger.dbg("web base", web_base, "graph js", graph_js_src)
+    def asset_url(name: str) -> str:
+        if not web_base:
+            return ""
+        path = os.path.join(WEB_DIR, name)
+        try:
+            ver = int(os.path.getmtime(path))
+            return f"{web_base}/{name}?v={ver}"
+        except Exception:
+            return f"{web_base}/{name}"
+
+    graph_graphology_src = asset_url("graphology.min.js")
+    graph_layout_src = asset_url("graphology-layout.bundle.js")
+    graph_fa2_src = asset_url("graphology-layout-forceatlas2.bundle.js")
+    graph_engine_src = asset_url("sigma.min.js")
+    graph_sigma_program_edge_curved_src = asset_url("sigma-programs/graph.sigma.program.edge.curved.js")
+    graph_sigma_program_edge_dashed_src = asset_url("sigma-programs/graph.sigma.program.edge.dashed.js")
+    graph_sigma_program_edge_dotted_src = asset_url("sigma-programs/graph.sigma.program.edge.dotted.js")
+    graph_sigma_program_node_note_src = asset_url("sigma-programs/graph.sigma.program.node.note.js")
+    graph_sigma_program_node_hub_src = asset_url("sigma-programs/graph.sigma.program.node.hub.js")
+    graph_state_js_src = asset_url("graph.state.js")
+    graph_bridge_js_src = asset_url("graph.bridge.js")
+    graph_utils_js_src = asset_url("graph.utils.js")
+    graph_payload_js_src = asset_url("graph.payload.js")
+    graph_flow_js_src = asset_url("graph.flow.js")
+    graph_engine_js_src = asset_url("graph.engine.sigma.js")
+    graph_data_js_src = asset_url("graph.data.graphology.js")
+    graph_solver_js_src = asset_url("graph.solver.fa2.js")
+    graph_renderer_js_src = asset_url("graph.renderer.sigma.js")
+    graph_ui_js_src = asset_url("graph.ui.js")
+    graph_main_js_src = asset_url("graph.main.js")
+    graph_css_src = asset_url("graph.css")
+    logger.dbg("web base", web_base, "graph main js", graph_main_js_src)
     try:
         with open(os.path.join(WEB_DIR, "graph.html"), "r", encoding="utf-8") as handle:
             html = handle.read()
@@ -106,8 +137,26 @@ def _html(payload: dict[str, Any]) -> str:
         html = ""
     html = html.replace("{{", "{").replace("}}", "}")
     html = html.replace("__GRAPH_CSS__", graph_css_src)
-    html = html.replace("__FORCE_GRAPH_SRC__", force_graph_src)
-    html = html.replace("__GRAPH_JS__", graph_js_src)
+    html = html.replace("__GRAPH_GRAPHOLOGY_SRC__", graph_graphology_src)
+    html = html.replace("__GRAPH_LAYOUT_SRC__", graph_layout_src)
+    html = html.replace("__GRAPH_FA2_SRC__", graph_fa2_src)
+    html = html.replace("__GRAPH_ENGINE_SRC__", graph_engine_src)
+    html = html.replace("__GRAPH_SIGMA_PROGRAM_EDGE_CURVED_JS__", graph_sigma_program_edge_curved_src)
+    html = html.replace("__GRAPH_SIGMA_PROGRAM_EDGE_DASHED_JS__", graph_sigma_program_edge_dashed_src)
+    html = html.replace("__GRAPH_SIGMA_PROGRAM_EDGE_DOTTED_JS__", graph_sigma_program_edge_dotted_src)
+    html = html.replace("__GRAPH_SIGMA_PROGRAM_NODE_NOTE_JS__", graph_sigma_program_node_note_src)
+    html = html.replace("__GRAPH_SIGMA_PROGRAM_NODE_HUB_JS__", graph_sigma_program_node_hub_src)
+    html = html.replace("__GRAPH_STATE_JS__", graph_state_js_src)
+    html = html.replace("__GRAPH_BRIDGE_JS__", graph_bridge_js_src)
+    html = html.replace("__GRAPH_UTILS_JS__", graph_utils_js_src)
+    html = html.replace("__GRAPH_PAYLOAD_JS__", graph_payload_js_src)
+    html = html.replace("__GRAPH_FLOW_JS__", graph_flow_js_src)
+    html = html.replace("__GRAPH_ENGINE_JS__", graph_engine_js_src)
+    html = html.replace("__GRAPH_DATA_JS__", graph_data_js_src)
+    html = html.replace("__GRAPH_SOLVER_JS__", graph_solver_js_src)
+    html = html.replace("__GRAPH_RENDERER_JS__", graph_renderer_js_src)
+    html = html.replace("__GRAPH_UI_JS__", graph_ui_js_src)
+    html = html.replace("__GRAPH_MAIN_JS__", graph_main_js_src)
     return html
 
 
@@ -122,6 +171,7 @@ class FamilyGraphWindow(QWidget):
                 | Qt.WindowType.WindowMaximizeButtonHint
                 | Qt.WindowType.WindowCloseButtonHint
             )
+            
         except Exception:
             pass
         self.setWindowTitle("Anki - AJpC Family Graph")
@@ -390,14 +440,38 @@ class FamilyGraphWindow(QWidget):
                 self._open_devtools()
             except Exception:
                 pass
-        elif message.startswith("phys:"):
+        elif message.startswith("solver:"):
             try:
                 _prefix, rest = message.split(":", 1)
                 key, val = rest.split(":", 1)
-                set_physics_value(key, float(val))
-                logger.dbg("physics", key, val)
+                set_solver_value(key, val)
+                logger.dbg("solver", key, val)
             except Exception:
-                logger.dbg("physics parse failed", message)
+                logger.dbg("solver parse failed", message)
+        elif message.startswith("renderer:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                key, val = rest.split(":", 1)
+                set_renderer_value(key, val)
+                logger.dbg("renderer", key, val)
+            except Exception:
+                logger.dbg("renderer parse failed", message)
+        elif message.startswith("engine:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                key, val = rest.split(":", 1)
+                set_engine_value(key, val)
+                logger.dbg("engine", key, val)
+            except Exception:
+                logger.dbg("engine parse failed", message)
+        elif message.startswith("node:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                key, val = rest.split(":", 1)
+                set_node_value(key, val)
+                logger.dbg("node", key, val)
+            except Exception:
+                logger.dbg("node parse failed", message)
         elif message.startswith("neighborscale:"):
             try:
                 _prefix, enc = message.split(":", 1)
