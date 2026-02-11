@@ -566,15 +566,17 @@ function nodeColor(node) {
     }
   }
 
-  return parseColor(color, 1);
+  var parsed = parseColor(color, 1);
+  parsed[3] = 1;
+  return parsed;
 }
 
 function ajpcNodeBaseSize(node) {
-  var base = 2.0;
+  var base = 1.5;
   if (node.kind === "family") base = 1;
-  else if (node.kind === "note_type_hub") base = 3;
-  else if (node.kind === "kanji") base = 1.6;
-  else if (node.kind === "note") base = 2.0;
+  else if (node.kind === "note_type_hub") base = 1;
+  else if (node.kind === "kanji") base = 1.1;
+  else if (node.kind === "note") base = 1.5;
   return base;
 }
 
@@ -674,6 +676,61 @@ function edgeHasFlow(edge) {
 function edgeMeta(edge) {
   if (!edge || !edge.meta || typeof edge.meta !== "object") return {};
   return edge.meta;
+}
+
+function buildFamilyHubDirectSuppressMask(edges) {
+  var len = Array.isArray(edges) ? edges.length : 0;
+  var mask = new Uint8Array(len);
+  if (!len) return mask;
+
+  var chainFids = new Set();
+  var minHubPrioByFid = Object.create(null);
+  var i;
+
+  for (i = 0; i < len; i += 1) {
+    var edge = edges[i];
+    if (!edge || String(edge.layer || "") !== "families") continue;
+    var meta = edgeMeta(edge);
+    if (String(meta.kind || "") !== "chain") continue;
+    var fid = String(meta.fid !== undefined && meta.fid !== null ? meta.fid : "");
+    if (!fid) continue;
+    chainFids.add(fid);
+  }
+
+  if (!chainFids.size) return mask;
+
+  for (i = 0; i < len; i += 1) {
+    var edge2 = edges[i];
+    if (!edge2 || String(edge2.layer || "") !== "families") continue;
+    var meta2 = edgeMeta(edge2);
+    if (String(meta2.kind || "") !== "hub") continue;
+    var target = String(edge2.target || "");
+    if (target.indexOf("family:") !== 0) continue;
+    var fid2 = String(meta2.fid !== undefined && meta2.fid !== null ? meta2.fid : "");
+    if (!fid2 || !chainFids.has(fid2)) continue;
+    var p = Number(meta2.prio);
+    if (!isFinite(p)) continue;
+    if (!Object.prototype.hasOwnProperty.call(minHubPrioByFid, fid2) || p < minHubPrioByFid[fid2]) {
+      minHubPrioByFid[fid2] = p;
+    }
+  }
+
+  for (i = 0; i < len; i += 1) {
+    var edge3 = edges[i];
+    if (!edge3 || String(edge3.layer || "") !== "families") continue;
+    var meta3 = edgeMeta(edge3);
+    if (String(meta3.kind || "") !== "hub") continue;
+    var target3 = String(edge3.target || "");
+    if (target3.indexOf("family:") !== 0) continue;
+    var fid3 = String(meta3.fid !== undefined && meta3.fid !== null ? meta3.fid : "");
+    if (!fid3 || !chainFids.has(fid3)) continue;
+    var minPrio = Number(minHubPrioByFid[fid3]);
+    var prio = Number(meta3.prio);
+    if (!isFinite(minPrio) || !isFinite(prio)) continue;
+    if (prio > minPrio) mask[i] = 1;
+  }
+
+  return mask;
 }
 
 function edgeIsFlowOnly(edge) {
@@ -1063,8 +1120,7 @@ function inferNodeCountFromEdgeRecords(edgeRecords) {
 }
 
 // Runtime builder interface:
-// distance stays stable by explicit runtime scale, but metric output is now
-// also attached to linkStrength (edge weight input for FA2).
+// metric output affects both distance and strength.
 var LINK_SCALAR_DISTANCE_SCALE = 1.0;
 var LINK_SCALAR_STRENGTH_SCALE = 1.0;
 
@@ -1087,7 +1143,7 @@ function buildLinkScalarArrays(edgeRecords, baseStrengths) {
     if (!isFinite(baseStrength) || baseStrength < 0) baseStrength = 0;
     var metric = Number(metrics[i] || 0);
 
-    distances[i] = clamp(baseDistance * LINK_SCALAR_DISTANCE_SCALE, 1, 5000);
+    distances[i] = clamp(baseDistance * distanceScaleFromMetric(metric) * LINK_SCALAR_DISTANCE_SCALE, 1, 5000);
     strengths[i] = clamp(baseStrength * strengthScaleFromMetric(metric) * LINK_SCALAR_STRENGTH_SCALE, 0, 50);
   }
 
@@ -1109,6 +1165,7 @@ function persistCurrentPositions() {
 function buildGraphArrays(active) {
   var nodes = active.nodes;
   var edges = collapseEdgesForRendering(active.edges || []);
+  var suppressHubDirectMask = buildFamilyHubDirectSuppressMask(edges);
   var externalSeedMap = buildExternalSeedMap(nodes);
 
   var indexById = new Map();
@@ -1152,16 +1209,24 @@ function buildGraphArrays(active) {
   var edgeRecords = [];
   var visibleEdges = [];
 
-  edges.forEach(function (edge) {
+  edges.forEach(function (edge, edgeIdx) {
     var s = indexById.get(edge.source);
     var t = indexById.get(edge.target);
     if (s === undefined || t === undefined) return;
 
     var col = linkColor(edge);
+    var suppressed = !!(suppressHubDirectMask && suppressHubDirectMask.length > edgeIdx && suppressHubDirectMask[edgeIdx]);
+    var width = linkWidth(edge);
+    var strength = clamp(Number(STATE.linkStrengths[edge.layer] || 1), 0.01, 50);
+    if (suppressed) {
+      width = 0;
+      strength = 0;
+      col[3] = 0;
+    }
     flatLinks.push(s, t);
     linkColorsFlat.push(col[0], col[1], col[2], col[3]);
-    linkWidths.push(linkWidth(edge));
-    linkStrengthFlat.push(clamp(Number(STATE.linkStrengths[edge.layer] || 1), 0.01, 50));
+    linkWidths.push(width);
+    linkStrengthFlat.push(strength);
     linkStyleCodes.push(linkStyleCode(edge));
     edgeRecords.push({ edge: edge, sourceIndex: s, targetIndex: t });
     visibleEdges.push(edge);
@@ -1278,6 +1343,8 @@ function applyRuntimeUiSettings(reheatLayout) {
   var masks = buildRuntimeVisibilityMasks(nodes, edges, indexById);
   var nodeVisible = masks.nodeVisible;
   var edgeVisible = masks.edgeVisible;
+  var suppressHubDirectMask = buildFamilyHubDirectSuppressMask(edges);
+  var edgeRendered = new Uint8Array(edges.length);
 
   var pointColorsFlat = [];
   var pointSizes = new Float32Array(nodes.length);
@@ -1297,14 +1364,18 @@ function applyRuntimeUiSettings(reheatLayout) {
   for (i = 0; i < edges.length; i += 1) {
     var edge = edges[i];
     var visibleEdge = !!edgeVisible[i];
+    var suppressed = !!(suppressHubDirectMask && suppressHubDirectMask.length > i && suppressHubDirectMask[i]);
+    var renderEdge = visibleEdge && !suppressed;
     var lcol = linkColor(edge);
     var lstyle = linkStyleCode(edge);
     var lwidth = linkWidth(edge);
     var lstrength = resolveBaseLinkStrength(edge);
-    if (!visibleEdge) {
+    if (!renderEdge) {
       lwidth = 0;
       lstrength = 0;
       lcol[3] = 0;
+    } else {
+      edgeRendered[i] = 1;
     }
     linkStyleCodes[i] = lstyle;
     linkColorsFlat.push(lcol[0], lcol[1], lcol[2], lcol[3]);
@@ -1332,7 +1403,8 @@ function applyRuntimeUiSettings(reheatLayout) {
   STATE.basePointSizes = pointSizes;
   STATE.baseLinkColors = baseLinkColors;
   STATE.runtimeNodeVisibleMask = nodeVisible;
-  STATE.runtimeEdgeVisibleMask = edgeVisible;
+  STATE.runtimeEdgeVisibleMask = edgeRendered;
+  STATE.runtimeFlowEdgeMask = new Uint8Array(edgeRendered);
   STATE.pointStyleColors = basePointColors;
   STATE.pointStyleSizes = pointSizes;
 
@@ -1341,8 +1413,8 @@ function applyRuntimeUiSettings(reheatLayout) {
   for (i = 0; i < nodeVisible.length; i += 1) {
     if (nodeVisible[i]) visibleNodeCount += 1;
   }
-  for (i = 0; i < edgeVisible.length; i += 1) {
-    if (edgeVisible[i]) visibleEdgeCount += 1;
+  for (i = 0; i < edgeRendered.length; i += 1) {
+    if (edgeRendered[i]) visibleEdgeCount += 1;
   }
 
   if (typeof STATE.graph.setPointColors === "function") STATE.graph.setPointColors(basePointColors);

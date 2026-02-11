@@ -15,22 +15,31 @@ var NODE_TYPE_NOTE = "ajpc_note";
 
 var DEF_SOLVER = {
   layout_enabled: true,
-  fa2_lin_log_mode: false,
-  fa2_outbound_attraction_distribution: false,
-  fa2_adjust_sizes: false,
-  fa2_edge_weight_influence: 1,
-  fa2_scaling_ratio: 4.2,
-  fa2_strong_gravity_mode: false,
-  fa2_gravity: 0.4,
-  fa2_slow_down: 8,
-  fa2_barnes_hut_optimize: true,
-  fa2_barnes_hut_theta: 0.5
+  d3_alpha: 1,
+  d3_alpha_min: 0.001,
+  d3_alpha_decay: 0.03,
+  d3_alpha_target: 0,
+  d3_velocity_decay: 0.35,
+  d3_center_x: 0,
+  d3_center_y: 0,
+  d3_center_strength: 0.02,
+  d3_manybody_strength: -90,
+  d3_manybody_theta: 0.9,
+  d3_manybody_distance_min: 1,
+  d3_manybody_distance_max: 0,
+  d3_link_distance: 30,
+  d3_link_strength: 0.08,
+  d3_link_iterations: 1,
+  d3_warmup_ticks: 0,
+  d3_cooldown_ticks: 0,
+  d3_cooldown_time_ms: 0
 };
 
 var DEF_RENDERER = {
-  sigma_draw_labels: false,
+  sigma_draw_labels: true,
   sigma_draw_hover_nodes: false,
   sigma_label_threshold: 8,
+  sigma_label_zoom_min: 1,
   sigma_hide_edges_on_move: false,
   sigma_batch_edges_drawing: true,
   sigma_mouse_wheel_enabled: true,
@@ -38,30 +47,39 @@ var DEF_RENDERER = {
   sigma_min_camera_ratio: 0.01,
   sigma_max_camera_ratio: 6,
   sigma_side_margin: 0,
-  sigma_animations_time: 0,
+  sigma_animations_time: 180,
   sigma_enable_edge_hovering: false
 };
 
 var DEF_ENGINE = {};
 
 var SPEC_SOLVER = [
-  { key: "layout_enabled", label: "Layout Enabled", type: "bool", affectsEngine: true, hint: "Start or stop the ForceAtlas2 worker layout." },
-  { key: "fa2_lin_log_mode", label: "LinLog Mode", type: "bool", affectsEngine: true, hint: "Use LinLog attraction model to emphasize cluster separation." },
-  { key: "fa2_outbound_attraction_distribution", label: "Outbound Attraction Distribution", type: "bool", affectsEngine: true, hint: "Normalize attraction by source node degree (directed-graph variant)." },
-  { key: "fa2_adjust_sizes", label: "Adjust Sizes", type: "bool", affectsEngine: true, hint: "Enable anti-collision using node sizes during force computation." },
-  { key: "fa2_edge_weight_influence", label: "Edge Weight Influence", type: "number", min: 0, max: 4, step: 0.01, affectsEngine: true, hint: "How strongly edge weight affects attraction force." },
-  { key: "fa2_scaling_ratio", label: "Scaling Ratio", type: "number", min: 0.01, max: 200, step: 0.01, affectsEngine: true, hint: "Global repulsion coefficient (higher pushes nodes farther apart)." },
-  { key: "fa2_strong_gravity_mode", label: "Strong Gravity Mode", type: "bool", affectsEngine: true, hint: "Apply linear strong gravity instead of distance-scaled gravity." },
-  { key: "fa2_gravity", label: "Gravity", type: "number", min: 0, max: 10, step: 0.001, affectsEngine: true, hint: "Centering force pulling nodes toward graph origin." },
-  { key: "fa2_slow_down", label: "Slow Down", type: "number", min: 0.1, max: 200, step: 0.1, affectsEngine: true, hint: "Global speed divisor; higher values make layout move slower." },
-  { key: "fa2_barnes_hut_optimize", label: "Barnes-Hut Optimize", type: "bool", affectsEngine: true, hint: "Use Barnes-Hut approximation for faster repulsion on large graphs." },
-  { key: "fa2_barnes_hut_theta", label: "Barnes-Hut Theta", type: "number", min: 0.1, max: 2, step: 0.01, affectsEngine: true, hint: "Barnes-Hut precision/speed tradeoff (lower is more accurate)." }
+  { key: "layout_enabled", label: "Layout Enabled", type: "bool", affectsEngine: true, hint: "Start or stop the D3 force simulation." },
+  { key: "d3_alpha", label: "Alpha", type: "number", min: 0, max: 2, step: 0.001, affectsEngine: true, hint: "Initial simulation energy when (re)starting." },
+  { key: "d3_alpha_min", label: "Alpha Min", type: "number", min: 0, max: 0.5, step: 0.0001, affectsEngine: true, hint: "Simulation stops when alpha falls below this threshold." },
+  { key: "d3_alpha_decay", label: "Alpha Decay", type: "number", min: 0, max: 1, step: 0.0001, affectsEngine: true, hint: "How fast simulation energy cools down each tick." },
+  { key: "d3_alpha_target", label: "Alpha Target", type: "number", min: 0, max: 1, step: 0.0001, affectsEngine: true, hint: "Target alpha while running (0 means cool to rest)." },
+  { key: "d3_velocity_decay", label: "Velocity Decay", type: "number", min: 0, max: 1, step: 0.001, affectsEngine: true, hint: "Friction factor applied to node velocity per tick." },
+  { key: "d3_center_x", label: "Center X", type: "number", min: -20000, max: 20000, step: 1, affectsEngine: true, hint: "X coordinate used by the center x-force." },
+  { key: "d3_center_y", label: "Center Y", type: "number", min: -20000, max: 20000, step: 1, affectsEngine: true, hint: "Y coordinate used by the center y-force." },
+  { key: "d3_center_strength", label: "Center Strength", type: "number", min: 0, max: 1, step: 0.001, affectsEngine: true, hint: "Strength of x/y forces pulling nodes toward center." },
+  { key: "d3_manybody_strength", label: "ManyBody Strength", type: "number", min: -5000, max: 5000, step: 1, affectsEngine: true, hint: "Repulsion (<0) or attraction (>0) between all nodes." },
+  { key: "d3_manybody_theta", label: "ManyBody Theta", type: "number", min: 0.1, max: 2, step: 0.01, affectsEngine: true, hint: "Barnes-Hut approximation precision/speed tradeoff." },
+  { key: "d3_manybody_distance_min", label: "ManyBody Distance Min", type: "number", min: 0, max: 10000, step: 1, affectsEngine: true, hint: "Minimum many-body interaction distance." },
+  { key: "d3_manybody_distance_max", label: "ManyBody Distance Max", type: "number", min: 0, max: 10000, step: 1, affectsEngine: true, hint: "Maximum many-body interaction distance (0 = no limit)." },
+  { key: "d3_link_distance", label: "Link Distance", type: "number", min: 1, max: 5000, step: 1, affectsEngine: true, hint: "Base link rest length before per-edge runtime scaling." },
+  { key: "d3_link_strength", label: "Link Strength", type: "number", min: 0, max: 2, step: 0.001, affectsEngine: true, hint: "Base spring strength before per-edge runtime scaling." },
+  { key: "d3_link_iterations", label: "Link Iterations", type: "number", min: 1, max: 16, step: 1, affectsEngine: true, hint: "Constraint iterations of the link force per simulation tick." },
+  { key: "d3_warmup_ticks", label: "Warmup Ticks", type: "number", min: 0, max: 5000, step: 1, affectsEngine: true, hint: "Manual pre-run ticks before realtime rendering starts." },
+  { key: "d3_cooldown_ticks", label: "Cooldown Ticks", type: "number", min: 0, max: 50000, step: 1, affectsEngine: true, hint: "Auto-stop simulation after this many realtime ticks (0 disables)." },
+  { key: "d3_cooldown_time_ms", label: "Cooldown Time (ms)", type: "number", min: 0, max: 600000, step: 10, affectsEngine: true, hint: "Auto-stop simulation after this runtime duration in ms (0 disables)." }
 ];
 
 var SPEC_RENDERER = [
   { key: "sigma_draw_labels", label: "Draw Labels", type: "bool", affectsEngine: true },
   { key: "sigma_draw_hover_nodes", label: "Draw Hover Labels", type: "bool", affectsEngine: true },
   { key: "sigma_label_threshold", label: "Label Threshold", type: "number", min: 0, max: 64, step: 1, affectsEngine: true },
+  { key: "sigma_label_zoom_min", label: "Label Zoom Min", type: "number", min: 0, max: 64, step: 0.01, affectsEngine: true },
   { key: "sigma_hide_edges_on_move", label: "Hide Edges On Move", type: "bool", affectsEngine: true },
   { key: "sigma_mouse_wheel_enabled", label: "Mouse Wheel Enabled", type: "bool", affectsEngine: true },
   { key: "sigma_double_click_enabled", label: "Double Click Enabled", type: "bool", affectsEngine: true },
@@ -211,16 +229,24 @@ function trSolver(raw, prev) {
   var m = Object.assign({}, DEF_SOLVER, p, s);
   return {
     layout_enabled: bol(m.layout_enabled, DEF_SOLVER.layout_enabled),
-    fa2_lin_log_mode: bol(m.fa2_lin_log_mode, DEF_SOLVER.fa2_lin_log_mode),
-    fa2_outbound_attraction_distribution: bol(m.fa2_outbound_attraction_distribution, DEF_SOLVER.fa2_outbound_attraction_distribution),
-    fa2_adjust_sizes: bol(m.fa2_adjust_sizes, DEF_SOLVER.fa2_adjust_sizes),
-    fa2_edge_weight_influence: num(m.fa2_edge_weight_influence, DEF_SOLVER.fa2_edge_weight_influence, 0, 4),
-    fa2_scaling_ratio: num(m.fa2_scaling_ratio, DEF_SOLVER.fa2_scaling_ratio, 0.01, 200),
-    fa2_strong_gravity_mode: bol(m.fa2_strong_gravity_mode, DEF_SOLVER.fa2_strong_gravity_mode),
-    fa2_gravity: num(m.fa2_gravity, DEF_SOLVER.fa2_gravity, 0, 10),
-    fa2_slow_down: num(m.fa2_slow_down, DEF_SOLVER.fa2_slow_down, 0.1, 200),
-    fa2_barnes_hut_optimize: bol(m.fa2_barnes_hut_optimize, DEF_SOLVER.fa2_barnes_hut_optimize),
-    fa2_barnes_hut_theta: num(m.fa2_barnes_hut_theta, DEF_SOLVER.fa2_barnes_hut_theta, 0.1, 2)
+    d3_alpha: num(m.d3_alpha, DEF_SOLVER.d3_alpha, 0, 2),
+    d3_alpha_min: num(m.d3_alpha_min, DEF_SOLVER.d3_alpha_min, 0, 0.5),
+    d3_alpha_decay: num(m.d3_alpha_decay, DEF_SOLVER.d3_alpha_decay, 0, 1),
+    d3_alpha_target: num(m.d3_alpha_target, DEF_SOLVER.d3_alpha_target, 0, 1),
+    d3_velocity_decay: num(m.d3_velocity_decay, DEF_SOLVER.d3_velocity_decay, 0, 1),
+    d3_center_x: num(m.d3_center_x, DEF_SOLVER.d3_center_x, -20000, 20000),
+    d3_center_y: num(m.d3_center_y, DEF_SOLVER.d3_center_y, -20000, 20000),
+    d3_center_strength: num(m.d3_center_strength, DEF_SOLVER.d3_center_strength, 0, 1),
+    d3_manybody_strength: num(m.d3_manybody_strength, DEF_SOLVER.d3_manybody_strength, -5000, 5000),
+    d3_manybody_theta: num(m.d3_manybody_theta, DEF_SOLVER.d3_manybody_theta, 0.1, 2),
+    d3_manybody_distance_min: num(m.d3_manybody_distance_min, DEF_SOLVER.d3_manybody_distance_min, 0, 10000),
+    d3_manybody_distance_max: num(m.d3_manybody_distance_max, DEF_SOLVER.d3_manybody_distance_max, 0, 10000),
+    d3_link_distance: num(m.d3_link_distance, DEF_SOLVER.d3_link_distance, 1, 5000),
+    d3_link_strength: num(m.d3_link_strength, DEF_SOLVER.d3_link_strength, 0, 2),
+    d3_link_iterations: it(m.d3_link_iterations, DEF_SOLVER.d3_link_iterations, 1, 16),
+    d3_warmup_ticks: it(m.d3_warmup_ticks, DEF_SOLVER.d3_warmup_ticks, 0, 5000),
+    d3_cooldown_ticks: it(m.d3_cooldown_ticks, DEF_SOLVER.d3_cooldown_ticks, 0, 50000),
+    d3_cooldown_time_ms: it(m.d3_cooldown_time_ms, DEF_SOLVER.d3_cooldown_time_ms, 0, 600000)
   };
 }
 
@@ -238,6 +264,7 @@ function trRenderer(raw, prev) {
     sigma_draw_labels: bol(m.sigma_draw_labels, DEF_RENDERER.sigma_draw_labels),
     sigma_draw_hover_nodes: bol(m.sigma_draw_hover_nodes, DEF_RENDERER.sigma_draw_hover_nodes),
     sigma_label_threshold: num(m.sigma_label_threshold, DEF_RENDERER.sigma_label_threshold, 0, 64),
+    sigma_label_zoom_min: num(m.sigma_label_zoom_min, DEF_RENDERER.sigma_label_zoom_min, 0, 64),
     sigma_hide_edges_on_move: bol(m.sigma_hide_edges_on_move, DEF_RENDERER.sigma_hide_edges_on_move),
     sigma_batch_edges_drawing: bol(m.sigma_batch_edges_drawing, DEF_RENDERER.sigma_batch_edges_drawing),
     sigma_mouse_wheel_enabled: bol(m.sigma_mouse_wheel_enabled, DEF_RENDERER.sigma_mouse_wheel_enabled),
@@ -322,7 +349,7 @@ function SigmaGraphCompat(container, config) {
   this.graph = this.dataModel.getGraph();
 
   this.renderer = new AjpcGraphRendererSigma(this);
-  this.solver = new AjpcGraphSolverFa2(this);
+  this.solver = new AjpcGraphSolverD3(this);
 
   this.renderer.init();
   this.instance = this.renderer.instance;
@@ -381,6 +408,7 @@ function buildNodeLayoutAttrs(node) {
     : ("nofamily:" + (noteTypeId || "unknown"));
 
   return {
+    label: String(n.label || n.id || ""),
     grp_kind: kind,
     grp_note_type_id: noteTypeId,
     grp_note_type: noteType || noteTypeId || "",
@@ -438,6 +466,23 @@ SigmaGraphCompat.prototype._sync = function () {
 SigmaGraphCompat.prototype.render = function () { this._sync(); };
 SigmaGraphCompat.prototype.requestFrame = function () { if (this.renderer) this.renderer.requestFrame(); };
 SigmaGraphCompat.prototype.resize = function () { if (this.renderer) this.renderer.resize(); };
+
+SigmaGraphCompat.prototype.setPointIds = function (ids) {
+  var list = Array.isArray(ids) ? ids : [];
+  var n = list.length;
+  this.idByIndex = new Array(n);
+  this.indexById = new Map();
+  for (var i = 0; i < n; i += 1) {
+    var raw = list[i];
+    var id = String((raw !== undefined && raw !== null && raw !== "") ? raw : ("n:" + i));
+    this.idByIndex[i] = id;
+    this.indexById.set(id, i);
+  }
+  if (this.selectedIndices.length) {
+    this.selectedIndices = this.selectedIndices.filter(function (x) { return x >= 0 && x < n; });
+  }
+  this.dataDirty = true;
+};
 
 SigmaGraphCompat.prototype.setPointPositions = function (arr) {
   var flat = Array.prototype.slice.call(arr || []);
@@ -511,7 +556,7 @@ SigmaGraphCompat.prototype.setConfig = function (cfg) {
     this.solver.start();
   }
 
-  lg("debug", "config layout=" + String(this.runtimeSolver.layout_enabled) + " scaling=" + String(this.runtimeSolver.fa2_scaling_ratio) + " gravity=" + String(this.runtimeSolver.fa2_gravity));
+  lg("debug", "config layout=" + String(this.runtimeSolver.layout_enabled) + " charge=" + String(this.runtimeSolver.d3_manybody_strength) + " linkDist=" + String(this.runtimeSolver.d3_link_distance));
 };
 
 SigmaGraphCompat.prototype.stop = function (destroySupervisor) { if (this.solver) this.solver.stop(!!destroySupervisor); };
@@ -577,10 +622,103 @@ SigmaGraphCompat.prototype.kill = function () {
 function createGraphEngineSigma(container, config) { return new SigmaGraphCompat(container, config); }
 function setGraphPanelFocusClass(enabled) {
   if (!DOM || !DOM.graphPanel || !DOM.graphPanel.classList) return;
-  DOM.graphPanel.classList.toggle("focus-mode", !!enabled);
+  // Global panel darkening also dims selected nodes. Keep focus visuals node/edge-local only.
+  DOM.graphPanel.classList.remove("focus-mode");
 }
 
 function luma(r, g, b) { return (0.2126 * r) + (0.7152 * g) + (0.0722 * b); }
+
+function stopPointSizeAnimation() {
+  if (STATE.pointSizeAnimRaf) {
+    window.cancelAnimationFrame(STATE.pointSizeAnimRaf);
+    STATE.pointSizeAnimRaf = null;
+  }
+  STATE.pointSizeAnimTarget = null;
+}
+
+function sizesEqualWithin(a, b, eps) {
+  if (!a || !b || a.length !== b.length) return false;
+  var e = Number(eps || 0);
+  for (var i = 0; i < a.length; i += 1) {
+    if (Math.abs(Number(a[i] || 0) - Number(b[i] || 0)) > e) return false;
+  }
+  return true;
+}
+
+function applyPointSizesAnimated(targetSizes, durationMs) {
+  if (!STATE.graph || typeof STATE.graph.setPointSizes !== "function") return;
+  var target = (targetSizes && targetSizes.length) ? new Float32Array(targetSizes) : new Float32Array(0);
+
+  if (!target.length) {
+    stopPointSizeAnimation();
+    STATE.pointStyleSizes = target;
+    STATE.graph.setPointSizes(target);
+    return;
+  }
+
+  var current = (STATE.pointStyleSizes && STATE.pointStyleSizes.length === target.length)
+    ? STATE.pointStyleSizes
+    : new Float32Array(target);
+
+  if (sizesEqualWithin(current, target, 0.0005)) {
+    stopPointSizeAnimation();
+    STATE.pointStyleSizes = target;
+    STATE.graph.setPointSizes(target);
+    return;
+  }
+
+  if (STATE.pointSizeAnimRaf && STATE.pointSizeAnimTarget && sizesEqualWithin(STATE.pointSizeAnimTarget, target, 0.0005)) {
+    return;
+  }
+
+  stopPointSizeAnimation();
+  var from = new Float32Array(current);
+  var to = new Float32Array(target);
+  var work = new Float32Array(from.length);
+  var dur = Math.max(60, Number(durationMs || 170));
+  var start = (window.performance && typeof window.performance.now === "function") ? window.performance.now() : Date.now();
+
+  STATE.pointSizeAnimTarget = to;
+
+  function easeInOut(t) {
+    var x = t < 0 ? 0 : (t > 1 ? 1 : t);
+    return x < 0.5 ? (2 * x * x) : (1 - (Math.pow(-2 * x + 2, 2) / 2));
+  }
+
+  function tick(ts) {
+    if (!STATE.graph || typeof STATE.graph.setPointSizes !== "function") {
+      stopPointSizeAnimation();
+      return;
+    }
+    var now = Number(ts || 0);
+    if (!isFinite(now) || now <= 0) now = (window.performance && typeof window.performance.now === "function") ? window.performance.now() : Date.now();
+    var p = (now - start) / dur;
+    if (!isFinite(p)) p = 1;
+    if (p < 0) p = 0;
+    if (p > 1) p = 1;
+    var k = easeInOut(p);
+
+    for (var i = 0; i < work.length; i += 1) {
+      work[i] = Number(from[i] || 0) + ((Number(to[i] || 0) - Number(from[i] || 0)) * k);
+    }
+
+    STATE.pointStyleSizes = work;
+    STATE.graph.setPointSizes(work);
+    if (typeof STATE.graph.render === "function") STATE.graph.render(0.08);
+
+    if (p < 1) {
+      STATE.pointSizeAnimRaf = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    STATE.pointStyleSizes = to;
+    STATE.graph.setPointSizes(to);
+    STATE.pointSizeAnimRaf = null;
+    STATE.pointSizeAnimTarget = null;
+  }
+
+  STATE.pointSizeAnimRaf = window.requestAnimationFrame(tick);
+}
 
 function selectedIndexFromState() {
   var rawIdx = STATE.selectedPointIndex;
@@ -596,6 +734,31 @@ function selectedIndexFromState() {
     }
   }
   return -1;
+}
+
+function contextIndexFromState() {
+  var rawIdx = STATE.contextPointIndex;
+  if (rawIdx !== null && rawIdx !== undefined && rawIdx !== "") {
+    var idx = Number(rawIdx);
+    if (isFinite(idx) && idx >= 0 && idx < STATE.activeNodes.length) return idx;
+  }
+  if (STATE.activeIndexById && STATE.contextNodeId !== null && STATE.contextNodeId !== undefined) {
+    var mapped = STATE.activeIndexById.get(String(STATE.contextNodeId));
+    if (mapped !== undefined) {
+      STATE.contextPointIndex = Number(mapped);
+      return Number(mapped);
+    }
+  }
+  return -1;
+}
+
+function hoveredIndexFromState() {
+  var rawIdx = STATE.hoveredPointIndex;
+  if (rawIdx === null || rawIdx === undefined || rawIdx === "") return -1;
+  var idx = Number(rawIdx);
+  if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return -1;
+  if (STATE.runtimeNodeVisibleMask && idx < STATE.runtimeNodeVisibleMask.length && !STATE.runtimeNodeVisibleMask[idx]) return -1;
+  return idx;
 }
 
 function collectFamilyPrioKeys(node) {
@@ -615,108 +778,168 @@ function isFamilyEdgeLayer(layer) {
   return layer === "priority" || layer === "families";
 }
 
-function buildSelectionFocusMasks(selectedIndex) {
+function ensureFocusAdjCache() {
   var nodes = Array.isArray(STATE.activeNodes) ? STATE.activeNodes : [];
   var edges = Array.isArray(STATE.activeEdges) ? STATE.activeEdges : [];
   var byId = STATE.activeIndexById instanceof Map ? STATE.activeIndexById : new Map();
+  var cached = STATE.focusAdjCache;
+  if (
+    cached &&
+    cached.nodesRef === nodes &&
+    cached.edgesRef === edges &&
+    cached.byIdRef === byId &&
+    cached.nodeCount === nodes.length &&
+    cached.edgeCount === edges.length
+  ) {
+    return cached;
+  }
+
+  var touchEdgesByNode = new Array(nodes.length);
+  var familyOutEdgesByNode = new Array(nodes.length);
+  var edgeSourceIndex = new Int32Array(edges.length);
+  var edgeTargetIndex = new Int32Array(edges.length);
+  var familyFidByEdge = new Array(edges.length);
+  var i;
+
+  for (i = 0; i < nodes.length; i += 1) {
+    touchEdgesByNode[i] = [];
+    familyOutEdgesByNode[i] = [];
+  }
+  edgeSourceIndex.fill(-1);
+  edgeTargetIndex.fill(-1);
+
+  for (i = 0; i < edges.length; i += 1) {
+    var edge = edges[i];
+    if (!edge) continue;
+    var s = byId.get(String(edge.source || ""));
+    var t = byId.get(String(edge.target || ""));
+    if (s === undefined || t === undefined) continue;
+    s = Number(s);
+    t = Number(t);
+    if (!isFinite(s) || !isFinite(t) || s < 0 || t < 0 || s >= nodes.length || t >= nodes.length) continue;
+
+    edgeSourceIndex[i] = s;
+    edgeTargetIndex[i] = t;
+    touchEdgesByNode[s].push(i);
+    touchEdgesByNode[t].push(i);
+
+    if (isFamilyEdgeLayer(String(edge.layer || ""))) {
+      var meta = edgeMeta(edge);
+      var fid = String(meta && meta.fid !== undefined && meta.fid !== null ? meta.fid : "");
+      familyFidByEdge[i] = fid;
+      familyOutEdgesByNode[s].push(i);
+      if (meta && meta.bidirectional) familyOutEdgesByNode[t].push(i);
+    }
+  }
+
+  cached = {
+    nodesRef: nodes,
+    edgesRef: edges,
+    byIdRef: byId,
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    touchEdgesByNode: touchEdgesByNode,
+    familyOutEdgesByNode: familyOutEdgesByNode,
+    edgeSourceIndex: edgeSourceIndex,
+    edgeTargetIndex: edgeTargetIndex,
+    familyFidByEdge: familyFidByEdge
+  };
+  STATE.focusAdjCache = cached;
+  return cached;
+}
+
+function buildSelectionFocusMasks(selectedIndices) {
+  var nodes = Array.isArray(STATE.activeNodes) ? STATE.activeNodes : [];
+  var edges = Array.isArray(STATE.activeEdges) ? STATE.activeEdges : [];
+  var cache = ensureFocusAdjCache();
+  var touchEdgesByNode = cache.touchEdgesByNode || [];
+  var familyOutEdgesByNode = cache.familyOutEdgesByNode || [];
+  var edgeSourceIndex = cache.edgeSourceIndex || [];
+  var edgeTargetIndex = cache.edgeTargetIndex || [];
+  var familyFidByEdge = cache.familyFidByEdge || [];
   var nodeMask = new Uint8Array(nodes.length);
   var edgeMask = new Uint8Array(edges.length);
   var focusedNodeCount = 0, focusedEdgeCount = 0;
-  if (selectedIndex < 0 || selectedIndex >= nodes.length) return { nodeMask: nodeMask, edgeMask: edgeMask, hasFocus: false };
-  var selectedNode = nodes[selectedIndex];
-  if (!selectedNode) return { nodeMask: nodeMask, edgeMask: edgeMask, hasFocus: false };
-  var selectedId = String(selectedNode.id || "");
-  var selectedPrioKeys = new Set(collectFamilyPrioKeys(selectedNode));
-  var familyNodeSet = new Set();
-  var prioNodeSet = new Set();
+  var seeds = Array.isArray(selectedIndices) ? selectedIndices.slice() : [selectedIndices];
+  var uniqueSeeds = [];
+  var seenSeed = Object.create(null);
+  for (var si = 0; si < seeds.length; si += 1) {
+    var seed = Number(seeds[si]);
+    if (!isFinite(seed) || seed < 0 || seed >= nodes.length) continue;
+    var key = String(seed);
+    if (seenSeed[key]) continue;
+    seenSeed[key] = true;
+    uniqueSeeds.push(seed);
+  }
+  if (!uniqueSeeds.length) return { nodeMask: nodeMask, edgeMask: edgeMask, hasFocus: false };
+
   function markNode(i) { if (i < 0 || i >= nodes.length) return; if (nodeMask[i]) return; nodeMask[i] = 1; focusedNodeCount += 1; }
   function markEdge(i) { if (i < 0 || i >= edges.length) return; if (edgeMask[i]) return; edgeMask[i] = 1; focusedEdgeCount += 1; }
-
-  markNode(selectedIndex);
-  selectedPrioKeys.forEach(function (k) {
-    var idx = byId.get(String(k));
-    if (idx !== undefined) { prioNodeSet.add(Number(idx)); }
-  });
-
-  for (var i = 0; i < nodes.length; i += 1) {
-    if (i === selectedIndex) continue;
-    var n = nodes[i];
-    if (hasSharedPrioKey(selectedPrioKeys, n)) { prioNodeSet.add(i); }
+  function edgeFamilyMatches(edgeIndex, selectedPrioKeys) {
+    if (edgeIndex < 0 || edgeIndex >= edges.length) return false;
+    var edge = edges[edgeIndex];
+    if (!edge || !isFamilyEdgeLayer(String(edge.layer || ""))) return false;
+    if (!selectedPrioKeys.size) return true;
+    var fid = String(familyFidByEdge[edgeIndex] || "");
+    if (!fid) return true;
+    return selectedPrioKeys.has(fid);
   }
 
-  for (var eIdx = 0; eIdx < edges.length; eIdx += 1) {
-    var e = edges[eIdx];
-    if (!e) continue;
-    var s = byId.get(String(e.source || ""));
-    var t = byId.get(String(e.target || ""));
-    if (s === undefined || t === undefined) continue;
-    s = Number(s); t = Number(t);
-    var touchesSelected = (s === selectedIndex || t === selectedIndex);
-    if (touchesSelected) {
+  function expandFromSeed(selectedIndex) {
+    var selectedNode = nodes[selectedIndex];
+    if (!selectedNode) return;
+    var selectedPrioKeys = new Set(collectFamilyPrioKeys(selectedNode));
+
+    markNode(selectedIndex);
+
+    // 1) Always keep direct neighbors of seed node.
+    var around = touchEdgesByNode[selectedIndex] || [];
+    for (var ai = 0; ai < around.length; ai += 1) {
+      var eIdx = Number(around[ai]);
+      if (!isFinite(eIdx) || eIdx < 0 || eIdx >= edges.length) continue;
+      var s = Number(edgeSourceIndex[eIdx]);
+      var t = Number(edgeTargetIndex[eIdx]);
+      if (!isFinite(s) || !isFinite(t) || s < 0 || t < 0) continue;
       markEdge(eIdx);
-      markNode(s); markNode(t);
-      var other = (s === selectedIndex) ? t : s;
-      var otherNode = nodes[other];
-      var layer = String(e.layer || "");
-      var meta = edgeMeta(e);
-      if (isFamilyEdgeLayer(layer)) {
-        var mfid = String(meta && meta.fid !== undefined && meta.fid !== null ? meta.fid : "");
-        if (!selectedPrioKeys.size || !mfid || selectedPrioKeys.has(mfid)) familyNodeSet.add(other);
+      markNode(s);
+      markNode(t);
+    }
+
+    // 2) Expand seed node's own family chain towards dependencies/hub.
+    var queue = [selectedIndex];
+    var qHead = 0;
+    var seen = new Set([selectedIndex]);
+    while (qHead < queue.length) {
+      var cur = Number(queue[qHead]);
+      qHead += 1;
+      if (!isFinite(cur) || cur < 0 || cur >= nodes.length) continue;
+      var outgoing = familyOutEdgesByNode[cur] || [];
+      for (var oi = 0; oi < outgoing.length; oi += 1) {
+        var e2 = Number(outgoing[oi]);
+        if (!isFinite(e2) || e2 < 0 || e2 >= edges.length) continue;
+        if (!edgeFamilyMatches(e2, selectedPrioKeys)) continue;
+        var s2 = Number(edgeSourceIndex[e2]);
+        var t2 = Number(edgeTargetIndex[e2]);
+        if (!isFinite(s2) || !isFinite(t2) || s2 < 0 || t2 < 0) continue;
+
+        var next = -1;
+        if (s2 === cur) next = t2;
+        else if (t2 === cur) next = s2;
+        else continue;
+
+        markEdge(e2);
+        markNode(s2);
+        markNode(t2);
+
+        if (next >= 0 && !seen.has(next)) {
+          seen.add(next);
+          queue.push(next);
+        }
       }
     }
   }
 
-  prioNodeSet.forEach(function (idx) { markNode(Number(idx)); });
-  familyNodeSet.forEach(function (idx) { markNode(Number(idx)); });
-
-  for (var e2 = 0; e2 < edges.length; e2 += 1) {
-    var ed = edges[e2];
-    if (!ed) continue;
-    var s2 = byId.get(String(ed.source || ""));
-    var t2 = byId.get(String(ed.target || ""));
-    if (s2 === undefined || t2 === undefined) continue;
-    s2 = Number(s2); t2 = Number(t2);
-    var touchesFamily = familyNodeSet.has(s2) || familyNodeSet.has(t2);
-    var touchesPrio = prioNodeSet.has(s2) || prioNodeSet.has(t2);
-    if (touchesFamily || touchesPrio) {
-      var l2 = String(ed.layer || "");
-      if (!isFamilyEdgeLayer(l2)) continue;
-      var m2 = edgeMeta(ed), fid2 = String(m2 && m2.fid !== undefined && m2.fid !== null ? m2.fid : "");
-      if (selectedPrioKeys.size && fid2 && !selectedPrioKeys.has(fid2)) continue;
-      markEdge(e2);
-      markNode(s2);
-      markNode(t2);
-    }
-  }
-
-  // Explicitly keep family-prio links (priority/families layers) visible via shared family id.
-  if (selectedPrioKeys.size) {
-    for (var ef = 0; ef < edges.length; ef += 1) {
-      var fedge = edges[ef];
-      if (!fedge) continue;
-      if (!isFamilyEdgeLayer(String(fedge.layer || ""))) continue;
-      var fmeta = edgeMeta(fedge);
-      var fid = String(fmeta && fmeta.fid !== undefined && fmeta.fid !== null ? fmeta.fid : "");
-      if (!fid || !selectedPrioKeys.has(fid)) continue;
-      var fs = byId.get(String(fedge.source || ""));
-      var ft = byId.get(String(fedge.target || ""));
-      if (fs === undefined || ft === undefined) continue;
-      fs = Number(fs); ft = Number(ft);
-      markEdge(ef);
-      markNode(fs);
-      markNode(ft);
-    }
-  }
-
-  for (var e3 = 0; e3 < edges.length; e3 += 1) {
-    var ee = edges[e3];
-    if (!ee) continue;
-    var s3 = byId.get(String(ee.source || ""));
-    var t3 = byId.get(String(ee.target || ""));
-    if (s3 === undefined || t3 === undefined) continue;
-    s3 = Number(s3); t3 = Number(t3);
-    if (nodeMask[s3] && nodeMask[t3]) markEdge(e3);
-  }
+  uniqueSeeds.forEach(expandFromSeed);
 
   return {
     nodeMask: nodeMask,
@@ -736,11 +959,36 @@ function applySelectionFocusStyles() {
   }
   var runtimeNodeMask = (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === baseNodeSizes.length) ? STATE.runtimeNodeVisibleMask : null;
   var runtimeEdgeMask = (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === Math.floor(baseEdgeColors.length / 4)) ? STATE.runtimeEdgeVisibleMask : null;
+  var edgeCountAll = Math.floor(baseEdgeColors.length / 4);
+  var flowMask = new Uint8Array(edgeCountAll);
+  for (var fm = 0; fm < edgeCountAll; fm += 1) {
+    if (runtimeEdgeMask) {
+      flowMask[fm] = runtimeEdgeMask[fm] ? 1 : 0;
+    } else {
+      var baseAlpha = Number(baseEdgeColors[(fm * 4) + 3] || 0);
+      flowMask[fm] = baseAlpha > 0.01 ? 1 : 0;
+    }
+  }
 
   var selectedIndex = selectedIndexFromState();
-  var focus = buildSelectionFocusMasks(selectedIndex);
+  var contextIndex = contextIndexFromState();
+  var hoverIndex = hoveredIndexFromState();
+  var seeds = [];
+  if (selectedIndex >= 0) seeds.push(selectedIndex);
+  if (contextIndex >= 0 && contextIndex !== selectedIndex) seeds.push(contextIndex);
+  var focus = buildSelectionFocusMasks(seeds);
   STATE.focusNodeMask = focus.nodeMask;
   STATE.focusEdgeMask = focus.edgeMask;
+
+  if (!focus.hasFocus && hoverIndex < 0) {
+    setGraphPanelFocusClass(false);
+    STATE.graph.setPointColors(baseNodeColors);
+    applyPointSizesAnimated(baseNodeSizes, 170);
+    STATE.graph.setLinkColors(baseEdgeColors);
+    STATE.pointStyleColors = baseNodeColors;
+    STATE.runtimeFlowEdgeMask = flowMask;
+    return;
+  }
 
   var outNodeColors = new Float32Array(baseNodeColors.length);
   var outNodeSizes = new Float32Array(baseNodeSizes.length);
@@ -749,23 +997,41 @@ function applySelectionFocusStyles() {
   outNodeSizes.set(baseNodeSizes);
   outEdgeColors.set(baseEdgeColors);
 
-  if (focus.hasFocus) {
-    for (var i = 0; i < outNodeSizes.length; i += 1) {
-      if (runtimeNodeMask && !runtimeNodeMask[i]) {
-        outNodeSizes[i] = 0;
-        outNodeColors[(i * 4) + 3] = 0;
-        continue;
+  for (var i = 0; i < outNodeSizes.length; i += 1) {
+    if (runtimeNodeMask && !runtimeNodeMask[i]) {
+      outNodeSizes[i] = 0;
+      outNodeColors[(i * 4) + 3] = 0;
+      continue;
+    }
+    var ni = i * 4;
+    var nr = Number(baseNodeColors[ni] || 0), ng = Number(baseNodeColors[ni + 1] || 0), nb = Number(baseNodeColors[ni + 2] || 0), na = Number(baseNodeColors[ni + 3] || 1);
+    var inFocusMask = !!focus.nodeMask[i];
+    var isHovered = (i === hoverIndex);
+    if (inFocusMask || (!focus.hasFocus && isHovered)) {
+      var baseSize = Number(baseNodeSizes[i] || 1);
+      outNodeSizes[i] = baseSize * 1.2;
+      if (i === selectedIndex) {
+        outNodeColors[ni] = cl(nr * 1.08, 0, 1);
+        outNodeColors[ni + 1] = cl(ng * 1.08, 0, 1);
+        outNodeColors[ni + 2] = cl(nb * 1.08, 0, 1);
+      } else if (i === contextIndex) {
+        outNodeColors[ni] = cl(nr * 1.04, 0, 1);
+        outNodeColors[ni + 1] = cl(ng * 1.04, 0, 1);
+        outNodeColors[ni + 2] = cl(nb * 1.04, 0, 1);
+      } else if (isHovered) {
+        outNodeColors[ni] = cl(nr * 1.06, 0, 1);
+        outNodeColors[ni + 1] = cl(ng * 1.06, 0, 1);
+        outNodeColors[ni + 2] = cl(nb * 1.06, 0, 1);
       }
-      var ni = i * 4;
-      var nr = Number(baseNodeColors[ni] || 0), ng = Number(baseNodeColors[ni + 1] || 0), nb = Number(baseNodeColors[ni + 2] || 0), na = Number(baseNodeColors[ni + 3] || 1);
-      if (focus.nodeMask[i]) {
-        if (i === selectedIndex) {
-          outNodeColors[ni] = cl(nr * 1.08, 0, 1);
-          outNodeColors[ni + 1] = cl(ng * 1.08, 0, 1);
-          outNodeColors[ni + 2] = cl(nb * 1.08, 0, 1);
-          outNodeSizes[i] = Number(baseNodeSizes[i] || 1) * 1.16;
-        }
-        outNodeColors[ni + 3] = cl(Math.max(na, 0.96), 0, 1);
+      outNodeColors[ni + 3] = cl(Math.max(na, 0.96), 0, 1);
+    } else {
+      if (!focus.hasFocus) {
+        // Hover-only mode: keep all non-hover nodes unchanged (no global dimming).
+        outNodeColors[ni] = nr;
+        outNodeColors[ni + 1] = ng;
+        outNodeColors[ni + 2] = nb;
+        outNodeColors[ni + 3] = na;
+        outNodeSizes[i] = Number(baseNodeSizes[i] || 1);
       } else {
         var g = luma(nr, ng, nb);
         var dim = (g * 0.58) + 0.07;
@@ -776,38 +1042,45 @@ function applySelectionFocusStyles() {
         outNodeSizes[i] = Number(baseNodeSizes[i] || 1) * 0.94;
       }
     }
+  }
 
-    var edgeCount = Math.floor(outEdgeColors.length / 4);
-    for (var e = 0; e < edgeCount; e += 1) {
-      if (runtimeEdgeMask && !runtimeEdgeMask[e]) {
-        outEdgeColors[(e * 4) + 3] = 0;
-        continue;
-      }
-      var ei = e * 4;
-      var er = Number(baseEdgeColors[ei] || 0), eg = Number(baseEdgeColors[ei + 1] || 0), eb = Number(baseEdgeColors[ei + 2] || 0), ea = Number(baseEdgeColors[ei + 3] || 1);
-      if (focus.edgeMask[e]) {
+  var edgeCount = Math.floor(outEdgeColors.length / 4);
+  for (var e = 0; e < edgeCount; e += 1) {
+    if (runtimeEdgeMask && !runtimeEdgeMask[e]) {
+      outEdgeColors[(e * 4) + 3] = 0;
+      flowMask[e] = 0;
+      continue;
+    }
+    var ei = e * 4;
+    var er = Number(baseEdgeColors[ei] || 0), eg = Number(baseEdgeColors[ei + 1] || 0), eb = Number(baseEdgeColors[ei + 2] || 0), ea = Number(baseEdgeColors[ei + 3] || 1);
+    if (focus.hasFocus && focus.edgeMask[e]) {
+      outEdgeColors[ei] = er;
+      outEdgeColors[ei + 1] = eg;
+      outEdgeColors[ei + 2] = eb;
+      outEdgeColors[ei + 3] = cl(Math.max(ea, 0.45), 0, 1);
+    } else {
+      if (!focus.hasFocus) {
         outEdgeColors[ei] = er;
         outEdgeColors[ei + 1] = eg;
         outEdgeColors[ei + 2] = eb;
-        outEdgeColors[ei + 3] = cl(Math.max(ea, 0.45), 0, 1);
-      } else {
-        var egrey = luma(er, eg, eb) * 0.45;
-        outEdgeColors[ei] = cl(egrey, 0, 1);
-        outEdgeColors[ei + 1] = cl(egrey, 0, 1);
-        outEdgeColors[ei + 2] = cl(egrey, 0, 1);
-        outEdgeColors[ei + 3] = cl(ea * 0.08, 0.01, 0.08);
+        outEdgeColors[ei + 3] = ea;
+        continue;
       }
+      var egrey = luma(er, eg, eb) * 0.45;
+      outEdgeColors[ei] = cl(egrey, 0, 1);
+      outEdgeColors[ei + 1] = cl(egrey, 0, 1);
+      outEdgeColors[ei + 2] = cl(egrey, 0, 1);
+      outEdgeColors[ei + 3] = cl(ea * 0.08, 0.01, 0.08);
+      flowMask[e] = 0;
     }
-    setGraphPanelFocusClass(true);
-  } else {
-    setGraphPanelFocusClass(false);
   }
+  setGraphPanelFocusClass(focus.hasFocus || hoverIndex >= 0);
 
   STATE.graph.setPointColors(outNodeColors);
-  STATE.graph.setPointSizes(outNodeSizes);
+  applyPointSizesAnimated(outNodeSizes, 170);
   STATE.graph.setLinkColors(outEdgeColors);
   STATE.pointStyleColors = outNodeColors;
-  STATE.pointStyleSizes = outNodeSizes;
+  STATE.runtimeFlowEdgeMask = flowMask;
 }
 
 function applyVisualStyles(renderAlpha) {
@@ -828,7 +1101,7 @@ function selectNodeByIndex(index, statusLabel) {
   STATE.focusedIndex = idx;
   if (STATE.graph && typeof STATE.graph.selectPointByIndex === "function") { STATE.graph.selectPointByIndex(idx); }
   applyVisualStyles();
-  updateStatus(statusLabel || ("Selected: " + node.label));
+  updateStatus(statusLabel || ("Active: " + node.label));
   return true;
 }
 
@@ -840,7 +1113,7 @@ function focusNodeById(nodeId, fromSearch) {
     updateStatus("Search miss: node hidden by filters");
     return;
   }
-  STATE.graph.zoomToPointByIndex(idx, 0, 3.5, true);
+  STATE.graph.zoomToPointByIndex(idx, 220, 3.5, true);
   selectNodeByIndex(idx, fromSearch ? ("Selected: " + (STATE.activeNodes[idx] ? STATE.activeNodes[idx].label : nodeId)) : null);
   hideSuggest();
 }
@@ -871,6 +1144,7 @@ function ensureGraphInstance() {
         STATE.pointerClientY = Number(evt.clientY);
       }
       STATE.hoveredPointIndex = index;
+      applyVisualStyles(0.08);
       if (typeof setHoverDebug === "function") {
         setHoverDebug("enter-node", {
           idx: index,
@@ -896,11 +1170,14 @@ function ensureGraphInstance() {
     onBackgroundClick: function () {
       STATE.selectedNodeId = null;
       STATE.selectedPointIndex = null;
+      STATE.contextNodeId = null;
+      STATE.contextPointIndex = null;
       STATE.hoveredPointIndex = null;
       STATE.hoveredLinkIndex = null;
       STATE.focusedIndex = undefined;
       if (STATE.graph && typeof STATE.graph.unselectPoints === "function") { STATE.graph.unselectPoints(); }
       hideTooltip();
+      if (typeof hideContextMenu === "function") hideContextMenu();
       applyVisualStyles();
       updateStatus();
     },
@@ -924,6 +1201,7 @@ function applyGraphData(fitView) {
   STATE.activeEdges = arrays.edges;
   STATE.activeIndexById = arrays.indexById;
   STATE.activeIdsByIndex = arrays.idsByIndex;
+  STATE.focusAdjCache = null;
   if (STATE.graph && typeof STATE.graph.setNodeLayoutAttributes === "function") {
     STATE.graph.setNodeLayoutAttributes(STATE.activeNodes);
   }
@@ -934,6 +1212,11 @@ function applyGraphData(fitView) {
     }
     STATE.runtimeNodeVisibleMask = new Uint8Array(0);
     STATE.runtimeEdgeVisibleMask = new Uint8Array(0);
+    STATE.runtimeFlowEdgeMask = new Uint8Array(0);
+    stopPointSizeAnimation();
+    STATE.pointStyleSizes = new Float32Array(0);
+    STATE.contextNodeId = null;
+    STATE.contextPointIndex = null;
     buildSearchEntries();
     updateStatus();
     return;
@@ -943,15 +1226,17 @@ function applyGraphData(fitView) {
   STATE.basePointSizes = arrays.pointSizes ? new Float32Array(arrays.pointSizes) : new Float32Array(0);
   STATE.baseLinkColors = arrays.linkColors ? new Float32Array(arrays.linkColors) : new Float32Array(0);
   STATE.pointStyleColors = STATE.basePointColors;
-  STATE.pointStyleSizes = STATE.basePointSizes;
+  stopPointSizeAnimation();
+  STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
 
+  if (typeof STATE.graph.setPointIds === "function") STATE.graph.setPointIds(arrays.idsByIndex);
   STATE.graph.setPointPositions(arrays.pointPositions);
   STATE.graph.setLinks(arrays.links);
   STATE.graph.setLinkStrength(arrays.linkStrength);
   STATE.graph.setLinkDistance(arrays.linkDistance);
   STATE.graph.setLinkStyleCodes(arrays.linkStyleCodes);
   STATE.graph.setPointColors(STATE.basePointColors);
-  STATE.graph.setPointSizes(STATE.basePointSizes);
+  STATE.graph.setPointSizes(STATE.pointStyleSizes);
   if (typeof STATE.graph.setPointTypeCodes === "function") STATE.graph.setPointTypeCodes(arrays.pointTypeCodes);
   STATE.graph.setLinkColors(STATE.baseLinkColors);
   STATE.graph.setLinkWidths(arrays.linkWidths);
@@ -975,4 +1260,3 @@ function applyGraphData(fitView) {
 window.applyGraphData = applyGraphData;
 window.applyVisualStyles = applyVisualStyles;
 window.applyPhysicsToGraph = applyPhysicsToGraph;
-

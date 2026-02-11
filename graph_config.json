@@ -36,10 +36,10 @@
     "mass_linker": "#f56e0d",
     "example": "#fa5fd8",
     "priority": "#3d95e7",
-    "families": "#31c68d",
-    "examples": "#fa5fd8",
-    "mass_links": "#f56e0d",
-    "notes": "#3d95e7"
+    "families": "rgba(49,198,141,0.580)",
+    "examples": "rgba(250,95,216,0.580)",
+    "mass_links": "rgba(172,89,17,0.200)",
+    "notes": "#ffffff"
   },
   "family_same_prio_edges": false,
   "layer_styles": {
@@ -67,7 +67,7 @@
     "mass_links": false
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 0.3,
+  "layer_flow_speed": 0.01,
   "note_type_linked_fields": {
     "1768669148068": "LinkedNotes",
     "1768654427037": "LinkedNotes",
@@ -170,7 +170,7 @@
     "mass_links": 45.0
   },
   "neighbor_scaling": {
-    "mode": "jaccard",
+    "mode": "ccm",
     "directed": "out",
     "weights": {
       "priority": 1.4,
@@ -191,21 +191,30 @@
   "kanji_quantile_norm": true,
   "solver": {
     "layout_enabled": true,
-    "fa2_lin_log_mode": false,
-    "fa2_outbound_attraction_distribution": false,
-    "fa2_adjust_sizes": false,
-    "fa2_edge_weight_influence": 0.7,
-    "fa2_scaling_ratio": 100.0,
-    "fa2_strong_gravity_mode": true,
-    "fa2_gravity": 0.1,
-    "fa2_slow_down": 6.0,
-    "fa2_barnes_hut_optimize": true,
-    "fa2_barnes_hut_theta": 1.2
+    "d3_alpha": 1.0,
+    "d3_alpha_min": 0.01,
+    "d3_alpha_decay": 0.01,
+    "d3_alpha_target": 0.0,
+    "d3_velocity_decay": 0.35,
+    "d3_center_x": 0.0,
+    "d3_center_y": 0.0,
+    "d3_center_strength": 0.05,
+    "d3_manybody_strength": -150.0,
+    "d3_manybody_theta": 1.0,
+    "d3_manybody_distance_min": 0.0,
+    "d3_manybody_distance_max": 0.0,
+    "d3_link_distance": 0.0,
+    "d3_link_strength": 1.0,
+    "d3_link_iterations": 5.0,
+    "d3_warmup_ticks": 0.0,
+    "d3_cooldown_ticks": 0.0,
+    "d3_cooldown_time_ms": 30000.0
   },
   "renderer": {
-    "sigma_draw_labels": false,
+    "sigma_draw_labels": true,
     "sigma_draw_hover_nodes": false,
     "sigma_label_threshold": 0.0,
+    "sigma_label_zoom_min": 1.0,
     "sigma_hide_edges_on_move": false,
     "sigma_batch_edges_drawing": true,
     "sigma_mouse_wheel_enabled": true,
@@ -213,11 +222,11 @@
     "sigma_min_camera_ratio": 0.1,
     "sigma_max_camera_ratio": 6.0,
     "sigma_side_margin": 0.0,
-    "sigma_animations_time": 0.0,
+    "sigma_animations_time": 360.0,
     "sigma_enable_edge_hovering": false
   },
   "node": {
-    "node_degree_size_factor": 1.0
+    "node_degree_size_factor": 0.9
   },
   "engine": {}
 }

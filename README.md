@@ -40,7 +40,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - Kanji parts style options (if enabled)
 
 **Physics**
-- Repulsion, link distance/strength, decay, cooldown, etc.
+- D3 solver controls including alpha/cooling, warmup/cooldown, charge, link, and center forces.
 
 ## Examples
 ### Family Gate
@@ -82,13 +82,14 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Runtime entry points: `window.ajpcGraphInit(data)` and `window.ajpcGraphUpdate(data)`.
 - Frontend runtime is split into prefixed modules under `web/graph.*.js`:
   - `graph.state.js`, `graph.bridge.js`, `graph.utils.js`, `graph.payload.js`
-  - `graph.flow.js`, `graph.engine.sigma.js`, `graph.ui.js`, `graph.main.js`
+  - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
+  - `graph.solver.d3.js`, `graph.renderer.sigma.js`, `graph.ui.js`, `graph.main.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/sigma.min.js`.
 - Engine runtime implementation is in `web/graph.engine.sigma.js`.
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
-- Sigma runtime includes a lightweight built-in layout loop (`layout_enabled`, start/stop aware).
+- Active layout solver is `d3-force` (`web/d3-force.min.js`) via `web/graph.solver.d3.js`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
 - Flow overlay in `web/graph.flow.js` samples conic curves in graph-space and projects to screen.
 - Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.

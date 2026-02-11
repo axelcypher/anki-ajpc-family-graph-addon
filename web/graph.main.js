@@ -10,6 +10,8 @@ function resolveApplyGraphData() {
 
 function applyPayload(payload, fitView) {
   STATE.raw = preparePayload(payload);
+  if (STATE.depTreeCache && typeof STATE.depTreeCache.clear === "function") STATE.depTreeCache.clear();
+  STATE.depTreePendingNid = null;
   ensureRuntimeState();
   refreshUiOnly();
   var applyFn = resolveApplyGraphData();

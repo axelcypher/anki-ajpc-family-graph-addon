@@ -109,7 +109,10 @@ def _html(payload: dict[str, Any]) -> str:
 
     graph_graphology_src = asset_url("graphology.min.js")
     graph_layout_src = asset_url("graphology-layout.bundle.js")
-    graph_fa2_src = asset_url("graphology-layout-forceatlas2.bundle.js")
+    graph_d3_dispatch_src = asset_url("d3-dispatch.min.js")
+    graph_d3_quadtree_src = asset_url("d3-quadtree.min.js")
+    graph_d3_timer_src = asset_url("d3-timer.min.js")
+    graph_d3_force_src = asset_url("d3-force.min.js")
     graph_engine_src = asset_url("sigma.min.js")
     graph_sigma_program_edge_curved_src = asset_url("sigma-programs/graph.sigma.program.edge.curved.js")
     graph_sigma_program_edge_dashed_src = asset_url("sigma-programs/graph.sigma.program.edge.dashed.js")
@@ -123,7 +126,7 @@ def _html(payload: dict[str, Any]) -> str:
     graph_flow_js_src = asset_url("graph.flow.js")
     graph_engine_js_src = asset_url("graph.engine.sigma.js")
     graph_data_js_src = asset_url("graph.data.graphology.js")
-    graph_solver_js_src = asset_url("graph.solver.fa2.js")
+    graph_solver_js_src = asset_url("graph.solver.d3.js")
     graph_renderer_js_src = asset_url("graph.renderer.sigma.js")
     graph_ui_js_src = asset_url("graph.ui.js")
     graph_main_js_src = asset_url("graph.main.js")
@@ -139,7 +142,10 @@ def _html(payload: dict[str, Any]) -> str:
     html = html.replace("__GRAPH_CSS__", graph_css_src)
     html = html.replace("__GRAPH_GRAPHOLOGY_SRC__", graph_graphology_src)
     html = html.replace("__GRAPH_LAYOUT_SRC__", graph_layout_src)
-    html = html.replace("__GRAPH_FA2_SRC__", graph_fa2_src)
+    html = html.replace("__GRAPH_D3_DISPATCH_SRC__", graph_d3_dispatch_src)
+    html = html.replace("__GRAPH_D3_QUADTREE_SRC__", graph_d3_quadtree_src)
+    html = html.replace("__GRAPH_D3_TIMER_SRC__", graph_d3_timer_src)
+    html = html.replace("__GRAPH_D3_FORCE_SRC__", graph_d3_force_src)
     html = html.replace("__GRAPH_ENGINE_SRC__", graph_engine_src)
     html = html.replace("__GRAPH_SIGMA_PROGRAM_EDGE_CURVED_JS__", graph_sigma_program_edge_curved_src)
     html = html.replace("__GRAPH_SIGMA_PROGRAM_EDGE_DASHED_JS__", graph_sigma_program_edge_dashed_src)
@@ -659,6 +665,30 @@ class FamilyGraphWindow(QWidget):
                 self._schedule_refresh("family chain edges")
             except Exception:
                 logger.dbg("family chain parse failed", message)
+        elif message.startswith("deptree:"):
+            try:
+                _prefix, raw_nid = message.split(":", 1)
+                nid = int(raw_nid or "0")
+            except Exception:
+                nid = 0
+            try:
+                data = _get_dependency_tree_via_main_api(nid) if nid > 0 else {}
+                if not isinstance(data, dict):
+                    data = {}
+                if nid > 0 and not data.get("current_nid"):
+                    data["current_nid"] = int(nid)
+                payload_json = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+                js = (
+                    "(function(){"
+                    "if(window.setActiveDepTreeFromPy){"
+                    "window.setActiveDepTreeFromPy(" + payload_json + ");"
+                    "}"
+                    "})();"
+                )
+                self.web.eval(js)
+                logger.dbg("deptree", nid, "nodes=", len(data.get("nodes", []) or []), "edges=", len(data.get("edges", []) or []))
+            except Exception:
+                logger.dbg("deptree failed", message)
         elif message.startswith("ctx:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -684,6 +714,12 @@ class FamilyGraphWindow(QWidget):
                     logger.dbg("ctx edit", payload)
                 except Exception:
                     logger.dbg("ctx edit failed", payload)
+            elif kind == "editapi":
+                try:
+                    _open_editor(int(payload), prefer_api=True)
+                    logger.dbg("ctx editapi", payload)
+                except Exception:
+                    logger.dbg("ctx editapi failed", payload)
             elif kind == "browser":
                 try:
                     _open_browser_for_note(int(payload))
@@ -1588,8 +1624,107 @@ def _open_preview_card(card_id: int) -> None:
         pass
 
 
-def _open_editor(nid: int) -> None:
+def _call_editor_api_fn(fn: Any, nid: int) -> bool:
+    attempts = [
+        ((), {"nid": nid}),
+        ((), {"note_id": nid}),
+        ((), {"id": nid}),
+        ((nid,), {}),
+    ]
+    for args, kwargs in attempts:
+        try:
+            fn(*args, **kwargs)
+            return True
+        except TypeError:
+            continue
+        except Exception:
+            continue
+    return False
+
+
+def _call_dependency_tree_api_fn(fn: Any, nid: int) -> dict[str, Any]:
+    attempts = [
+        ((), {"nid": nid}),
+        ((), {"note_id": nid}),
+        ((), {"id": nid}),
+        ((nid,), {}),
+    ]
+    for args, kwargs in attempts:
+        try:
+            out = fn(*args, **kwargs)
+        except TypeError:
+            continue
+        except Exception:
+            continue
+        if isinstance(out, dict):
+            return out
+    return {}
+
+
+def _get_dependency_tree_via_main_api(nid: int) -> dict[str, Any]:
     if mw is None:
+        return {}
+    api = getattr(mw, "_ajpc_graph_api", None)
+    if not isinstance(api, dict):
+        return {}
+    keys = (
+        "get_dependency_tree",
+        "get_prio_chain",
+    )
+    for key in keys:
+        fn = api.get(key)
+        if not callable(fn):
+            continue
+        out = _call_dependency_tree_api_fn(fn, nid)
+        if out:
+            logger.dbg("deptree via api", key, nid)
+            return out
+    return {}
+
+
+def _open_editor_via_main_api(nid: int) -> bool:
+    if mw is None:
+        return False
+    api = getattr(mw, "_ajpc_graph_api", None)
+    if not isinstance(api, dict):
+        return False
+
+    candidates: list[tuple[str, Any]] = []
+    keys = (
+        "open_note_editor",
+        "open_editor_for_note",
+        "open_editor",
+        "edit_note",
+        "show_note_editor",
+    )
+    for key in keys:
+        fn = api.get(key)
+        if callable(fn):
+            candidates.append((key, fn))
+
+    editor_api = api.get("editor")
+    if isinstance(editor_api, dict):
+        for key in keys:
+            fn = editor_api.get(key)
+            if callable(fn):
+                candidates.append(("editor." + key, fn))
+
+    for name, fn in candidates:
+        if _call_editor_api_fn(fn, nid):
+            logger.dbg("ctx editor via api", name, nid)
+            return True
+
+    return False
+
+
+def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
+    if mw is None:
+        return
+    if prefer_api:
+        if _open_editor_via_main_api(nid):
+            return
+        logger.dbg("ctx editor api unavailable, fallback local", nid)
+    if not prefer_api and _open_editor_via_main_api(nid):
         return
     editors = getattr(mw, "_ajpc_family_graph_editors", None)
     if not isinstance(editors, dict):

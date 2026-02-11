@@ -1,22 +1,24 @@
 :root,
 #app {
-  --bg-main: #171a24;
-  --bg-main-soft: #0B2933;
-  --bg-panel: #102B3F;
-  --bg-panel-soft: #25325A;
-  --bg-chip: #0b2033;
-  --bg-chip-soft: #25325A;
-  --bg-btn: #0b2033;
-  --bg-btn-soft: #25325A;
-  --text-main: #E2CFEA;
-  --text-soft: #CDBCD5;
-  --line: #062726;
+  --bg-main: #16181d;
+  --bg-main-soft: #22252e;
+  --bg-panel: #20232b;
+  --bg-panel-soft: rgb(34, 37, 44);
+  --bg-chip: #282c35;
+  --bg-chip-soft: #262d3b;
+  --bg-btn: #212a3b;
+  --bg-btn-rfs-border:#83601a;
+  --bg-btn-rfs: #2d2210;
+  --bg-btn-soft: #252e3d;
+  --text-main: #dbdbdb;
+  --text-soft: #adadad;
+  --line: #1f2027;
   --accent: #6247AA;
   --accent-light: #A06CD5;
   --accent-lighter: #C19EE0;
-  --border: #062726;
-  --border-dark: #062726;
-  --border-light: #394140;
+  --border: #0d0e11;
+  --border-dark: #0d0e11;
+  --border-light: #323641;
   --radius-small: 10px;
   --radius-medium: 20px;
   --radius-large: 40px;
@@ -117,7 +119,7 @@ body {
 #btn-dev-tools,
 #btn-close-settings {
   border-radius: 9px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-light);
   background: var(--bg-panel-soft);
   color: var(--text-main);
   padding: 8px 10px;
@@ -144,13 +146,8 @@ body {
 }
 
 #btn-refresh {
-  border-color: #83601a;
-  background: #2d2210;
-}
-
-#btn-settings {
-  border-color: var(bg-btn-soft);
-  background: var(bg-btn);
+  border-color: var(--bg-btn-rfs-border);
+  background: var(--bg-btn-rfs);
 }
 
 #search-suggest {
@@ -161,7 +158,7 @@ body {
   max-height: 260px;
   overflow: auto;
   background: var(--bg-panel);
-  border: 1px solid var(--border-dark);
+  border: 1px solid var(--border-light);
   border-radius: 9px;
   z-index: 200;
   display: none;
@@ -273,6 +270,125 @@ body {
   color: var(--text-soft);
 }
 
+#ctx-menu {
+  position: fixed;
+  display: none;
+  min-width: 220px;
+  max-width: 360px;
+  z-index: 120;
+  border-radius: 12px;
+  border: 1px solid var(--border-dark);
+  background: color-mix(in srgb, var(--bg-panel), transparent 50%);
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  backdrop-filter: blur(8px);
+  padding: 6px;
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+#ctx-menu .item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+#ctx-menu .item:hover {
+  background: color-mix(in srgb, var(--bg-chip-soft), transparent 35%);
+}
+
+#ctx-menu .divider {
+  height: 1px;
+  margin: 5px 4px;
+  background: color-mix(in srgb, var(--border-dark), transparent 25%);
+}
+
+#ctx-menu .ctx-selected-dot,
+#ctx-menu .ctx-active-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 0 5px 1px 2px;
+}
+
+#ctx-menu .ctx-selected-dot {
+  border: 1.4px solid var(--danger);
+  background: transparent;
+}
+
+#ctx-menu .ctx-active-dot {
+  background: var(--ok);
+}
+
+#ctx-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(2, 6, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#ctx-picker .dialog {
+  width: min(360px, 92vw);
+  max-height: min(72vh, 520px);
+  border-radius: 14px;
+  border: 1px solid var(--border-dark);
+  background: color-mix(in srgb, var(--bg-panel), transparent 6%);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.5);
+  color: var(--text-main);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+#ctx-picker .title {
+  padding: 12px 14px 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#ctx-picker .list {
+  overflow: auto;
+  padding: 0 14px 10px 14px;
+}
+
+#ctx-picker .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+}
+
+#ctx-picker .btn-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px 12px;
+  border-top: 1px solid var(--border-dark);
+}
+
+#ctx-picker .btn {
+  flex: 1 1 auto;
+  border-radius: 9px;
+  border: 1px solid var(--border-dark);
+  background: var(--bg-btn);
+  color: var(--text-main);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+#ctx-picker .btn:hover {
+  background: var(--bg-btn-soft);
+}
+
+#ctx-picker .btn.primary {
+  border-color: color-mix(in srgb, var(--accent-light), var(--border-dark) 55%);
+}
+
 #settings-panel {
   position: absolute;
   top: 0;
@@ -280,7 +396,6 @@ body {
   bottom: 0;
   width: min(390px, 42vw);
   min-height: 0;
-  border-left: 1px solid var(--border);
   background: var(--bg-panel);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
@@ -293,22 +408,10 @@ body {
   top: 0;
   width: var(--radius-large);
   height: var(--radius-large);
-  box-shadow: -2px 0px 0px 0px var(--border);
   background: var(--bg-panel);
   pointer-events: none;
   z-index: 121;
   mask: radial-gradient(circle var(--radius-large) at 0 100%, transparent calc(var(--radius-large) - 0px), #000 var(--radius-large));
-}
-#settings-panel::after {
-  content: "";
-  position: absolute;
-  left: calc(var(--radius-large) * -1);
-  top: 0;
-  width: var(--radius-large);
-  height: var(--radius-large);
-  pointer-events: none;
-  z-index: 122;
-  background: radial-gradient(circle at 0 100%, transparent calc(var(--radius-large) - 2px), var(--border) calc(var(--radius-large) - 2px) var(--radius-large), transparent var(--radius-large));
 }
 #settings-panel .settings-scroll {
   height: 100%;
@@ -348,12 +451,15 @@ body {
   margin: 0 0 8px 0;
   font-size: 14px;
 }
+.settings-block #link-layer-list .control-row {
+  grid-template-columns: 1fr;
+}
 .settings-block #engine-list .control-row, .settings-block #solver-list .control-row, .settings-block #renderer-list .control-row {
   display: grid;
-  grid-template-columns: 9fr 2fr;
+  grid-template-columns: 3fr 1fr;
   gap: 10px;
   align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-chip);
   padding: 2px 7px;
@@ -402,7 +508,7 @@ body {
 
 .settings-tab {
   border-radius: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-light);
   background: color-mix(in srgb, var(--bg-chip-soft), transparent 50%);
   color: var(--text-main);
   padding: 7px 8px;
@@ -411,8 +517,8 @@ body {
   cursor: pointer;
 }
 .settings-tab.active {
-  border-color: var(--border);
-  background: var(--bg-chip-soft);
+  border-color: var(--border-light);
+  background: var(--bg-chip);
   color: var(--text-main);
   font-weight: 700;
 }
@@ -426,7 +532,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-chip);
   padding: 5px 6px;
@@ -481,7 +587,13 @@ body {
 
 .inline-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.ln-color-alpha {
+  display: grid;
+  grid-template-columns: 1fr 64px;
   gap: 6px;
 }
 
@@ -610,6 +722,48 @@ body {
 }
 #status-overlay-top-left #status-debug-panel .coord-table .coord-empty {
   color: transparent;
+}
+#status-overlay-top-left #status-active {
+  position: relative;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--bg-panel-soft), transparent 60%);
+  backdrop-filter: blur(5px);
+  padding: 7px 12px;
+  color: var(--text-soft);
+  font-size: 12px;
+  width: min(400px, 21vw);
+  transform: translateX(calc(-100% - 18px));
+  pointer-events: none;
+  transition: transform 220ms ease;
+  will-change: transform;
+}
+#status-overlay-top-left #status-active.is-open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+#status-overlay-top-left #status-active-details {
+  display: block;
+  white-space: normal;
+  line-height: 1.35;
+  color: var(--text-main);
+  font-size: 12px;
+}
+#status-overlay-top-left #status-active-details .title h2 {
+  margin-bottom: 2px;
+}
+#status-overlay-top-left #status-active-details .title h3 {
+  margin-bottom: 0;
+}
+#status-overlay-top-left #status-active-deptree {
+  display: block;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--line), transparent 42%);
+  white-space: normal;
+  line-height: 1.35;
+  color: var(--text-soft);
+  font-size: 11px;
 }
 
 #status-overlay-bottom-right {

@@ -33,6 +33,7 @@
           <span id="status-summary">Nodes: 0 | Edges: 0</span>
           <span id="status-fps">FPS: --</span>
           <span id="status-coords">Coords: --, --</span>
+          <span id="status-extra-text"></span>
         </div>
 
         <div id="status-debug-panel">
@@ -48,12 +49,19 @@
           </span>
           <span id="debug-extra"></span>
         </div>
+
+        <div id="status-active">
+          <span id="status-active-details"></span>
+          <span id="status-active-deptree"></span>
+        </div>
+
       </div>
 
       <section id="graph-panel">
         <div id="graph"></div>
         <div id="graph-empty">Graph loading...</div>
         <div id="hover-tip"></div>
+        <div id="ctx-menu"></div>
       </section>
 
       <aside id="settings-panel" class="closed" aria-hidden="true">
@@ -125,7 +133,10 @@
   </div>
   <script src="__GRAPH_GRAPHOLOGY_SRC__"></script>
   <script src="__GRAPH_LAYOUT_SRC__"></script>
-  <script src="__GRAPH_FA2_SRC__"></script>
+  <script src="__GRAPH_D3_DISPATCH_SRC__"></script>
+  <script src="__GRAPH_D3_QUADTREE_SRC__"></script>
+  <script src="__GRAPH_D3_TIMER_SRC__"></script>
+  <script src="__GRAPH_D3_FORCE_SRC__"></script>
   <script src="__GRAPH_ENGINE_SRC__"></script>
 
   <script src="__GRAPH_SIGMA_PROGRAM_EDGE_CURVED_JS__"></script>

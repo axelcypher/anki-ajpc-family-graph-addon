@@ -7,6 +7,7 @@ function AjpcGraphRendererSigma(owner) {
 }
 
 AjpcGraphRendererSigma.prototype._settings = function () {
+  var self = this;
   var owner = this.owner;
   var p = owner.runtimeRenderer || DEF_RENDERER;
   var d = it(p.sigma_animations_time, DEF_RENDERER.sigma_animations_time, 0, 5000);
@@ -50,11 +51,77 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     useCustomNodes: !!owner._useCustomNodeTypes
   });
 
+  function cl01(v) {
+    var n = Number(v);
+    if (!isFinite(n)) return 0;
+    if (n < 0) return 0;
+    if (n > 1) return 1;
+    return n;
+  }
+
+  function smooth01(v) {
+    var t = cl01(v);
+    return t * t * (3 - (2 * t));
+  }
+
+  function drawAjpcNodeLabel(ctx, node, settings) {
+    if (!node || node.hidden) return;
+    var label = String(node.label || "");
+    if (!label) return;
+
+    var cam = self._cam();
+    var ratio = Number(cam && cam.ratio);
+    if (!isFinite(ratio) || ratio <= 0) ratio = 1;
+    var zoom = 1 / ratio;
+
+    var zoomMin = num(p.sigma_label_zoom_min, DEF_RENDERER.sigma_label_zoom_min, 0, 64);
+    var fadeBand = Math.max(0.0001, zoomMin * 0.08);
+    var fadeStart = zoomMin - fadeBand;
+    var fadeEnd = zoomMin + fadeBand;
+    var fadeT = (zoom - fadeStart) / (fadeEnd - fadeStart);
+    var alpha = smooth01(fadeT);
+    if (alpha <= 0.01) return;
+
+    // Scale only between ~1x and ~2x zoom, then keep size capped.
+    var z0 = Math.max(zoomMin, 0.0001);
+    var z1 = z0 * 2.0;
+    var z = zoom;
+    if (z < z0) z = z0;
+    if (z > z1) z = z1;
+    var zT = (z - z0) / Math.max(z1 - z0, 0.0001);
+    var fontSize = 9.5 + (zT * 2.8);
+
+    var x = Number(node.x || 0);
+    var y = Number(node.y || 0);
+    var r = Number(node.size || 0);
+    if (!isFinite(x) || !isFinite(y)) return;
+    if (!isFinite(r) || r < 0) r = 0;
+    var yTop = y - r - 7;
+
+    ctx.save();
+    ctx.font = "500 " + String(fontSize.toFixed(2)) + "px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.strokeStyle = "rgba(2, 6, 23, " + String((0.80 * alpha).toFixed(3)) + ")";
+    ctx.lineWidth = Math.max(1, fontSize * 0.18);
+    ctx.fillStyle = "rgba(229, 231, 235, " + String(alpha.toFixed(3)) + ")";
+    ctx.strokeText(label, x, yTop);
+    ctx.fillText(label, x, yTop);
+    ctx.restore();
+  }
+
   var out = {
     renderLabels: !!p.sigma_draw_labels,
     renderEdgeLabels: false,
+    labelColor: { color: "#e5e7eb" },
+    labelSize: 13,
+    labelWeight: "500",
     enableEdgeEvents: !!p.sigma_enable_edge_hovering,
     hideEdgesOnMove: !!p.sigma_hide_edges_on_move,
+    autoRescale: false,
+    autoCenter: false,
     defaultNodeColor: DNC,
     defaultEdgeColor: DEC,
     defaultNodeType: "circle",
@@ -72,7 +139,8 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     enableCameraZooming: !!p.sigma_mouse_wheel_enabled,
     zIndex: true,
     allowInvalidContainer: true,
-    defaultDrawNodeHover: function () {}
+    defaultDrawNodeHover: function () {},
+    defaultDrawNodeLabel: drawAjpcNodeLabel
   };
 
   if (Object.keys(edgePrograms).length) out.edgeProgramClasses = edgePrograms;
@@ -105,8 +173,19 @@ AjpcGraphRendererSigma.prototype._setupOverlayLayers = function () {
   var flow = canvases["ajpc-flow"] || null;
   var flowOpts = { style: { pointerEvents: "none" } };
 
-  if (Object.prototype.hasOwnProperty.call(canvases, "mouse")) flowOpts.beforeLayer = "mouse";
+  if (Object.prototype.hasOwnProperty.call(canvases, "nodes")) flowOpts.beforeLayer = "nodes";
+  else if (Object.prototype.hasOwnProperty.call(canvases, "nodeLabels")) flowOpts.beforeLayer = "nodeLabels";
+  else if (Object.prototype.hasOwnProperty.call(canvases, "labels")) flowOpts.beforeLayer = "labels";
+  else if (Object.prototype.hasOwnProperty.call(canvases, "hovers")) flowOpts.beforeLayer = "hovers";
+  else if (Object.prototype.hasOwnProperty.call(canvases, "mouse")) flowOpts.beforeLayer = "mouse";
+  else if (Object.prototype.hasOwnProperty.call(canvases, "edges")) flowOpts.afterLayer = "edges";
   else if (Object.prototype.hasOwnProperty.call(canvases, "scene")) flowOpts.afterLayer = "scene";
+
+  dbg("flow-layer", {
+    canvasKeys: Object.keys(canvases),
+    beforeLayer: Object.prototype.hasOwnProperty.call(flowOpts, "beforeLayer") ? flowOpts.beforeLayer : null,
+    afterLayer: Object.prototype.hasOwnProperty.call(flowOpts, "afterLayer") ? flowOpts.afterLayer : null
+  });
 
   try {
     if (!flow && typeof this.instance.createCanvas === "function") flow = this.instance.createCanvas("ajpc-flow", flowOpts);

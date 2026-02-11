@@ -91,6 +91,49 @@
 
 
   }
+
+  #status-active {
+    @include mixins.overlay-panel($bg-color: var(--bg-panel-soft));
+    width: min(400px, 21vw);
+    transform: translateX(calc(-100% - 18px));
+    pointer-events: none;
+    transition: transform 220ms ease;
+    will-change: transform;
+
+    &.is-open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+  }
+
+  #status-active-details {
+    display: block;
+    white-space: normal;
+    line-height: 1.35;
+    color: var(--text-main);
+    font-size: 12px;
+
+    .title {
+      h2 {
+        margin-bottom: 2px;
+      }
+      h3 {
+        margin-bottom: 0;
+      }
+
+    }
+  }
+
+  #status-active-deptree {
+    display: block;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--line), transparent 42%);
+    white-space: normal;
+    line-height: 1.35;
+    color: var(--text-soft);
+    font-size: 11px;
+  }
 }
 
 #status-overlay-bottom-right {

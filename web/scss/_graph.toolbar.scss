@@ -89,14 +89,11 @@
 }
 
 #btn-refresh {
-  border-color: #83601a;
-  background: #2d2210;
+  border-color: var(--bg-btn-rfs-border);
+  background: var(--bg-btn-rfs);
 }
 
-#btn-settings {
-  border-color: var(bg-btn-soft);
-  background: var(bg-btn);
-}
+
 
 #search-suggest {
   position: absolute;
@@ -106,7 +103,7 @@
   max-height: 260px;
   overflow: auto;
   background: var(--bg-panel);
-  border: 1px solid var(--border-dark);
+  border: 1px solid var(--border-light);
   border-radius: 9px;
   z-index: 200;
   display: none;

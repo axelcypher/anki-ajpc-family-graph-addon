@@ -11,13 +11,8 @@
   if (!rendering || !utils) return;
 
   var NodeProgram = rendering.NodeProgram;
-  var drawDiscNodeLabel = rendering.drawDiscNodeLabel;
   var floatColor = utils.floatColor;
-  if (typeof NodeProgram !== "function" || typeof drawDiscNodeLabel !== "function" || typeof floatColor !== "function") return;
-
-  function drawNoteNodeLabel(context, data, settings) {
-    return drawDiscNodeLabel(context, data, settings);
-  }
+  if (typeof NodeProgram !== "function" || typeof floatColor !== "function") return;
 
   var FRAGMENT_SHADER_SOURCE = [
     "precision highp float;",
@@ -75,11 +70,6 @@
   var UNIFORMS = ["u_sizeRatio", "u_correctionRatio", "u_time", "u_matrix"];
 
   class AJPCNoteNodeProgram extends NodeProgram {
-    constructor() {
-      super(...arguments);
-      this.drawLabel = drawNoteNodeLabel;
-    }
-
     getDefinition() {
       return {
         VERTICES: 3,

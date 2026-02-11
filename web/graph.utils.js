@@ -102,6 +102,17 @@ function normalizeHexColor(color, fallback) {
       + c.charAt(3) + c.charAt(3)
     ).toLowerCase();
   }
+  if (/^rgba?\(/i.test(c)) {
+    var parsed = parseColor(c, 1);
+    var r = clamp(Math.round(Number(parsed[0] || 0) * 255), 0, 255);
+    var g = clamp(Math.round(Number(parsed[1] || 0) * 255), 0, 255);
+    var b = clamp(Math.round(Number(parsed[2] || 0) * 255), 0, 255);
+    var toHex2 = function (n) {
+      var h = Number(n).toString(16);
+      return h.length < 2 ? ("0" + h) : h;
+    };
+    return ("#" + toHex2(r) + toHex2(g) + toHex2(b)).toLowerCase();
+  }
   return fallback || "#93c5fd";
 }
 

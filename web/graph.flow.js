@@ -16,6 +16,9 @@ function edgeTouchesSelectedSet(edge, selectedSet) {
 
 function edgeVisibleInRuntime(edge, edgeIndex) {
   if (!edge) return false;
+  if (STATE.runtimeFlowEdgeMask && edgeIndex >= 0 && edgeIndex < STATE.runtimeFlowEdgeMask.length) {
+    if (!STATE.runtimeFlowEdgeMask[edgeIndex]) return false;
+  }
   if (STATE.runtimeEdgeVisibleMask && edgeIndex >= 0 && edgeIndex < STATE.runtimeEdgeVisibleMask.length) {
     if (!STATE.runtimeEdgeVisibleMask[edgeIndex]) return false;
   }
@@ -39,6 +42,9 @@ function shouldAnimateEdge(edge, edgeIndex, selectedSet) {
   if (!edge) return false;
   if (!edgeVisibleInRuntime(edge, edgeIndex)) return false;
   if (edgeHasFlow(edge)) return true;
+  if (STATE.focusEdgeMask && edgeIndex >= 0 && edgeIndex < STATE.focusEdgeMask.length) {
+    if (STATE.focusEdgeMask[edgeIndex]) return true;
+  }
   if (STATE.hoveredLinkIndex === edgeIndex) return true;
   if (edgeTouchesPoint(edge, STATE.hoveredPointIndex)) return true;
   if (edgeTouchesPoint(edge, STATE.selectedPointIndex)) return true;
@@ -131,6 +137,19 @@ function flowEdgeCurvature(edgeIndex) {
   return (edgeIndex % 2 === 0) ? 0.12 : -0.12;
 }
 
+function flowEdgeColor(edge, edgeIndex) {
+  var arr = STATE.graph && STATE.graph.linkColors;
+  if (arr && arr.length >= ((edgeIndex * 4) + 4)) {
+    var r = Number(arr[edgeIndex * 4]);
+    var g = Number(arr[(edgeIndex * 4) + 1]);
+    var b = Number(arr[(edgeIndex * 4) + 2]);
+    if (isFiniteNumber(r) && isFiniteNumber(g) && isFiniteNumber(b)) {
+      return [clamp(r, 0, 1), clamp(g, 0, 1), clamp(b, 0, 1)];
+    }
+  }
+  return parseColor(STATE.layerColors[edge.layer] || fallbackLayerColor(edge.layer), 1);
+}
+
 function stopFlowParticles() {
   if (STATE.flowRaf) {
     window.cancelAnimationFrame(STATE.flowRaf);
@@ -210,7 +229,7 @@ function drawFlowParticles(ts) {
   }
 
   if (canDrawFlow && DOM.flowCtx) {
-    DOM.flowCtx.globalCompositeOperation = "lighter";
+    DOM.flowCtx.globalCompositeOperation = "source-over";
 
     var eligible = [];
     var i;
@@ -247,7 +266,7 @@ function drawFlowParticles(ts) {
       var curveLength = estimateCurveLengthOnScreen(ss, cc, tt);
       if (!isFinite(curveLength) || curveLength < 6) continue;
 
-      var flowColor = parseColor(STATE.layerColors[edge.layer] || fallbackLayerColor(edge.layer), 1);
+      var flowColor = flowEdgeColor(edge, edgeIndex);
       var phase = (Math.abs(hashCode(edge.source + "|" + edge.target + "|" + edge.layer)) % 2048) / 2048;
       var count = Math.max(1, Math.min(4, Math.floor(curveLength / 115)));
       var p;
@@ -266,12 +285,12 @@ function drawFlowParticles(ts) {
         var radius = Math.max(2.2 + (1.6 * speed), (linkScreenW * 0.62) + 1.15);
 
         DOM.flowCtx.beginPath();
-        DOM.flowCtx.fillStyle = "rgba(255,255,255," + alpha.toFixed(3) + ")";
+        DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.34, 0, 1));
         DOM.flowCtx.arc(pt[0], pt[1], radius, 0, Math.PI * 2);
         DOM.flowCtx.fill();
 
         DOM.flowCtx.beginPath();
-        DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.95, 0, 1));
+        DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.98, 0, 1));
         DOM.flowCtx.arc(pt[0], pt[1], Math.max(1.0, radius * 0.56), 0, Math.PI * 2);
         DOM.flowCtx.fill();
 
@@ -281,12 +300,12 @@ function drawFlowParticles(ts) {
           var revPt = STATE.graph.spaceToScreenPosition(revPtSpace);
           if (!Array.isArray(revPt)) continue;
           DOM.flowCtx.beginPath();
-          DOM.flowCtx.fillStyle = "rgba(255,255,255," + alpha.toFixed(3) + ")";
+          DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.34, 0, 1));
           DOM.flowCtx.arc(revPt[0], revPt[1], radius, 0, Math.PI * 2);
           DOM.flowCtx.fill();
 
           DOM.flowCtx.beginPath();
-          DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.95, 0, 1));
+          DOM.flowCtx.fillStyle = rgbaCss(flowColor[0], flowColor[1], flowColor[2], clamp(alpha * 0.98, 0, 1));
           DOM.flowCtx.arc(revPt[0], revPt[1], Math.max(1.0, radius * 0.56), 0, Math.PI * 2);
           DOM.flowCtx.fill();
         }
@@ -296,7 +315,13 @@ function drawFlowParticles(ts) {
     DOM.flowCtx.globalCompositeOperation = "source-over";
   }
 
-  if (STATE.graph && typeof STATE.graph.requestFrame === "function") {
+  if (
+    STATE.graph &&
+    typeof STATE.graph.requestFrame === "function" &&
+    STATE.graph.solver &&
+    STATE.graph.solver.simulation
+  ) {
+    // While layout is active, force one renderer frame so particles stay aligned to moving nodes.
     STATE.graph.requestFrame();
   }
   STATE.flowRaf = window.requestAnimationFrame(drawFlowParticles);
