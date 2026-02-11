@@ -1,5 +1,18 @@
 "use strict";
 
+// ============================================================
+// UI.js Index
+// 1) Tooltip + Hover
+// 2) UI helpers + runtime apply
+// 3) Debug panel (graph.ui.debug.js) + Status panels
+// 4) Dependency tree (graph.ui.deptree.js)
+// 5) Search UI
+// 6) Context menu
+// 7) Settings UI renderers
+// 8) DOM wiring + event handlers
+// ============================================================
+
+// === Tooltip + Hover =========================================================
 function tooltipHtml(node) {
   var parts = [];
   parts.push('<div class="tip-title">' + escapeHtml(node.label || node.id) + "</div>");
@@ -63,8 +76,12 @@ function setHoverDebug(reason, details) {
 
 function showTooltip(node, event) {
   if (!DOM.hoverTip || !node) return;
-  DOM.hoverTip.innerHTML = tooltipHtml(node);
-  DOM.hoverTip.style.display = "block";
+  var nodeId = String(node.id || "");
+  if (String(DOM.hoverTip.__nodeId || "") !== nodeId) {
+    DOM.hoverTip.innerHTML = tooltipHtml(node);
+    DOM.hoverTip.__nodeId = nodeId;
+  }
+  DOM.hoverTip.classList.add("is-visible");
 
   var cx = event && typeof event.clientX === "number" ? Number(event.clientX) : NaN;
   var cy = event && typeof event.clientY === "number" ? Number(event.clientY) : NaN;
@@ -91,9 +108,20 @@ function showTooltip(node, event) {
   });
 }
 
+function moveTooltip(clientX, clientY) {
+  if (!DOM.hoverTip) return;
+  if (!DOM.hoverTip.classList.contains("is-visible")) return;
+  var cx = Number(clientX);
+  var cy = Number(clientY);
+  if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) return;
+  DOM.hoverTip.style.left = (cx + 14) + "px";
+  DOM.hoverTip.style.top = (cy + 14) + "px";
+}
+
 function hideTooltip() {
   if (!DOM.hoverTip) return;
-  DOM.hoverTip.style.display = "none";
+  DOM.hoverTip.classList.remove("is-visible");
+  DOM.hoverTip.__nodeId = "";
 }
 
 function clearHoverNodeState(reason, details) {
@@ -106,53 +134,58 @@ function clearHoverNodeState(reason, details) {
   hideTooltip();
 }
 
-function resolvePointerToGraphViewport() {
-  if (!DOM.graph) return null;
-  if (!isFiniteNumber(STATE.pointerClientX) || !isFiniteNumber(STATE.pointerClientY)) return null;
-  var rect = DOM.graph.getBoundingClientRect();
-  if (!rect || !isFiniteNumber(rect.left) || !isFiniteNumber(rect.top)) return null;
-  var vx = Number(STATE.pointerClientX) - Number(rect.left);
-  var vy = Number(STATE.pointerClientY) - Number(rect.top);
-  if (!isFiniteNumber(vx) || !isFiniteNumber(vy)) return null;
-  return { vx: vx, vy: vy, rect: rect };
+// === Hover hit testing =======================================================
+function isClientPointInsideGraphPanel(clientX, clientY) {
+  if (!DOM.graphPanel) return false;
+  var x = Number(clientX);
+  var y = Number(clientY);
+  if (!isFiniteNumber(x) || !isFiniteNumber(y)) return false;
+  var rect = DOM.graphPanel.getBoundingClientRect();
+  if (!rect) return false;
+  return x >= Number(rect.left || 0)
+    && x <= Number(rect.right || 0)
+    && y >= Number(rect.top || 0)
+    && y <= Number(rect.bottom || 0);
 }
 
-function getNodeHoverScreenRadius(idx) {
-  var i = Number(idx);
-  if (!isFiniteNumber(i) || i < 0 || i >= STATE.activeNodes.length) return 8;
-
-  var radiusPx = NaN;
-  if (STATE.graph && typeof STATE.graph.getPointScreenRadiusByIndex === "function") {
-    radiusPx = Number(STATE.graph.getPointScreenRadiusByIndex(i));
-  }
-  if (!isFiniteNumber(radiusPx) || radiusPx <= 0) {
-    var baseSize = Number((STATE.pointStyleSizes && STATE.pointStyleSizes.length > i) ? STATE.pointStyleSizes[i] : 0);
-    if (!isFiniteNumber(baseSize) || baseSize <= 0) baseSize = 1;
-    // Sigma node size is radius-like in screen terms; no additional 0.5 shrink.
-    radiusPx = STATE.graph.spaceToScreenRadius(baseSize);
-  }
-  if (!isFiniteNumber(radiusPx) || radiusPx <= 0) radiusPx = 8;
-
-  var node = STATE.activeNodes && STATE.activeNodes.length > i ? STATE.activeNodes[i] : null;
-  var kind = String(node && node.kind || "");
-  var noteType = String(node && node.note_type || "");
-  var isNoteLike = (kind === "note") || !!noteType;
-  if (isNoteLike) {
-    // Custom note shader draws core+gap+ring+pulse outside the core radius.
-    radiusPx *= 1.75;
-  }
-
-  return Math.max(8, radiusPx + 6);
+function clearHoverIfPointerOutside(reason) {
+  if (STATE.hoveredPointIndex === null || STATE.hoveredPointIndex === undefined) return;
+  if (isClientPointInsideGraphPanel(STATE.pointerClientX, STATE.pointerClientY)) return;
+  STATE.pointerInsideGraph = false;
+  clearHoverNodeState(reason || "pointer-outside-fallback");
 }
 
 function findHoverCandidateAtPointer() {
   if (!STATE.graph || typeof STATE.graph.getPointPositions !== "function") return null;
-  var vp = resolvePointerToGraphViewport();
-  if (!vp) return null;
-  var px = Number(vp.vx);
-  var py = Number(vp.vy);
+  if (!DOM.graph) return null;
+  if (!isFiniteNumber(STATE.pointerClientX) || !isFiniteNumber(STATE.pointerClientY)) return null;
+  var rect = DOM.graph.getBoundingClientRect();
+  if (!rect || !isFiniteNumber(rect.left) || !isFiniteNumber(rect.top)) return null;
+  var px = Number(STATE.pointerClientX) - Number(rect.left);
+  var py = Number(STATE.pointerClientY) - Number(rect.top);
   if (!isFiniteNumber(px) || !isFiniteNumber(py)) return null;
   if (typeof STATE.graph.spaceToScreenPosition !== "function") return null;
+
+  function getNodeHoverScreenRadius(idx) {
+    var i = Number(idx);
+    if (!isFiniteNumber(i) || i < 0 || i >= STATE.activeNodes.length) return 8;
+    var radiusPx = NaN;
+    if (STATE.graph && typeof STATE.graph.getPointScreenRadiusByIndex === "function") {
+      radiusPx = Number(STATE.graph.getPointScreenRadiusByIndex(i));
+    }
+    if (!isFiniteNumber(radiusPx) || radiusPx <= 0) {
+      var baseSize = Number((STATE.pointStyleSizes && STATE.pointStyleSizes.length > i) ? STATE.pointStyleSizes[i] : 0);
+      if (!isFiniteNumber(baseSize) || baseSize <= 0) baseSize = 1;
+      radiusPx = STATE.graph.spaceToScreenRadius(baseSize);
+    }
+    if (!isFiniteNumber(radiusPx) || radiusPx <= 0) radiusPx = 8;
+    var node = STATE.activeNodes && STATE.activeNodes.length > i ? STATE.activeNodes[i] : null;
+    var kind = String(node && node.kind || "");
+    var noteType = String(node && node.note_type || "");
+    var isNoteLike = (kind === "note") || !!noteType;
+    if (isNoteLike) radiusPx *= 1.75;
+    return Math.max(8, radiusPx + 6);
+  }
 
   var pos = STATE.graph.getPointPositions();
   if (!Array.isArray(pos) || !pos.length) return null;
@@ -185,188 +218,7 @@ function findHoverCandidateAtPointer() {
   return bestIdx >= 0 ? bestIdx : null;
 }
 
-function syncHoverTooltipToPointer() {
-  if (STATE.hoveredPointIndex === null || STATE.hoveredPointIndex === undefined) {
-    var acquired = findHoverCandidateAtPointer();
-    if (acquired !== null && acquired !== undefined) {
-      STATE.hoveredPointIndex = Number(acquired);
-      if (typeof applyVisualStyles === "function") applyVisualStyles(0.08);
-      setHoverDebug("hover-fallback-acquire", { idx: acquired });
-    } else {
-      if (!STATE.hoverDebug || STATE.hoverDebug.reason !== "hover-none") setHoverDebug("hover-none");
-      hideTooltip();
-      return;
-    }
-  }
-  if (!STATE.pointerInsideGraph) {
-    clearHoverNodeState("pointer-outside");
-    return;
-  }
-  if (!STATE.graph || typeof STATE.graph.getPointPositions !== "function") {
-    setHoverDebug("graph-unready");
-    return;
-  }
-  if (!isFiniteNumber(STATE.pointerClientX) || !isFiniteNumber(STATE.pointerClientY)) {
-    setHoverDebug("pointer-invalid");
-    return;
-  }
-
-  var idx = Number(STATE.hoveredPointIndex);
-  if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) {
-    clearHoverNodeState("idx-invalid", { idx: idx });
-    return;
-  }
-
-  var pos = STATE.graph.getPointPositions();
-  if (!Array.isArray(pos) || pos.length < ((idx * 2) + 2)) {
-    clearHoverNodeState("positions-missing", { idx: idx });
-    return;
-  }
-
-  var sx = Number(pos[idx * 2]);
-  var sy = Number(pos[(idx * 2) + 1]);
-  if (!isFiniteNumber(sx) || !isFiniteNumber(sy)) {
-    clearHoverNodeState("node-space-invalid", { idx: idx });
-    return;
-  }
-
-  var screenPos = STATE.graph.spaceToScreenPosition([sx, sy]);
-  if (!Array.isArray(screenPos) || screenPos.length < 2) {
-    clearHoverNodeState("screenpos-invalid", { idx: idx });
-    return;
-  }
-  var panelRect = DOM.graph ? DOM.graph.getBoundingClientRect() : null;
-  var sxClient = Number(screenPos[0]);
-  var syClient = Number(screenPos[1]);
-  if (panelRect) {
-    sxClient += Number(panelRect.left || 0);
-    syClient += Number(panelRect.top || 0);
-  }
-
-  var hitRadius = getNodeHoverScreenRadius(idx);
-
-  var dx = Number(STATE.pointerClientX) - sxClient;
-  var dy = Number(STATE.pointerClientY) - syClient;
-  var dist = Math.sqrt((dx * dx) + (dy * dy));
-  if (!isFiniteNumber(dx) || !isFiniteNumber(dy) || ((dx * dx) + (dy * dy)) > (hitRadius * hitRadius)) {
-    var replacementIdx = findHoverCandidateAtPointer();
-    if (replacementIdx !== null && replacementIdx !== undefined && Number(replacementIdx) !== idx) {
-      STATE.hoveredPointIndex = Number(replacementIdx);
-      if (typeof applyVisualStyles === "function") applyVisualStyles(0.08);
-      setHoverDebug("hover-fallback-switch", {
-        idx: replacementIdx,
-        fromIdx: idx
-      });
-      idx = Number(replacementIdx);
-      pos = STATE.graph.getPointPositions();
-      if (!Array.isArray(pos) || pos.length < ((idx * 2) + 2)) {
-        clearHoverNodeState("positions-missing", { idx: idx });
-        return;
-      }
-      sx = Number(pos[idx * 2]);
-      sy = Number(pos[(idx * 2) + 1]);
-      if (!isFiniteNumber(sx) || !isFiniteNumber(sy)) {
-        clearHoverNodeState("node-space-invalid", { idx: idx });
-        return;
-      }
-      screenPos = STATE.graph.spaceToScreenPosition([sx, sy]);
-      if (!Array.isArray(screenPos) || screenPos.length < 2) {
-        clearHoverNodeState("screenpos-invalid", { idx: idx });
-        return;
-      }
-      sxClient = Number(screenPos[0]);
-      syClient = Number(screenPos[1]);
-      if (panelRect) {
-        sxClient += Number(panelRect.left || 0);
-        syClient += Number(panelRect.top || 0);
-      }
-      if (STATE.graph && typeof STATE.graph.getPointScreenRadiusByIndex === "function") {
-        hitRadius = getNodeHoverScreenRadius(idx);
-      }
-      dx = Number(STATE.pointerClientX) - sxClient;
-      dy = Number(STATE.pointerClientY) - syClient;
-      dist = Math.sqrt((dx * dx) + (dy * dy));
-      if (!isFiniteNumber(dx) || !isFiniteNumber(dy) || ((dx * dx) + (dy * dy)) > (hitRadius * hitRadius)) {
-        clearHoverNodeState("hit-miss", {
-          idx: idx,
-          hitRadius: hitRadius,
-          dist: dist,
-          dx: dx,
-          dy: dy,
-          nodeClientX: sxClient,
-          nodeClientY: syClient
-        });
-        return;
-      }
-    } else {
-      clearHoverNodeState("hit-miss", {
-        idx: idx,
-        hitRadius: hitRadius,
-        dist: dist,
-        dx: dx,
-        dy: dy,
-        nodeClientX: sxClient,
-        nodeClientY: syClient
-      });
-      return;
-    }
-  }
-
-  var node = STATE.activeNodes[idx];
-  if (!node) {
-    clearHoverNodeState("node-missing", { idx: idx });
-    return;
-  }
-  setHoverDebug("hover-ok", {
-    idx: idx,
-    nodeId: node.id,
-    noteType: node.note_type || node.kind || "",
-    hitRadius: hitRadius,
-    dist: dist,
-    dx: dx,
-    dy: dy,
-    nodeClientX: sxClient,
-    nodeClientY: syClient
-  });
-  showTooltip(node, { clientX: STATE.pointerClientX, clientY: STATE.pointerClientY });
-}
-
-function stopHoverMonitor() {
-  if (STATE.hoverMonitorRaf) {
-    window.cancelAnimationFrame(STATE.hoverMonitorRaf);
-    STATE.hoverMonitorRaf = null;
-  }
-  STATE.hoverMonitorLastTs = 0;
-}
-
-function isLayoutRunningForHover() {
-  return !!(
-    STATE.graph &&
-    STATE.graph.solver &&
-    STATE.graph.solver.simulation
-  );
-}
-
-function startHoverMonitor() {
-  if (STATE.hoverMonitorRaf) return;
-  function tick(ts) {
-    var now = Number(ts || 0);
-    var running = isLayoutRunningForHover();
-    var hasHover = STATE.hoveredPointIndex !== null && STATE.hoveredPointIndex !== undefined;
-    var wantsFallback = STATE.pointerInsideGraph && (running || hasHover);
-    if (wantsFallback) {
-      // Keep fallback hit-test cheap: ~30fps while layout runs, ~11fps otherwise.
-      var minStep = running ? 34 : 90;
-      if (!STATE.hoverMonitorLastTs || ((now - STATE.hoverMonitorLastTs) >= minStep)) {
-        STATE.hoverMonitorLastTs = now;
-        syncHoverTooltipToPointer();
-      }
-    }
-    STATE.hoverMonitorRaf = window.requestAnimationFrame(tick);
-  }
-  STATE.hoverMonitorRaf = window.requestAnimationFrame(tick);
-}
-
+// === UI helpers ==============================================================
 function applyUiSettingsNoRebuild(reheatLayout) {
   if (typeof applyRuntimeUiSettings === "function") {
     return !!applyRuntimeUiSettings(reheatLayout);
@@ -402,88 +254,6 @@ function engineSettingHint(spec) {
   return hinted || fallback || "Engine setting";
 }
 
-var DEBUG_EXTRA_SPEC = [
-  { key: "hov", a: "hoverReason", b: "hoverIdx" },
-  { key: "node", a: "hoverNode", b: "hoverType" },
-  { key: "hit", a: "hoverHit", b: "hoverDist" },
-  { key: "dxy", a: "hoverDx", b: "hoverDy" },
-  { key: "dep", a: "depTreeRps", b: "depTreeSkipCount" }
-];
-
-function ensureDebugExtraRows() {
-  if (!DOM.debugExtra || DOM.debugExtraCells) return;
-  DOM.debugExtraCells = {};
-  var table = document.createElement("div");
-  table.className = "coord-table";
-  table.setAttribute("aria-label", "debug extra");
-  DEBUG_EXTRA_SPEC.forEach(function (row) {
-    var k = document.createElement("div");
-    k.className = "coord-key";
-    k.textContent = row.key;
-    var a = document.createElement("div");
-    a.className = "coord-val";
-    a.textContent = "--";
-    var b = document.createElement("div");
-    b.className = "coord-val";
-    b.textContent = "--";
-    table.appendChild(k);
-    table.appendChild(a);
-    table.appendChild(b);
-    DOM.debugExtraCells[row.a] = a;
-    DOM.debugExtraCells[row.b] = b;
-  });
-  DOM.debugExtra.innerHTML = "";
-  DOM.debugExtra.appendChild(table);
-}
-
-function setDebugCoordValues(v) {
-  var x = v && typeof v === "object" ? v : {};
-  if (!DOM.debugCoordUse) return;
-  DOM.debugCoordUse.textContent = String(x.use || "--");
-  DOM.debugCoordVpX.textContent = String(x.vpX || "--");
-  DOM.debugCoordVpY.textContent = String(x.vpY || "--");
-  DOM.debugCoordClX.textContent = String(x.clX || "--");
-  DOM.debugCoordClY.textContent = String(x.clY || "--");
-  DOM.debugCoordCamX.textContent = String(x.camX || "--");
-  DOM.debugCoordCamY.textContent = String(x.camY || "--");
-  DOM.debugCoordRatio.textContent = String(x.camR || "--");
-}
-
-function setDebugExtraValues(v) {
-  ensureDebugExtraRows();
-  var x = v && typeof v === "object" ? v : {};
-  if (!DOM.debugExtraCells) return;
-  DEBUG_EXTRA_SPEC.forEach(function (row) {
-    if (DOM.debugExtraCells[row.a]) DOM.debugExtraCells[row.a].textContent = String(x[row.a] || "--");
-    if (DOM.debugExtraCells[row.b]) DOM.debugExtraCells[row.b].textContent = String(x[row.b] || "--");
-  });
-}
-
-function clearDebugValueTables() {
-  setDebugCoordValues({
-    use: "--",
-    vpX: "--",
-    vpY: "--",
-    clX: "--",
-    clY: "--",
-    camX: "--",
-    camY: "--",
-    camR: "--"
-  });
-  setDebugExtraValues({
-    hoverReason: "--",
-    hoverIdx: "--",
-    hoverNode: "--",
-    hoverType: "--",
-    hoverHit: "--",
-    hoverDist: "--",
-    hoverDx: "--",
-    hoverDy: "--",
-    depTreeRps: "--",
-    depTreeSkipCount: "--"
-  });
-}
-
 function pickSolverLinkDistance(obj) {
   if (!obj || typeof obj !== "object") return NaN;
   var keys = Object.keys(obj);
@@ -505,6 +275,7 @@ function defaultSolverLinkDistance() {
   return Number(value);
 }
 
+// === Status panel ============================================================
 function getVisibleGraphCounts() {
   var nodesTotal = Array.isArray(STATE.activeNodes) ? STATE.activeNodes.length : 0;
   var edgesTotal = Array.isArray(STATE.activeEdges) ? STATE.activeEdges.length : 0;
@@ -550,1180 +321,6 @@ function selectedNodeForStatus() {
   if (!node) return null;
   return { index: idx, node: node };
 }
-
-function depTreeCacheMap() {
-  if (!(STATE.depTreeCache instanceof Map)) STATE.depTreeCache = new Map();
-  return STATE.depTreeCache;
-}
-
-function nodeNidForDepTree(node) {
-  if (!node || String(node.kind || "") !== "note") return 0;
-  var raw = String(node.id || "").trim();
-  if (!/^\d+$/.test(raw)) return 0;
-  var nid = Number(raw);
-  return (isFiniteNumber(nid) && nid > 0) ? Math.round(nid) : 0;
-}
-
-function normalizeDepTreePayload(payload) {
-  var p = payload && typeof payload === "object" ? payload : {};
-  var out = {
-    current_nid: Number(p.current_nid || 0),
-    nodes: Array.isArray(p.nodes) ? p.nodes : [],
-    edges: Array.isArray(p.edges) ? p.edges : [],
-    raw_edges: [],
-    raw_labels: {},
-    estimated_height: Number(p.estimated_height || 0)
-  };
-  if (Array.isArray(p.raw_edges)) {
-    out.raw_edges = p.raw_edges
-      .filter(function (e) { return Array.isArray(e) && e.length >= 2; })
-      .map(function (e) { return [Number(e[0] || 0), Number(e[1] || 0)]; })
-      .filter(function (e) { return isFiniteNumber(e[0]) && e[0] > 0 && isFiniteNumber(e[1]) && e[1] > 0; });
-  }
-  if (p.raw_labels && typeof p.raw_labels === "object") out.raw_labels = p.raw_labels;
-  if (!isFiniteNumber(out.current_nid) || out.current_nid <= 0) out.current_nid = 0;
-  if (!isFiniteNumber(out.estimated_height) || out.estimated_height < 0) out.estimated_height = 0;
-  return out;
-}
-
-function formatDepTreeFallbackHtml(payload, extra) {
-  var p = normalizeDepTreePayload(payload);
-  var tail = extra ? " " + String(extra) : "";
-  return "<div><h3>Dependency Tree:</h3> " + escapeHtml(String(p.nodes.length)) + " nodes | " + escapeHtml(String(p.edges.length)) + " edges" + escapeHtml(tail) + "</div>";
-}
-
-function requestDepTreeForNid(nid) {
-  var target = Number(nid || 0);
-  if (!isFiniteNumber(target) || target <= 0) return;
-  var cache = depTreeCacheMap();
-  if (cache.has(target)) return;
-  if (Number(STATE.depTreePendingNid || 0) === target) return;
-  STATE.depTreePendingNid = target;
-  persistHook("deptree:" + String(target));
-}
-
-function depTreeCanvasHeight(payload) {
-  var p = normalizeDepTreePayload(payload);
-  var h = Number(p.estimated_height || 0);
-  if (!isFiniteNumber(h) || h <= 0) h = 170;
-  if (h < 120) h = 120;
-  if (h > 340) h = 340;
-  return Math.round(h);
-}
-
-function ensureDepTreePerfState() {
-  if (!STATE.depTreePerf || typeof STATE.depTreePerf !== "object") {
-    STATE.depTreePerf = {
-      windowStart: 0,
-      renderCount: 0,
-      renderTotal: 0,
-      skipCount: 0,
-      skipTotal: 0,
-      rps: 0,
-      sps: 0
-    };
-  }
-  return STATE.depTreePerf;
-}
-
-function recordDepTreeRender() {
-  var p = ensureDepTreePerfState();
-  p.renderCount = Number(p.renderCount || 0) + 1;
-  p.renderTotal = Number(p.renderTotal || 0) + 1;
-}
-
-function recordDepTreeSkip() {
-  var p = ensureDepTreePerfState();
-  p.skipCount = Number(p.skipCount || 0) + 1;
-  p.skipTotal = Number(p.skipTotal || 0) + 1;
-}
-
-function updateDepTreePerfWindow(nowMs) {
-  var p = ensureDepTreePerfState();
-  var now = Number(nowMs);
-  if (!isFiniteNumber(now) || now <= 0) now = Date.now();
-  if (!isFiniteNumber(Number(p.windowStart || 0)) || Number(p.windowStart || 0) <= 0) p.windowStart = now;
-  var elapsed = now - Number(p.windowStart || 0);
-  if (elapsed >= 1000) {
-    p.rps = (Number(p.renderCount || 0) * 1000) / Math.max(1, elapsed);
-    p.sps = (Number(p.skipCount || 0) * 1000) / Math.max(1, elapsed);
-    p.renderCount = 0;
-    p.skipCount = 0;
-    p.windowStart = now;
-  }
-  return p;
-}
-
-function depTreeDebugStats(nowMs) {
-  var p = updateDepTreePerfWindow(nowMs);
-  return {
-    depTreeRps: Number(Number(p.rps || 0)).toFixed(1) + "/s",
-    depTreeSkipCount: "R:" + String(Math.max(0, Math.round(Number(p.renderTotal || 0)))) + " S:" + String(Math.max(0, Math.round(Number(p.skipTotal || 0))))
-  };
-}
-
-function resetDepTreeRenderState() {
-  STATE.depTreeLoadingNid = 0;
-  STATE.depTreeRenderState = {
-    nid: 0,
-    payloadRef: null,
-    payloadStamp: "",
-    width: 0,
-    height: 0
-  };
-}
-
-function depTreePayloadStamp(payload) {
-  var p = normalizeDepTreePayload(payload);
-  var n = Array.isArray(p.nodes) ? p.nodes : [];
-  var e = Array.isArray(p.edges) ? p.edges : [];
-  var firstNode = n.length ? String((n[0] && n[0].id) || "") : "";
-  var lastNode = n.length ? String((n[n.length - 1] && n[n.length - 1].id) || "") : "";
-  var firstEdge = e.length ? (String((e[0] && e[0].source) || "") + ">" + String((e[0] && e[0].target) || "")) : "";
-  var lastEdge = e.length ? (String((e[e.length - 1] && e[e.length - 1].source) || "") + ">" + String((e[e.length - 1] && e[e.length - 1].target) || "")) : "";
-  return [
-    String(Number(p.current_nid || 0)),
-    String(n.length),
-    String(e.length),
-    String(Math.round(Number(p.estimated_height || 0))),
-    firstNode,
-    lastNode,
-    firstEdge,
-    lastEdge
-  ].join("|");
-}
-
-function depTreeCurrentCanvasSize(payload) {
-  var width = 320;
-  if (DOM.statusActiveDepTreeCanvas && DOM.statusActiveDepTreeCanvas.parentNode === DOM.statusActiveDepTree) {
-    width = Number(DOM.statusActiveDepTreeCanvas.clientWidth || 0);
-  }
-  if (!isFiniteNumber(width) || width <= 0) {
-    width = Number((DOM.statusActiveDepTree && DOM.statusActiveDepTree.clientWidth) || 320);
-  }
-  if (!isFiniteNumber(width) || width <= 0) width = 320;
-  var height = depTreeCanvasHeight(payload);
-  return {
-    width: Math.max(120, Math.floor(width)),
-    height: Math.max(120, Math.floor(height))
-  };
-}
-
-function shouldRenderDepTreeCanvas(nid, payload, force) {
-  if (force) return true;
-  var sig = (STATE.depTreeRenderState && typeof STATE.depTreeRenderState === "object")
-    ? STATE.depTreeRenderState
-    : { nid: 0, payloadRef: null, payloadStamp: "", width: 0, height: 0 };
-  var size = depTreeCurrentCanvasSize(payload);
-  var stamp = depTreePayloadStamp(payload);
-  if (Number(sig.nid || 0) !== Number(nid || 0)) return true;
-  if (String(sig.payloadStamp || "") !== stamp) return true;
-  if (Math.abs(Number(sig.width || 0) - Number(size.width || 0)) > 1) return true;
-  if (Math.abs(Number(sig.height || 0) - Number(size.height || 0)) > 1) return true;
-  recordDepTreeSkip();
-  return false;
-}
-
-function markDepTreeRendered(nid, payload) {
-  var size = depTreeCurrentCanvasSize(payload);
-  STATE.depTreeRenderState = {
-    nid: Number(nid || 0),
-    payloadRef: payload || null,
-    payloadStamp: depTreePayloadStamp(payload),
-    width: Number(size.width || 0),
-    height: Number(size.height || 0)
-  };
-  STATE.depTreeLoadingNid = 0;
-  recordDepTreeRender();
-}
-
-function ensureDepTreeCanvas(payload) {
-  if (!DOM.statusActiveDepTree) return null;
-  var canvas = DOM.statusActiveDepTreeCanvas;
-  if (canvas && canvas.parentNode !== DOM.statusActiveDepTree) canvas = null;
-  if (!canvas) {
-    DOM.statusActiveDepTree.innerHTML = "";
-    canvas = document.createElement("canvas");
-    canvas.className = "dep-tree-canvas";
-    canvas.style.width = "100%";
-    canvas.style.display = "block";
-    canvas.style.background = "transparent";
-    canvas.style.cursor = "pointer";
-    canvas.addEventListener("click", function (evt) {
-      var c = evt.currentTarget;
-      if (!c || !c.__ajpcHitBoxes || !c.__ajpcHitBoxes.length) return;
-      var rect = c.getBoundingClientRect();
-      var px = Number(evt.clientX) - Number(rect.left || 0);
-      var py = Number(evt.clientY) - Number(rect.top || 0);
-      if (!isFiniteNumber(px) || !isFiniteNumber(py)) return;
-      var hit = null;
-      for (var i = c.__ajpcHitBoxes.length - 1; i >= 0; i -= 1) {
-        var b = c.__ajpcHitBoxes[i];
-        if (px >= b.x && px <= (b.x + b.w) && py >= b.y && py <= (b.y + b.h)) {
-          hit = b;
-          break;
-        }
-      }
-      if (!hit) return;
-      if (typeof focusNodeById === "function") focusNodeById(String(hit.id || ""), true);
-    });
-    canvas.addEventListener("dblclick", function (evt) {
-      var c = evt.currentTarget;
-      if (!c || !c.__ajpcHitBoxes || !c.__ajpcHitBoxes.length) return;
-      var rect = c.getBoundingClientRect();
-      var px = Number(evt.clientX) - Number(rect.left || 0);
-      var py = Number(evt.clientY) - Number(rect.top || 0);
-      if (!isFiniteNumber(px) || !isFiniteNumber(py)) return;
-      for (var i = c.__ajpcHitBoxes.length - 1; i >= 0; i -= 1) {
-        var b = c.__ajpcHitBoxes[i];
-        if (px >= b.x && px <= (b.x + b.w) && py >= b.y && py <= (b.y + b.h)) {
-          var nid = Number(b.nid || 0);
-          if (isFiniteNumber(nid) && nid > 0) persistHook("ctx:editapi:" + String(Math.round(nid)));
-          break;
-        }
-      }
-    });
-    DOM.statusActiveDepTree.appendChild(canvas);
-    DOM.statusActiveDepTreeCanvas = canvas;
-  }
-  canvas.style.height = String(depTreeCanvasHeight(payload)) + "px";
-  return canvas;
-}
-
-function depTreeWrapText(ctx, text, maxW, maxLines) {
-  var chars = Array.from(String(text || "Node"));
-  var lines = [];
-  var cur = "";
-  for (var i = 0; i < chars.length; i += 1) {
-    var ch = chars[i];
-    var next = cur + ch;
-    if (ctx.measureText(next).width <= maxW || !cur.length) {
-      cur = next;
-    } else {
-      lines.push(cur);
-      cur = ch;
-      if (lines.length >= maxLines) break;
-    }
-  }
-  if (cur && lines.length < maxLines) lines.push(cur);
-  if (lines.length >= maxLines && chars.length > 0) {
-    var last = String(lines[maxLines - 1] || "");
-    lines[maxLines - 1] = last.slice(0, Math.max(1, last.length - 3)) + "...";
-  }
-  return lines.length ? lines : ["Node"];
-}
-
-function depTreeRgbaStringFromParsedColor(parsed, fallback) {
-  if (!Array.isArray(parsed) || parsed.length < 3) return String(fallback || "#3d95e7");
-  var r = Number(parsed[0]);
-  var g = Number(parsed[1]);
-  var b = Number(parsed[2]);
-  var a = parsed.length >= 4 ? Number(parsed[3]) : 1;
-  if (!isFinite(r) || !isFinite(g) || !isFinite(b) || !isFinite(a)) return String(fallback || "#3d95e7");
-  r = Math.max(0, Math.min(1, r));
-  g = Math.max(0, Math.min(1, g));
-  b = Math.max(0, Math.min(1, b));
-  a = Math.max(0, Math.min(1, a));
-  return "rgba(" + Math.round(r * 255) + "," + Math.round(g * 255) + "," + Math.round(b * 255) + "," + a.toFixed(3) + ")";
-}
-
-function depTreeResolveActiveNodeId(depTreeNodeId) {
-  var id = String(depTreeNodeId || "");
-  if (!id) return "";
-  var byId = STATE.activeIndexById instanceof Map ? STATE.activeIndexById : null;
-  if (!byId) return "";
-  if (byId.has(id)) return id;
-  if (/^n\d+$/.test(id)) {
-    var raw = id.slice(1);
-    if (byId.has(raw)) return raw;
-  }
-  if (/^\d+$/.test(id)) {
-    var prefixed = "n" + id;
-    if (byId.has(prefixed)) return prefixed;
-  }
-  return "";
-}
-
-function depTreeNodeColorFromGraph(depTreeNodeId, fallback) {
-  var resolvedId = depTreeResolveActiveNodeId(depTreeNodeId);
-  if (!resolvedId) return String(fallback || "#3d95e7");
-  var byId = STATE.activeIndexById instanceof Map ? STATE.activeIndexById : null;
-  if (!byId) return String(fallback || "#3d95e7");
-  var idx = Number(byId.get(resolvedId));
-  if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) return String(fallback || "#3d95e7");
-
-  var node = STATE.activeNodes[idx];
-  if (node && typeof nodeColor === "function") {
-    var parsed = nodeColor(node);
-    var fromNodeCfg = depTreeRgbaStringFromParsedColor(parsed, "");
-    if (fromNodeCfg) return fromNodeCfg;
-  }
-
-  var flat = (STATE.basePointColors && STATE.basePointColors.length) ? STATE.basePointColors : null;
-  if (flat && flat.length >= ((idx * 4) + 4)) {
-    var r = Number(flat[idx * 4] || 0);
-    var g = Number(flat[(idx * 4) + 1] || 0);
-    var b = Number(flat[(idx * 4) + 2] || 0);
-    var a = Number(flat[(idx * 4) + 3] || 1);
-    return depTreeRgbaStringFromParsedColor([r, g, b, a], fallback || "#3d95e7");
-  }
-
-  return String(fallback || "#3d95e7");
-}
-
-function depTreeEdgeColorKey(sourceId, targetId) {
-  return String(sourceId || "") + "->" + String(targetId || "");
-}
-
-function depTreeBuildPriorityEdgeColorMap() {
-  var out = new Map();
-  var edges = Array.isArray(STATE.activeEdges) ? STATE.activeEdges : [];
-  for (var i = 0; i < edges.length; i += 1) {
-    var edge = edges[i];
-    if (!edge) continue;
-    if (String(edge.layer || "") !== "priority") continue;
-    var s = String(edge.source || "");
-    var t = String(edge.target || "");
-    if (!s || !t) continue;
-    var parsed = null;
-    if (typeof linkColor === "function") parsed = linkColor(edge);
-    if (!parsed && typeof parseColor === "function") {
-      var raw = (STATE.layerColors && STATE.layerColors.priority) ? STATE.layerColors.priority : "#3d95e7";
-      parsed = parseColor(String(raw || "#3d95e7"), 1);
-    }
-    var color = depTreeRgbaStringFromParsedColor(parsed, "#3d95e7");
-    var key = depTreeEdgeColorKey(s, t);
-    if (!out.has(key)) out.set(key, color);
-  }
-  return out;
-}
-
-function depTreePriorityEdgeColorFromGraph(depSourceId, depTargetId, edgeColorMap, fallback) {
-  var s = depTreeResolveActiveNodeId(depSourceId);
-  var t = depTreeResolveActiveNodeId(depTargetId);
-  if (s && t && edgeColorMap instanceof Map) {
-    var direct = edgeColorMap.get(depTreeEdgeColorKey(s, t));
-    if (direct) return String(direct);
-    var reverse = edgeColorMap.get(depTreeEdgeColorKey(t, s));
-    if (reverse) return String(reverse);
-  }
-  if (typeof parseColor === "function") {
-    var raw = (STATE.layerColors && STATE.layerColors.priority) ? STATE.layerColors.priority : "#3d95e7";
-    return depTreeRgbaStringFromParsedColor(parseColor(String(raw || "#3d95e7"), 1), fallback || "#3d95e7");
-  }
-  return String(fallback || "#3d95e7");
-}
-
-function depTreeBuildLayout(payload, ctx, width, height) {
-  var p = normalizeDepTreePayload(payload);
-  var nodes = (Array.isArray(p.nodes) ? p.nodes : []).map(function (n) {
-    var nodeId = String((n && n.id) || "");
-    var payloadColor = String((n && n.color) || "#3d95e7");
-    var graphColor = depTreeNodeColorFromGraph(nodeId, payloadColor);
-    return {
-      id: nodeId,
-      nid: Number((n && n.nid) || 0),
-      label: String((n && n.label) || (nodeId || "")),
-      color: graphColor,
-      depth: 0
-    };
-  }).filter(function (n) { return !!n.id; });
-  if (!nodes.length) return { p: p, boxes: new Map(), nodes: [], edges: [], rootId: "", neededHeight: 0 };
-
-  var byId = new Map();
-  nodes.forEach(function (n) { byId.set(n.id, n); });
-
-  var edges = (Array.isArray(p.edges) ? p.edges : []).map(function (e) {
-    return { source: String((e && e.source) || ""), target: String((e && e.target) || "") };
-  }).filter(function (e) { return byId.has(e.source) && byId.has(e.target); });
-
-  var rootId = "";
-  var rootNid = Number(p.current_nid || 0);
-  if (isFiniteNumber(rootNid) && rootNid > 0) {
-    var k = "n" + String(Math.round(rootNid));
-    if (byId.has(k)) rootId = k;
-    if (!rootId) {
-      for (var i = 0; i < nodes.length; i += 1) {
-        if (Number(nodes[i].nid || 0) === Math.round(rootNid)) {
-          rootId = nodes[i].id;
-          break;
-        }
-      }
-    }
-  }
-  if (!rootId) rootId = nodes[0].id;
-
-  var preds = new Map();
-  var outs = new Map();
-  nodes.forEach(function (n) {
-    preds.set(n.id, []);
-    outs.set(n.id, []);
-  });
-  edges.forEach(function (e) {
-    outs.get(e.source).push(e.target);
-    preds.get(e.target).push(e.source);
-  });
-
-  var depth = new Map();
-  depth.set(rootId, 0);
-  var anc = [rootId];
-  while (anc.length) {
-    var aid = anc.shift();
-    var ad = Number(depth.get(aid) || 0);
-    var parents = preds.get(aid) || [];
-    for (var pi = 0; pi < parents.length; pi += 1) {
-      var parent = parents[pi];
-      var pd = ad - 1;
-      if (!depth.has(parent) || pd < Number(depth.get(parent) || 0)) {
-        depth.set(parent, pd);
-        anc.push(parent);
-      }
-    }
-  }
-  var dep = [rootId];
-  while (dep.length) {
-    var did = dep.shift();
-    var dd = Number(depth.get(did) || 0);
-    var children = outs.get(did) || [];
-    for (var ci = 0; ci < children.length; ci += 1) {
-      var child = children[ci];
-      var cd = dd + 1;
-      if (!depth.has(child) || cd > Number(depth.get(child) || 0)) {
-        depth.set(child, cd);
-        dep.push(child);
-      }
-    }
-  }
-
-  var levels = new Map();
-  var minDepth = 0;
-  var maxDepth = 0;
-  nodes.forEach(function (n) {
-    var d = depth.has(n.id) ? Number(depth.get(n.id) || 0) : 0;
-    n.depth = d;
-    minDepth = Math.min(minDepth, d);
-    maxDepth = Math.max(maxDepth, d);
-    if (!levels.has(d)) levels.set(d, []);
-    levels.get(d).push(n);
-  });
-
-  var depthKeys = Array.from(levels.keys()).sort(function (a, b) { return a - b; });
-  var orderByLevel = new Map();
-  function resetLevelOrder(depthKey) {
-    var list = levels.get(depthKey) || [];
-    list.sort(function (a, b) { return String(a.label).localeCompare(String(b.label)); });
-    var om = new Map();
-    for (var i = 0; i < list.length; i += 1) om.set(list[i].id, i);
-    orderByLevel.set(depthKey, om);
-  }
-  depthKeys.forEach(function (d) { resetLevelOrder(d); });
-
-  function neighborBary(nodeId, neighborDepth) {
-    var ids = [];
-    var pp = preds.get(nodeId) || [];
-    var oo = outs.get(nodeId) || [];
-    for (var i = 0; i < pp.length; i += 1) {
-      if (Number(depth.get(pp[i]) || 0) === neighborDepth) ids.push(pp[i]);
-    }
-    for (var j = 0; j < oo.length; j += 1) {
-      if (Number(depth.get(oo[j]) || 0) === neighborDepth) ids.push(oo[j]);
-    }
-    var om = orderByLevel.get(neighborDepth) || new Map();
-    var vals = ids.map(function (id) { return om.has(id) ? om.get(id) : null; }).filter(function (v) { return v !== null; });
-    if (!vals.length) return null;
-    var sum = 0;
-    for (var k = 0; k < vals.length; k += 1) sum += Number(vals[k] || 0);
-    return sum / vals.length;
-  }
-
-  for (var pass = 0; pass < 6; pass += 1) {
-    for (var fi = 1; fi < depthKeys.length; fi += 1) {
-      var d1 = depthKeys[fi];
-      var prev = depthKeys[fi - 1];
-      var list1 = levels.get(d1) || [];
-      var curOrder1 = orderByLevel.get(d1) || new Map();
-      list1.sort(function (a, b) {
-        var ba = neighborBary(a.id, prev);
-        var bb = neighborBary(b.id, prev);
-        var fa = (ba === null) ? Number(curOrder1.get(a.id) || 0) : ba;
-        var fb = (bb === null) ? Number(curOrder1.get(b.id) || 0) : bb;
-        if (fa !== fb) return fa - fb;
-        return String(a.label).localeCompare(String(b.label));
-      });
-      var om1 = new Map();
-      for (var f1 = 0; f1 < list1.length; f1 += 1) om1.set(list1[f1].id, f1);
-      orderByLevel.set(d1, om1);
-    }
-
-    for (var bi = depthKeys.length - 2; bi >= 0; bi -= 1) {
-      var d2 = depthKeys[bi];
-      var next = depthKeys[bi + 1];
-      var list2 = levels.get(d2) || [];
-      var curOrder2 = orderByLevel.get(d2) || new Map();
-      list2.sort(function (a, b) {
-        var ba = neighborBary(a.id, next);
-        var bb = neighborBary(b.id, next);
-        var fa = (ba === null) ? Number(curOrder2.get(a.id) || 0) : ba;
-        var fb = (bb === null) ? Number(curOrder2.get(b.id) || 0) : bb;
-        if (fa !== fb) return fa - fb;
-        return String(a.label).localeCompare(String(b.label));
-      });
-      var om2 = new Map();
-      for (var b2 = 0; b2 < list2.length; b2 += 1) om2.set(list2[b2].id, b2);
-      orderByLevel.set(d2, om2);
-    }
-  }
-
-  var marginX = 36;
-  var marginY = 44;
-  var usableH = Math.max(10, height - (marginY * 2));
-  var padX = 7;
-  var padY = 5;
-  var lineH = 12;
-  var singleLineNodeH = Math.ceil(lineH + (padY * 2));
-  var maxLines = 2;
-  var offsetFactor = 0.20;
-  var boxById = new Map();
-  var rowLayouts = [];
-
-  ctx.font = "11px sans-serif";
-  function measureRawWidth(label) {
-    var txt = String(label || "Node");
-    return Math.max(48, Math.ceil(ctx.measureText(txt).width + (padX * 2)));
-  }
-
-  for (var row = 0; row < depthKeys.length; row += 1) {
-    var dkey = depthKeys[row];
-    var list = levels.get(dkey) || [];
-    var nCount = list.length;
-    var usableW = Math.max(10, width - (marginX * 2));
-    var minGap = nCount > 1 ? singleLineNodeH : 0;
-    var laneGapBase = singleLineNodeH;
-
-    var measured = list.map(function (node) {
-      return { node: node, rawW: measureRawWidth(node.label) };
-    });
-
-    function packGreedy(items) {
-      var lanes = [];
-      var lane = [];
-      var laneContentW = 0;
-      for (var i = 0; i < items.length; i += 1) {
-        var it = items[i];
-        var nextContentW = lane.length > 0 ? (laneContentW + minGap + it.rawW) : it.rawW;
-        var nextWithOffset = Math.ceil(nextContentW * (1 + offsetFactor));
-        if (lane.length > 0 && nextWithOffset > usableW) {
-          lanes.push(lane);
-          lane = [it];
-          laneContentW = it.rawW;
-        } else {
-          lane.push(it);
-          laneContentW = nextContentW;
-        }
-      }
-      if (lane.length > 0) lanes.push(lane);
-      return lanes;
-    }
-
-    var packed = packGreedy(measured);
-    var cols = Math.max(1, packed.reduce(function (mx, ln) { return Math.max(mx, ln.length); }, 0));
-    var colW = usableW / Math.max(1, cols);
-    var maxLabelW = Math.max(24, Math.floor((colW * 0.84) - (padX * 2)));
-
-    function buildLaneBoxes(items) {
-      var out = [];
-      for (var i = 0; i < items.length; i += 1) {
-        var item = items[i];
-        var lines = depTreeWrapText(ctx, item.node.label, maxLabelW, maxLines);
-        var textW = 0;
-        for (var li = 0; li < lines.length; li += 1) {
-          textW = Math.max(textW, ctx.measureText(lines[li]).width);
-        }
-        var capW = Math.max(48, Math.floor(colW * 0.95));
-        var boxW = Math.max(48, Math.min(capW, Math.ceil(textW + (padX * 2))));
-        var boxH = Math.max(22, Math.ceil(lines.length * lineH + (padY * 2)));
-        out.push({ node: item.node, lines: lines, w: boxW, h: boxH });
-      }
-      return out;
-    }
-
-    var lanes = packed.map(function (ln) { return buildLaneBoxes(ln); });
-    var laneGap = lanes.length > 1 ? Math.max(6, Math.floor(laneGapBase * 0.7)) : laneGapBase;
-    var laneHeights = lanes.map(function (ln) {
-      return ln.reduce(function (mh, b) { return Math.max(mh, b.h); }, 22);
-    });
-    var totalLaneH = laneHeights.reduce(function (acc, v) { return acc + v; }, 0) + (laneGap * Math.max(0, lanes.length - 1));
-
-    rowLayouts.push({
-      depth: dkey,
-      lanes: lanes,
-      laneHeights: laneHeights,
-      totalLaneH: totalLaneH,
-      usableW: usableW,
-      minGap: minGap,
-      laneGap: laneGap,
-      cols: cols,
-      colW: colW,
-      offsetStep: colW * offsetFactor
-    });
-  }
-
-  var rowCount = rowLayouts.length;
-  if (rowCount <= 0) {
-    return { p: p, boxes: boxById, nodes: nodes, edges: edges, rootId: rootId, neededHeight: 96 };
-  }
-
-  var minRowGap = singleLineNodeH;
-  var totalRowsH = rowLayouts.reduce(function (acc, r) { return acc + Number(r.totalLaneH || 0); }, 0);
-  var levelGapBonus = rowCount > 1 ? Math.max(2, Math.floor(minRowGap * 0.2)) : 0;
-  var baseLevelGap = minRowGap + levelGapBonus;
-  var requiredMin = totalRowsH + (baseLevelGap * Math.max(0, rowCount - 1)) + (marginY * 2);
-  var neededHeight = Math.max(96, Math.ceil(requiredMin));
-
-  var rowGap = baseLevelGap;
-  if (rowCount > 1) {
-    var compactMin = totalRowsH + (baseLevelGap * (rowCount - 1));
-    if (compactMin <= usableH) {
-      rowGap = baseLevelGap + ((usableH - compactMin) / (rowCount - 1));
-    }
-  }
-
-  var totalPackedH = totalRowsH + (rowGap * Math.max(0, rowCount - 1));
-  var yCursor = marginY;
-  if (totalPackedH < usableH) yCursor = marginY + ((usableH - totalPackedH) * 0.5);
-
-  for (var r = 0; r < rowLayouts.length; r += 1) {
-    var rowLayout = rowLayouts[r];
-    var yTop = yCursor;
-    var lanes = rowLayout.lanes || [];
-    var laneHeights = rowLayout.laneHeights || [];
-    var laneGap = Number(rowLayout.laneGap || minRowGap);
-    var rowUsableW = Number(rowLayout.usableW || Math.max(10, width - (marginX * 2)));
-    var rowMinGap = Number(rowLayout.minGap || minRowGap);
-    var cols = Math.max(1, Number(rowLayout.cols || 1));
-    var colW = Number(rowLayout.colW || (rowUsableW / cols));
-
-    for (var li = 0; li < lanes.length; li += 1) {
-      var lane = lanes[li] || [];
-      var m = lane.length;
-      if (m <= 0) {
-        yTop += Number(laneHeights[li] || 22) + laneGap;
-        continue;
-      }
-
-      var laneH = Number(laneHeights[li] || 22);
-      var laneY = yTop + (laneH * 0.5);
-      var startCol = (cols - m) * 0.5;
-      var baseCenters = [];
-      var laneLeft = Number.POSITIVE_INFINITY;
-      var laneRight = Number.NEGATIVE_INFINITY;
-      for (var i = 0; i < m; i += 1) {
-        var slot = startCol + i;
-        var cxBase = marginX + ((slot + 0.5) * colW);
-        baseCenters.push(cxBase);
-        var bw0 = Number(lane[i].w || 48);
-        laneLeft = Math.min(laneLeft, cxBase - (bw0 * 0.5));
-        laneRight = Math.max(laneRight, cxBase + (bw0 * 0.5));
-      }
-
-      var laneShift = 0;
-      if (lanes.length > 1) {
-        var sign = (li % 2 === 0) ? 1 : -1;
-        var mul = Math.floor(li / 2) + 1;
-        laneShift = sign * mul * Number(rowLayout.offsetStep || (colW * offsetFactor));
-        var minShift = marginX - laneLeft;
-        var maxShift = (marginX + rowUsableW) - laneRight;
-        if (laneShift < minShift) laneShift = minShift;
-        if (laneShift > maxShift) laneShift = maxShift;
-      }
-
-      var prevRight = Number.NEGATIVE_INFINITY;
-      for (var bi = 0; bi < m; bi += 1) {
-        var b = lane[bi];
-        var bw = Number(b.w || 48);
-        var bh = Number(b.h || 22);
-        var cx = baseCenters[bi] + laneShift;
-        var bx = Math.round(cx - (bw * 0.5));
-        if (bx < (prevRight + rowMinGap)) bx = Math.round(prevRight + rowMinGap);
-        var minX = Math.round(marginX);
-        var maxX = Math.round(marginX + rowUsableW - bw);
-        if (bx < minX) bx = minX;
-        if (bx > maxX) bx = maxX;
-        var by = Math.round(laneY - (bh * 0.5));
-        b.node.x = bx + (bw * 0.5);
-        b.node.y = laneY;
-        boxById.set(b.node.id, {
-          id: b.node.id,
-          nid: Number(b.node.nid || 0),
-          label: String(b.node.label || b.node.id || ""),
-          color: String(b.node.color || "#3d95e7"),
-          x: bx,
-          y: by,
-          w: bw,
-          h: bh,
-          cx: bx + (bw * 0.5),
-          cy: by + (bh * 0.5),
-          lines: b.lines || [String(b.node.label || b.node.id || "")]
-        });
-        prevRight = bx + bw;
-      }
-
-      yTop += laneH + laneGap;
-    }
-    yCursor += Number(rowLayout.totalLaneH || 0) + rowGap;
-  }
-
-  return { p: p, boxes: boxById, nodes: nodes, edges: edges, rootId: rootId, neededHeight: neededHeight };
-}
-
-function depTreeEdgePoints(srcBox, dstBox) {
-  if (!srcBox || !dstBox) return null;
-  if ((srcBox.y + (srcBox.h * 0.5)) <= (dstBox.y + (dstBox.h * 0.5))) {
-    return {
-      x1: srcBox.x + (srcBox.w * 0.5),
-      y1: srcBox.y + srcBox.h,
-      x2: dstBox.x + (dstBox.w * 0.5),
-      y2: dstBox.y
-    };
-  }
-  return {
-    x1: srcBox.x + (srcBox.w * 0.5),
-    y1: srcBox.y,
-    x2: dstBox.x + (dstBox.w * 0.5),
-    y2: dstBox.y + dstBox.h
-  };
-}
-
-function depTreeSegmentsIntersect(a, b, c, d) {
-  function orient(p, q, r) {
-    return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
-  }
-  function onSeg(p, q, r) {
-    return Math.min(p.x, r.x) <= q.x && q.x <= Math.max(p.x, r.x)
-      && Math.min(p.y, r.y) <= q.y && q.y <= Math.max(p.y, r.y);
-  }
-  var o1 = orient(a, b, c);
-  var o2 = orient(a, b, d);
-  var o3 = orient(c, d, a);
-  var o4 = orient(c, d, b);
-  if ((o1 === 0 && onSeg(a, c, b)) || (o2 === 0 && onSeg(a, d, b)) || (o3 === 0 && onSeg(c, a, d)) || (o4 === 0 && onSeg(c, b, d))) return true;
-  return ((o1 > 0) !== (o2 > 0)) && ((o3 > 0) !== (o4 > 0));
-}
-
-function depTreeSegmentIntersectsRect(x1, y1, x2, y2, box, pad) {
-  var p = Math.max(0, Number(pad || 0));
-  var r = {
-    x: Number(box.x || 0) - p,
-    y: Number(box.y || 0) - p,
-    w: Number(box.w || 0) + (p * 2),
-    h: Number(box.h || 0) + (p * 2)
-  };
-  function pointInRect(px, py, rr) {
-    return px >= rr.x && px <= (rr.x + rr.w) && py >= rr.y && py <= (rr.y + rr.h);
-  }
-  if (pointInRect(x1, y1, r) || pointInRect(x2, y2, r)) return true;
-  var a = { x: x1, y: y1 };
-  var b = { x: x2, y: y2 };
-  var e1 = [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }];
-  var e2 = [{ x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }];
-  var e3 = [{ x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }];
-  var e4 = [{ x: r.x, y: r.y + r.h }, { x: r.x, y: r.y }];
-  return depTreeSegmentsIntersect(a, b, e1[0], e1[1])
-    || depTreeSegmentsIntersect(a, b, e2[0], e2[1])
-    || depTreeSegmentsIntersect(a, b, e3[0], e3[1])
-    || depTreeSegmentsIntersect(a, b, e4[0], e4[1]);
-}
-
-function depTreePathIntersectsAnyBox(points, sourceId, targetId, nodes, boxes) {
-  if (!points || points.length < 2) return false;
-  for (var i = 1; i < points.length; i += 1) {
-    var a = points[i - 1];
-    var b = points[i];
-    for (var j = 0; j < nodes.length; j += 1) {
-      var n = nodes[j];
-      var nid = String((n && n.id) || "");
-      if (!nid || nid === sourceId || nid === targetId) continue;
-      var box = boxes.get(nid);
-      if (!box) continue;
-      if (depTreeSegmentIntersectsRect(a.x, a.y, b.x, b.y, box, 2)) return true;
-    }
-  }
-  return false;
-}
-
-function depTreeDrawRoundedOrthPath(ctx, points, radius) {
-  if (!points || points.length < 2) return;
-  var rr = Math.max(0, Number(radius || 0));
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (var i = 1; i < points.length - 1; i += 1) {
-    var p0 = points[i - 1];
-    var p1 = points[i];
-    var p2 = points[i + 1];
-    var v1x = p1.x - p0.x;
-    var v1y = p1.y - p0.y;
-    var v2x = p2.x - p1.x;
-    var v2y = p2.y - p1.y;
-    var l1 = Math.hypot(v1x, v1y);
-    var l2 = Math.hypot(v2x, v2y);
-    if (l1 < 1 || l2 < 1 || rr <= 0) {
-      ctx.lineTo(p1.x, p1.y);
-      continue;
-    }
-    var r = Math.min(rr, l1 * 0.45, l2 * 0.45);
-    var ux1 = v1x / l1;
-    var uy1 = v1y / l1;
-    var ux2 = v2x / l2;
-    var uy2 = v2y / l2;
-    var ax = p1.x - (ux1 * r);
-    var ay = p1.y - (uy1 * r);
-    var bx = p1.x + (ux2 * r);
-    var by = p1.y + (uy2 * r);
-    ctx.lineTo(ax, ay);
-    ctx.quadraticCurveTo(p1.x, p1.y, bx, by);
-  }
-  var last = points[points.length - 1];
-  ctx.lineTo(last.x, last.y);
-  ctx.stroke();
-}
-
-function depTreeRoundRectPath(ctx, x, y, w, h, r) {
-  var rr = Math.min(Number(r || 0), Number(w || 0) * 0.5, Number(h || 0) * 0.5);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.lineTo(x + w - rr, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
-  ctx.lineTo(x + w, y + h - rr);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
-  ctx.lineTo(x + rr, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
-  ctx.lineTo(x, y + rr);
-  ctx.quadraticCurveTo(x, y, x + rr, y);
-  ctx.closePath();
-}
-
-function renderDepTreeCanvas(payload) {
-  var p = normalizeDepTreePayload(payload);
-  if (!DOM.statusActiveDepTree) return;
-  var canvas = ensureDepTreeCanvas(p);
-  if (!canvas) return;
-  var cssW = Math.max(120, Math.floor(Number(canvas.clientWidth || DOM.statusActiveDepTree.clientWidth || 320)));
-  var cssH = depTreeCanvasHeight(p);
-  var dpr = Math.max(1, Number(window.devicePixelRatio || 1));
-  canvas.width = Math.max(2, Math.floor(cssW * dpr));
-  canvas.height = Math.max(2, Math.floor(cssH * dpr));
-  var ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, cssW, cssH);
-  var layout = depTreeBuildLayout(p, ctx, cssW, cssH);
-
-  if (layout.neededHeight && Math.abs(layout.neededHeight - cssH) > 24) {
-    var targetH = Math.max(120, Math.min(420, Math.round(layout.neededHeight)));
-    if (targetH !== cssH) {
-      canvas.style.height = String(targetH) + "px";
-      cssH = targetH;
-      canvas.width = Math.max(2, Math.floor(cssW * dpr));
-      canvas.height = Math.max(2, Math.floor(cssH * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, cssW, cssH);
-      layout = depTreeBuildLayout(p, ctx, cssW, cssH);
-    }
-  }
-
-  if (!layout.nodes.length) {
-    ctx.fillStyle = "#9a9a9a";
-    ctx.font = "12px sans-serif";
-    ctx.fillText("No dependency data", 10, 20);
-    canvas.__ajpcHitBoxes = [];
-    return;
-  }
-
-  var boxes = layout.boxes;
-  var nodes = layout.nodes;
-  var edges = layout.edges;
-  var outMap = new Map();
-  for (var ei = 0; ei < edges.length; ei += 1) {
-    var e = edges[ei];
-    if (!outMap.has(e.source)) outMap.set(e.source, []);
-    outMap.get(e.source).push(e);
-  }
-  outMap.forEach(function (arr) {
-    arr.sort(function (a, b) {
-      var ax = (boxes.get(a.target) || { x: 0 }).x;
-      var bx = (boxes.get(b.target) || { x: 0 }).x;
-      return ax - bx;
-    });
-  });
-
-  var minBoxX = Number.POSITIVE_INFINITY;
-  var maxBoxX = Number.NEGATIVE_INFINITY;
-  for (var ni = 0; ni < nodes.length; ni += 1) {
-    var nb = boxes.get(nodes[ni].id);
-    if (!nb) continue;
-    minBoxX = Math.min(minBoxX, Number(nb.x || 0));
-    maxBoxX = Math.max(maxBoxX, Number(nb.x || 0) + Number(nb.w || 0));
-  }
-  if (!Number.isFinite(minBoxX) || !Number.isFinite(maxBoxX)) {
-    minBoxX = 0;
-    maxBoxX = cssW;
-  }
-
-  var detourRight = 0;
-  var detourLeft = 0;
-  var detourLaneByKey = new Map();
-  var priorityEdgeColorMap = depTreeBuildPriorityEdgeColorMap();
-  var sourceMeta = new Map();
-  outMap.forEach(function (arr, sid) {
-    var sBox = boxes.get(sid);
-    if (!sBox) return;
-    var sumTy = 0;
-    var count = 0;
-    for (var i = 0; i < arr.length; i += 1) {
-      var tBox = boxes.get(arr[i].target);
-      if (!tBox) continue;
-      var tCy = Number(tBox.y || 0) + (Number(tBox.h || 0) * 0.5);
-      sumTy += tCy;
-      count += 1;
-    }
-    var sCy = Number(sBox.y || 0) + (Number(sBox.h || 0) * 0.5);
-    var dir = count > 0 && (sumTy / count) < sCy ? -1 : 1;
-    var sxRaw = Number(sBox.x || 0) + (Number(sBox.w || 0) * 0.5);
-    var syRaw = dir > 0 ? (Number(sBox.y || 0) + Number(sBox.h || 0)) : Number(sBox.y || 0);
-    var sx = Math.round(sxRaw) + 0.5;
-    var sy = Math.round(syRaw) + 0.5;
-    var stub = 12;
-    var forkY = Math.round(sy + (dir * stub)) + 0.5;
-    sourceMeta.set(sid, {
-      sx: sx,
-      sy: sy,
-      dir: dir,
-      stub: stub,
-      forkY: forkY,
-      outCount: Math.max(0, arr.length),
-      color: String(sBox.color || "#3d95e7"),
-      routeColor: ""
-    });
-  });
-
-  var routes = [];
-  function detourXFor(sourceId, side) {
-    var key = String(sourceId || "") + ":" + (side > 0 ? "R" : "L");
-    if (detourLaneByKey.has(key)) return Number(detourLaneByKey.get(key) || 0);
-    var x = 0;
-    if (side > 0) {
-      x = maxBoxX + 16 + (detourRight * 10);
-      detourRight += 1;
-    } else {
-      x = minBoxX - 16 - (detourLeft * 10);
-      detourLeft += 1;
-    }
-    x = Math.round(x) + 0.5;
-    detourLaneByKey.set(key, x);
-    return x;
-  }
-
-  for (var r = 0; r < edges.length; r += 1) {
-    var edge = edges[r];
-    var sourceId = String(edge.source || "");
-    var targetId = String(edge.target || "");
-    var sBox = boxes.get(sourceId);
-    var tBox = boxes.get(targetId);
-    var pts = depTreeEdgePoints(sBox, tBox);
-    if (!pts) continue;
-
-    var meta = sourceMeta.get(sourceId);
-    var sx = meta ? Number(meta.sx) : (Math.round(Number(pts.x1 || 0)) + 0.5);
-    var sy = meta ? Number(meta.sy) : (Math.round(Number(pts.y1 || 0)) + 0.5);
-    var dir = meta ? Number(meta.dir) : ((Number(pts.y2 || 0) >= Number(pts.y1 || 0)) ? 1 : -1);
-    var stub = meta ? Number(meta.stub) : 12;
-    var forkY = meta ? Number(meta.forkY) : (Math.round(sy + (dir * stub)) + 0.5);
-    var tx = Math.round(Number(pts.x2 || 0)) + 0.5;
-    var ty = Math.round(Number(pts.y2 || 0)) + 0.5;
-    var targetPreY = Math.round(ty - (dir * stub)) + 0.5;
-    var p0 = { x: sx, y: sy };
-    var p1 = { x: sx, y: forkY };
-    var p2 = { x: tx, y: forkY };
-    var p3 = { x: tx, y: targetPreY };
-    var p4 = { x: tx, y: ty };
-    var path = [p0, p1, p2, p3, p4];
-
-    if (depTreePathIntersectsAnyBox(path, sourceId, targetId, nodes, boxes)) {
-      var centerX = (sx + tx) * 0.5;
-      var graphCenterX = (minBoxX + maxBoxX) * 0.5;
-      var side = centerX >= graphCenterX ? 1 : -1;
-      var detourX = detourXFor(sourceId, side);
-      var pA = { x: detourX, y: p1.y };
-      var pB = { x: detourX, y: p3.y };
-      var detourPath = [p0, p1, pA, pB, p3, p4];
-      if (!depTreePathIntersectsAnyBox(detourPath, sourceId, targetId, nodes, boxes)) {
-        path = detourPath;
-      } else {
-        side = -side;
-        detourX = detourXFor(sourceId, side);
-        path = [p0, p1, { x: detourX, y: p1.y }, { x: detourX, y: p3.y }, p3, p4];
-      }
-    }
-
-    var fallbackColor = (meta && meta.color) ? String(meta.color) : ((sBox && sBox.color) ? String(sBox.color) : "#3d95e7");
-    var routeColor = depTreePriorityEdgeColorFromGraph(sourceId, targetId, priorityEdgeColorMap, fallbackColor);
-    if (meta && !meta.routeColor) meta.routeColor = routeColor;
-    routes.push({ sourceId: sourceId, targetId: targetId, dir: dir, path: path, color: routeColor });
-  }
-
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.lineWidth = 1.3;
-
-  var trunkDrawn = new Set();
-  for (var tdi = 0; tdi < routes.length; tdi += 1) {
-    var route = routes[tdi];
-    var sid = String(route.sourceId || "");
-    if (!sid || trunkDrawn.has(sid)) continue;
-    var full = route.path || [];
-    if (full.length < 2) continue;
-    var sm = sourceMeta.get(sid);
-    if (sm && Number(sm.outCount || 0) > 1) {
-      ctx.strokeStyle = String(sm.routeColor || route.color || sm.color || "#3d95e7");
-      depTreeDrawRoundedOrthPath(ctx, [full[0], full[1]], 7);
-      trunkDrawn.add(sid);
-    }
-  }
-
-  for (var rdi = 0; rdi < routes.length; rdi += 1) {
-    var rr = routes[rdi];
-    var fullPath = rr.path || [];
-    if (fullPath.length < 2) continue;
-    var smeta = sourceMeta.get(String(rr.sourceId || ""));
-    var shared = !!(smeta && Number(smeta.outCount || 0) > 1);
-    var branch = (shared && fullPath.length > 2) ? fullPath.slice(1) : fullPath;
-    var edgeColor = String((rr && rr.color) || (smeta && smeta.color) || "#3d95e7");
-    ctx.strokeStyle = edgeColor;
-    depTreeDrawRoundedOrthPath(ctx, branch, 7);
-
-    var tail = branch[branch.length - 2];
-    var head = branch[branch.length - 1];
-    var ti = branch.length - 2;
-    while (ti > 0 && Math.hypot(head.x - tail.x, head.y - tail.y) < 1) {
-      ti -= 1;
-      tail = branch[ti];
-    }
-    var dx = head.x - tail.x;
-    var dy = head.y - tail.y;
-    var len = Math.hypot(dx, dy);
-    if (len < 1) continue;
-    var ux = dx / len;
-    var uy = dy / len;
-    var headLen = 7;
-    var headW = 4;
-    var bx = head.x - (ux * headLen);
-    var by = head.y - (uy * headLen);
-    var lx = bx - (uy * headW);
-    var ly = by + (ux * headW);
-    var rx = bx + (uy * headW);
-    var ry = by - (ux * headW);
-    ctx.fillStyle = edgeColor;
-    ctx.beginPath();
-    ctx.moveTo(head.x, head.y);
-    ctx.lineTo(lx, ly);
-    ctx.lineTo(rx, ry);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  var forkPoints = [];
-  sourceMeta.forEach(function (meta) {
-    if (Number(meta.outCount || 0) > 1) {
-      forkPoints.push({
-        x: Number(meta.sx || 0),
-        y: Number(meta.forkY || 0),
-        color: String(meta.routeColor || meta.color || "#3d95e7")
-      });
-    }
-  });
-
-  var joinR = Math.max(1.4, ctx.lineWidth * 0.8);
-  for (var fi = 0; fi < forkPoints.length; fi += 1) {
-    var fp = forkPoints[fi];
-    ctx.fillStyle = String((fp && fp.color) || "#3d95e7");
-    ctx.beginPath();
-    ctx.arc(Number(fp.x || 0), Number(fp.y || 0), joinR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  canvas.__ajpcHitBoxes = [];
-  boxes.forEach(function (b) {
-    ctx.globalAlpha = 0.24;
-    ctx.fillStyle = b.color || "#3d95e7";
-    depTreeRoundRectPath(ctx, b.x, b.y, b.w, b.h, 7);
-    ctx.fill();
-
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = b.color || "#3d95e7";
-    ctx.lineWidth = 1.4;
-    depTreeRoundRectPath(ctx, b.x, b.y, b.w, b.h, 7);
-    ctx.stroke();
-
-    if (String(b.id) === String(layout.rootId || "")) {
-      ctx.globalAlpha = 0.38;
-      ctx.strokeStyle = b.color || "#3d95e7";
-      ctx.lineWidth = 1.8;
-      depTreeRoundRectPath(ctx, b.x - 2, b.y - 2, b.w + 4, b.h + 4, 8);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.fillStyle = "#f2f2f2";
-    ctx.font = "11px sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    var lines = Array.isArray(b.lines) && b.lines.length ? b.lines : [String(b.label || "")];
-    for (var li = 0; li < lines.length; li += 1) {
-      ctx.fillText(String(lines[li] || ""), b.x + 7, b.y + 5 + 10 + (li * 12));
-    }
-    canvas.__ajpcHitBoxes.push({ id: b.id, nid: b.nid, x: b.x, y: b.y, w: b.w, h: b.h });
-  });
-}
-
-function renderActiveDepTree(node) {
-  if (!DOM.statusActiveDepTree) return;
-  var nid = nodeNidForDepTree(node);
-  if (!nid) {
-    DOM.statusActiveDepTree.innerHTML = "";
-    DOM.statusActiveDepTreeCanvas = null;
-    resetDepTreeRenderState();
-    return;
-  }
-  var cache = depTreeCacheMap();
-  if (cache.has(nid)) {
-    var payload = cache.get(nid);
-    if (!shouldRenderDepTreeCanvas(nid, payload, false)) return;
-    renderDepTreeCanvas(payload);
-    markDepTreeRendered(nid, payload);
-    return;
-  }
-  if (Number(STATE.depTreeLoadingNid || 0) !== nid || !DOM.statusActiveDepTreeCanvas) {
-    DOM.statusActiveDepTree.innerHTML = "<div><h3>Dependency Tree:</h3> loading...</div>";
-    DOM.statusActiveDepTreeCanvas = null;
-  }
-  STATE.depTreeLoadingNid = nid;
-  requestDepTreeForNid(nid);
-};
-
-window.setActiveDepTreeFromPy = function (payload) {
-  var p = normalizeDepTreePayload(payload);
-  var nid = Number(p.current_nid || 0);
-  if (!isFiniteNumber(nid) || nid <= 0) return;
-  depTreeCacheMap().set(nid, p);
-  if (Number(STATE.depTreePendingNid || 0) === nid) STATE.depTreePendingNid = null;
-
-  var sel = selectedNodeForStatus();
-  if (!sel || !sel.node) return;
-  if (nodeNidForDepTree(sel.node) !== nid) return;
-  if (!shouldRenderDepTreeCanvas(nid, p, false)) return;
-  renderDepTreeCanvas(p);
-  markDepTreeRendered(nid, p);
-};
 
 function renderActiveDetails() {
   if (!DOM.statusActiveDetails) return;
@@ -1820,10 +417,11 @@ function renderActiveDetails() {
   }
 }
 
+// === Status + Perf ===========================================================
 function updateStatus(extraText) {
   var counts = getVisibleGraphCounts();
   var summary = "Nodes: " + counts.nodes + " | Edges: " + counts.edges;
-  if (DOM.statusExtraText) DOM.statusExtraText.textContent = extraText ? String(extraText) : "";
+  //if (DOM.statusExtraText) DOM.statusExtraText.textContent = extraText ? String(extraText) : "";
 
   if (DOM.statusSummary) DOM.statusSummary.textContent = summary;
   renderActiveDetails();
@@ -1838,165 +436,6 @@ function stopPerfMonitor() {
   if (STATE.perfRaf) {
     window.cancelAnimationFrame(STATE.perfRaf);
     STATE.perfRaf = null;
-  }
-}
-
-function syncDebugPanelVisibility() {
-  if (!DOM.statusDebugPanel) return;
-  var enabled = !!STATE.debugEnabled;
-  DOM.statusDebugPanel.style.display = enabled ? "flex" : "none";
-  DOM.statusDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
-}
-
-function updateCoordsStatus() {
-  if (!DOM.statusCoords && !DOM.debugCoords) return;
-  syncDebugPanelVisibility();
-  function fnum(v, digits) {
-    return isFiniteNumber(v) ? Number(v).toFixed(digits) : "--";
-  }
-  function setOff() {
-    if (DOM.statusCoords) DOM.statusCoords.textContent = "Coords: --, --";
-    if (DOM.debugCoords) {
-      if (!!STATE.debugEnabled) {
-        var hd0 = STATE.hoverDebug || {};
-        var hReason0 = String(hd0.reason || "--");
-        var hIdx0 = (hd0.idx === null || hd0.idx === undefined || !isFiniteNumber(hd0.idx)) ? "--" : String(Math.round(Number(hd0.idx)));
-        var dep0 = depTreeDebugStats(Date.now());
-        setDebugCoordValues({
-          use: "--",
-          vpX: "--",
-          vpY: "--",
-          clX: "--",
-          clY: "--",
-          camX: "--",
-          camY: "--",
-          camR: "--"
-        });
-        setDebugExtraValues({
-          hoverReason: hReason0,
-          hoverIdx: hIdx0,
-          hoverNode: "--",
-          hoverType: "--",
-          hoverHit: "--",
-          hoverDist: "--",
-          hoverDx: "--",
-          hoverDy: "--",
-          depTreeRps: dep0.depTreeRps,
-          depTreeSkipCount: dep0.depTreeSkipCount
-        });
-      } else {
-        clearDebugValueTables();
-      }
-    }
-  }
-  if (!STATE.graph || !DOM.graph) {
-    setOff();
-    return;
-  }
-  if (!STATE.pointerInsideGraph || !isFiniteNumber(STATE.pointerClientX) || !isFiniteNumber(STATE.pointerClientY)) {
-    setOff();
-    return;
-  }
-
-  var rect = DOM.graph.getBoundingClientRect();
-  if (!rect || !isFiniteNumber(rect.left) || !isFiniteNumber(rect.top)) {
-    setOff();
-    return;
-  }
-
-  var vx = Number(STATE.pointerClientX) - Number(rect.left);
-  var vy = Number(STATE.pointerClientY) - Number(rect.top);
-  if (!isFiniteNumber(vx) || !isFiniteNumber(vy) || vx < 0 || vy < 0 || vx > rect.width || vy > rect.height) {
-    setOff();
-    return;
-  }
-
-  if (typeof STATE.graph.screenToSpacePosition !== "function") {
-    setOff();
-    return;
-  }
-
-  function spaceScore(space) {
-    if (!Array.isArray(space) || space.length < 2 || !isFiniteNumber(space[0]) || !isFiniteNumber(space[1])) return Number.POSITIVE_INFINITY;
-    var x = Number(space[0]);
-    var y = Number(space[1]);
-    var sMin = 0;
-    var sMax = (typeof SPACE_SIZE === "number" && isFinite(SPACE_SIZE)) ? Number(SPACE_SIZE) : 4096;
-    var ox = 0;
-    var oy = 0;
-    if (x < sMin) ox = sMin - x;
-    else if (x > sMax) ox = x - sMax;
-    if (y < sMin) oy = sMin - y;
-    else if (y > sMax) oy = y - sMax;
-    return (ox * ox) + (oy * oy);
-  }
-
-  var spaceViewport = STATE.graph.screenToSpacePosition([vx, vy]);
-  var spaceClient = STATE.graph.screenToSpacePosition([Number(STATE.pointerClientX), Number(STATE.pointerClientY)]);
-  var scoreViewport = spaceScore(spaceViewport);
-  var scoreClient = spaceScore(spaceClient);
-  var space = scoreViewport <= scoreClient ? spaceViewport : spaceClient;
-  if (!Array.isArray(space) || space.length < 2 || !isFiniteNumber(space[0]) || !isFiniteNumber(space[1])) {
-    setOff();
-    return;
-  }
-  var sBase = (typeof SPACE_SIZE === "number" && isFinite(SPACE_SIZE) && SPACE_SIZE > 0) ? Number(SPACE_SIZE) : 4096;
-  var nx = (Number(space[0]) / sBase) * 100;
-  var ny = (Number(space[1]) / sBase) * 100;
-  var out = "Coords: " + nx.toFixed(1) + ", " + ny.toFixed(1);
-
-  if (DOM.statusCoords) DOM.statusCoords.textContent = out;
-  if (!!STATE.debugEnabled) {
-    var vpX = (Array.isArray(spaceViewport) && isFiniteNumber(spaceViewport[0])) ? Number(spaceViewport[0]).toFixed(1) : "--";
-    var vpY = (Array.isArray(spaceViewport) && isFiniteNumber(spaceViewport[1])) ? Number(spaceViewport[1]).toFixed(1) : "--";
-    var clX = (Array.isArray(spaceClient) && isFiniteNumber(spaceClient[0])) ? Number(spaceClient[0]).toFixed(1) : "--";
-    var clY = (Array.isArray(spaceClient) && isFiniteNumber(spaceClient[1])) ? Number(spaceClient[1]).toFixed(1) : "--";
-    var useTag = scoreViewport <= scoreClient ? "vp" : "cl";
-    var camX = "--";
-    var camY = "--";
-    var camR = "--";
-    if (STATE.graph && typeof STATE.graph.getCameraState === "function") {
-      var cam = STATE.graph.getCameraState();
-      if (cam && isFiniteNumber(cam.x) && isFiniteNumber(cam.y) && isFiniteNumber(cam.ratio)) {
-        camX = Number(cam.x).toFixed(3);
-        camY = Number(cam.y).toFixed(3);
-        camR = Number(cam.ratio).toFixed(4);
-      }
-    }
-    var hd = STATE.hoverDebug || {};
-    var hReason = String(hd.reason || "--");
-    var hIdx = (hd.idx === null || hd.idx === undefined || !isFiniteNumber(hd.idx)) ? "--" : String(Math.round(Number(hd.idx)));
-    var hNode = String(hd.nodeId || "--");
-    var hType = String(hd.noteType || "--");
-    var hHit = fnum(hd.hitRadius, 2);
-    var hDist = fnum(hd.dist, 2);
-    var hDx = fnum(hd.dx, 1);
-    var hDy = fnum(hd.dy, 1);
-    var dep = depTreeDebugStats(Date.now());
-    setDebugCoordValues({
-      use: useTag,
-      vpX: vpX,
-      vpY: vpY,
-      clX: clX,
-      clY: clY,
-      camX: camX,
-      camY: camY,
-      camR: camR
-    });
-    setDebugExtraValues({
-      hoverReason: hReason,
-      hoverIdx: hIdx,
-      hoverNode: hNode,
-      hoverType: hType,
-      hoverHit: hHit,
-      hoverDist: hDist,
-      hoverDx: hDx,
-      hoverDy: hDy,
-      depTreeRps: dep.depTreeRps,
-      depTreeSkipCount: dep.depTreeSkipCount
-    });
-  } else if (DOM.debugCoords) {
-    clearDebugValueTables();
   }
 }
 
@@ -2020,7 +459,7 @@ function startPerfMonitor() {
       STATE.perfFrameCount = 0;
       STATE.perfWindowStart = ts;
     }
-    updateCoordsStatus();
+    if (STATE.debugEnabled) updateCoordsStatus();
 
     STATE.perfRaf = window.requestAnimationFrame(tick);
   }
@@ -2064,6 +503,7 @@ function appendSearchValue(parts, value, seen, budget) {
   }
 }
 
+// === Search UI ===============================================================
 function buildNodeSearchText(node) {
   var parts = [];
   var budget = { left: 6000 };
@@ -2125,7 +565,7 @@ function applySuggestionSelection(idx) {
 
 function hideSuggest() {
   if (!DOM.searchSuggest) return;
-  DOM.searchSuggest.style.display = "none";
+  DOM.searchSuggest.classList.remove("is-visible");
   DOM.searchSuggest.innerHTML = "";
   STATE.suggestedIds = [];
   STATE.selectedSuggestIdx = -1;
@@ -2147,7 +587,7 @@ function renderSuggestions(query) {
   STATE.selectedSuggestIdx = -1;
 
   if (matches.length === 0) {
-    DOM.searchSuggest.style.display = "none";
+    DOM.searchSuggest.classList.remove("is-visible");
     DOM.searchSuggest.innerHTML = "";
     return;
   }
@@ -2160,7 +600,7 @@ function renderSuggestions(query) {
       + "</div>";
   }).join("");
 
-  DOM.searchSuggest.style.display = "block";
+  DOM.searchSuggest.classList.add("is-visible");
 
   var items = DOM.searchSuggest.querySelectorAll(".suggest-item");
   items.forEach(function (item) {
@@ -2174,6 +614,7 @@ function renderSuggestions(query) {
   });
 }
 
+// === Context menu ============================================================
 function getNodeFamilyMapForCtx(node) {
   if (!node) return null;
   return (node.family_prios && typeof node.family_prios === "object") ? node.family_prios : null;
@@ -2629,7 +1070,8 @@ function buildContextMenuGroupsForCtx(ctx) {
 
 function hideContextMenu() {
   if (!DOM.ctxMenu) return;
-  DOM.ctxMenu.style.display = "none";
+  DOM.ctxMenu.classList.remove("is-visible");
+  DOM.ctxMenu.setAttribute("aria-hidden", "true");
 }
 
 function showContextMenu(node, evt) {
@@ -2730,7 +1172,8 @@ function showContextMenu(node, evt) {
   var e = evt || window.event;
   var x = e && isFiniteNumber(Number(e.clientX)) ? Number(e.clientX) : 0;
   var y = e && isFiniteNumber(Number(e.clientY)) ? Number(e.clientY) : 0;
-  menu.style.display = "block";
+  menu.classList.add("is-visible");
+  menu.setAttribute("aria-hidden", "false");
   var vw = window.innerWidth || 1;
   var vh = window.innerHeight || 1;
   var mw = menu.offsetWidth || 220;
@@ -2740,12 +1183,13 @@ function showContextMenu(node, evt) {
 }
 
 window.hideContextMenu = hideContextMenu;
-function renderLayerControls() {
-  if (!DOM.layerPills || !DOM.layerList) return;
-  DOM.layerPills.innerHTML = "";
-  DOM.layerList.innerHTML = "";
 
-  Object.keys(STATE.layers).sort().forEach(function (layer) {
+// === Settings UI =============================================================
+function renderLayerControls() {
+  if (!DOM.layerPills) return;
+  DOM.layerPills.innerHTML = "";
+
+  orderedLayerKeys(Object.keys(STATE.layers)).forEach(function (layer) {
     var color = normalizeHexColor(STATE.layerColors[layer] || fallbackLayerColor(layer), fallbackLayerColor(layer));
     var enabled = !!STATE.layers[layer];
     var stat = STATE.layerStats[layer] || { nodes: 0, edges: 0 };
@@ -2759,14 +1203,6 @@ function renderLayerControls() {
       + "<span" + titleAttr(hint) + ">" + escapeHtml(humanizeLayer(layer)) + "</span>";
     pill.title = hint;
 
-    var row = document.createElement("label");
-    row.className = "line-item";
-    row.innerHTML = ""
-      + '<input type="checkbox" ' + (enabled ? "checked" : "") + ' data-layer="' + escapeHtml(layer) + '"' + titleAttr(hint) + ">"
-      + '<span class="swatch" style="background:' + escapeHtml(color) + ';"></span>'
-      + "<span" + titleAttr(hint) + ">" + escapeHtml(humanizeLayer(layer)) + " (" + stat.nodes + "n / " + stat.edges + "e)</span>";
-    row.title = hint;
-
     function bindToggle(el) {
       var input = el.querySelector("input[data-layer]");
       input.addEventListener("change", function () {
@@ -2779,10 +1215,8 @@ function renderLayerControls() {
     }
 
     bindToggle(pill);
-    bindToggle(row);
 
     DOM.layerPills.appendChild(pill);
-    DOM.layerList.appendChild(row);
   });
 }
 
@@ -2806,7 +1240,7 @@ function renderNoteTypeControls() {
   ids.forEach(function (id) {
     var nt = STATE.noteTypes[id];
     var card = document.createElement("div");
-    card.className = "note-type-card";
+    card.className = "note-type-card" + (nt.visible ? "" : " is-collapsed");
 
     var options = [mkOption("", "(none)", !nt.labelField)];
     nt.fields.forEach(function (field) {
@@ -2830,12 +1264,12 @@ function renderNoteTypeControls() {
       + '<div class="note-type-name">' + escapeHtml(nt.name) + "</div>"
       + '<label class="line-item"' + titleAttr(noteTypeSettingHint("visible")) + '><input type="checkbox" class="nt-visible" data-ntid="' + escapeHtml(id) + '" ' + (nt.visible ? "checked" : "") + titleAttr(noteTypeSettingHint("visible")) + '><span' + titleAttr(noteTypeSettingHint("visible")) + '>Visible</span></label>'
       + "</div>"
-      + '<div class="field-grid">'
-      + '<label' + titleAttr(noteTypeSettingHint("color")) + '>Node Color<input type="color" class="nt-color" data-ntid="' + escapeHtml(id) + '" value="' + escapeHtml(normalizeHexColor(nt.color, "#93c5fd")) + '"' + titleAttr(noteTypeSettingHint("color")) + "></label>"
-      + '<label' + titleAttr(noteTypeSettingHint("label")) + '>Label Field<select class="nt-label" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("label")) + ">" + labelOptions + "</select></label>"
-      + '<label' + titleAttr(noteTypeSettingHint("linked")) + '>Linked Field<select class="nt-linked" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("linked")) + ">" + linkedOptions + "</select></label>"
-      + '<label' + titleAttr(noteTypeSettingHint("tooltip")) + '>Tooltip Fields<select class="nt-tooltip" data-ntid="' + escapeHtml(id) + '" multiple' + titleAttr(noteTypeSettingHint("tooltip")) + ">" + tooltipOptions + "</select></label>"
-      + "</div>";
+      + '<div class="note-type-body"><div class="note-type-body-inner"><div class="field-grid note-field-grid">'
+      + '<div class="note-fields-left"><label' + titleAttr(noteTypeSettingHint("color")) + '>Node Color<div class="color-picker"><input type="color" class="nt-color" data-ntid="' + escapeHtml(id) + '" value="' + escapeHtml(normalizeHexColor(nt.color, "#93c5fd")) + '"' + titleAttr(noteTypeSettingHint("color")) + "></div></label></div>"
+      + '<div class="note-fields-right"><label' + titleAttr(noteTypeSettingHint("label")) + '>Label Field<div class="select"><select class="nt-label" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("label")) + ">" + labelOptions + '</select><span class="focus"></span></div></label>'
+      + '<label' + titleAttr(noteTypeSettingHint("linked")) + '>Linked Field<div class="select"><select class="nt-linked" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("linked")) + ">" + linkedOptions + '</select><span class="focus"></span></div></label></div>'
+      + '<div class="note-fields-bottom"><label' + titleAttr(noteTypeSettingHint("tooltip")) + '>Tooltip Fields<div class="select select--multiple"><select class="nt-tooltip" data-ntid="' + escapeHtml(id) + '" multiple' + titleAttr(noteTypeSettingHint("tooltip")) + ">" + tooltipOptions + '</select><span class="focus"></span></div></label></div>'
+      + "</div></div></div>";
 
     DOM.noteTypeList.appendChild(card);
   });
@@ -2845,6 +1279,8 @@ function renderNoteTypeControls() {
       var id = String(el.getAttribute("data-ntid") || "");
       if (!STATE.noteTypes[id]) return;
       STATE.noteTypes[id].visible = !!el.checked;
+      var card = el.closest ? el.closest(".note-type-card") : null;
+      if (card) card.classList.toggle("is-collapsed", !el.checked);
       applyUiSettingsNoRebuild(false);
       persistHook("ntvis:" + id + ":" + (el.checked ? "1" : "0"));
     });
@@ -2893,38 +1329,54 @@ function renderNoteTypeControls() {
 }
 
 function renderLinkSettings() {
-  if (!DOM.linkLayerList || !DOM.flowSpeedControl) return;
+  if (!DOM.linkLayerList || !DOM.linkSettings) return;
   DOM.linkLayerList.innerHTML = "";
-  DOM.flowSpeedControl.innerHTML = "";
+  DOM.linkSettings.innerHTML = "";
   var nscale = (typeof normalizeNeighborScaling === "function")
     ? normalizeNeighborScaling(STATE.neighborScaling || null)
     : { mode: "none", directed: "undirected", weights: {} };
   STATE.neighborScaling = nscale;
 
-  var layers = Object.keys(STATE.layers).sort();
+  var layers = orderedLayerKeys(Object.keys(STATE.layers)).filter(function (layer) {
+    return String(layer || "") !== "notes";
+  });
   layers.forEach(function (layer) {
-    var rawColor = String(STATE.layerColors[layer] || fallbackLayerColor(layer) || "");
+    var rawColor = String((STATE.linkColors && STATE.linkColors[layer]) || fallbackLayerColor(layer) || "");
     var parsedColor = parseColor(rawColor, 0.58);
     var color = normalizeHexColor(rawColor, fallbackLayerColor(layer));
     var alpha = clamp(Number(parsedColor[3]), 0, 1);
     if (!isFiniteNumber(alpha)) alpha = 0.58;
+    var visible = !!STATE.layers[layer];
     var style = String(STATE.layerStyles[layer] || "solid");
-    var strength = Number(STATE.linkStrengths[layer] || 1);
+    var weightValue = Number(STATE.linkWeights && STATE.linkWeights[layer]);
+    if (!isFiniteNumber(weightValue)) weightValue = 1;
+    var weightModeRaw = String((STATE.linkWeightModes && STATE.linkWeightModes[layer]) || "manual").toLowerCase();
+    var weightMode = (weightModeRaw === "metric") ? "metric" : "manual";
 
     var row = document.createElement("div");
-    row.className = "control-row";
+    row.className = "link-type-card" + (visible ? "" : " is-collapsed");
     row.innerHTML = ""
-      + "<div>"
-      + "<strong>" + escapeHtml(humanizeLayer(layer)) + "</strong>"
-      + '<div class="inline-pair">'
-      + '<label' + titleAttr(linkSettingHint("color")) + '>Color<div class="ln-color-alpha"><input type="color" class="ln-color" data-layer="' + escapeHtml(layer) + '" value="' + escapeHtml(color) + '"' + titleAttr(linkSettingHint("color")) + '><input type="number" step="0.01" min="0" max="1" class="ln-alpha" data-layer="' + escapeHtml(layer) + '" value="' + alpha.toFixed(2) + '"' + titleAttr(linkSettingHint("color")) + "></div></label>"
-      + '<label' + titleAttr(linkSettingHint("style")) + '>Style<select class="ln-style" data-layer="' + escapeHtml(layer) + '"' + titleAttr(linkSettingHint("style")) + ">"
+      + '<div class="link-type-head">'
+      + '<div class="link-type-name">' + escapeHtml(humanizeLayer(layer)) + "</div>"
+      + '<label class="line-item"' + titleAttr(linkSettingHint("visible")) + '><input type="checkbox" class="ln-visible" data-layer="' + escapeHtml(layer) + '" ' + (visible ? "checked" : "") + titleAttr(linkSettingHint("visible")) + '><span' + titleAttr(linkSettingHint("visible")) + '>Visible</span></label>'
+      + "</div>"
+      + '<div class="link-type-body"><div class="link-type-body-inner"><div class="field-grid link-field-grid">'
+      + '<div class="link-fields-left">'
+      + '<label' + titleAttr(linkSettingHint("color")) + '>Color<div class="ln-color-alpha"><div class="color-picker"><input type="color" class="ln-color" data-layer="' + escapeHtml(layer) + '" value="' + escapeHtml(color) + '"' + titleAttr(linkSettingHint("color")) + "></div></div></label>"
+      + '<label' + titleAttr(linkSettingHint("alpha")) + '>Alpha<div class="color-picker-alpha"><input type="number" step="0.01" min="0" max="1" class="ln-alpha" data-layer="' + escapeHtml(layer) + '" value="' + alpha.toFixed(2) + '"' + titleAttr(linkSettingHint("alpha")) + "></div></label>"
+      + "</div>"
+      + '<div class="link-fields-right"><label' + titleAttr(linkSettingHint("style")) + '>Style<div class="select"><select class="ln-style" data-layer="' + escapeHtml(layer) + '"' + titleAttr(linkSettingHint("style")) + ">"
       + mkOption("solid", "Solid", style === "solid")
       + mkOption("dashed", "Dashed", style === "dashed")
       + mkOption("dotted", "Dotted", style === "dotted")
-      + "</select></label>"
-      + '<label' + titleAttr(linkSettingHint("strength")) + '>Strength<input type="number" step="0.05" min="0.1" max="8" class="ln-strength" data-layer="' + escapeHtml(layer) + '" value="' + strength.toFixed(2) + '"' + titleAttr(linkSettingHint("strength")) + "></label>"
+      + '</select><span class="focus"></span></div></label>'
+      + '<label' + titleAttr(linkSettingHint("weight_mode")) + '>Weight Mode<div class="select"><select class="ln-weight-mode" data-layer="' + escapeHtml(layer) + '"' + titleAttr(linkSettingHint("weight_mode")) + ">"
+      + mkOption("manual", "Manual", weightMode === "manual")
+      + mkOption("metric", "Metric", weightMode === "metric")
+      + '</select><span class="focus"></span></div></label></div>'
+      + '<div class="link-fields-bottom"><label' + titleAttr(linkSettingHint("weight")) + '>Weight<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="' + escapeHtml(layer) + '" value="' + weightValue.toFixed(2) + '"' + titleAttr(linkSettingHint("weight")) + "></label></div>"
       + "</div>"
+      + "</div></div>"
       + "</div>";
     DOM.linkLayerList.appendChild(row);
   });
@@ -2932,30 +1384,30 @@ function renderLinkSettings() {
   var flowRow = document.createElement("div");
   flowRow.className = "control-row";
   flowRow.innerHTML = ""
-    + "<div" + titleAttr(linkSettingHint("flow_speed")) + ">Flow Speed</div>"
-    + '<input id="ln-flow-speed" type="number" min="0" max="3" step="0.01" value="' + Number(STATE.layerFlowSpeed || 0.35).toFixed(2) + '"' + titleAttr(linkSettingHint("flow_speed")) + ">";
-  DOM.flowSpeedControl.appendChild(flowRow);
+    + "<div" + titleAttr(linkSettingHint("flow_speed")) + ">Particle Flow Speed</div>"
+    + '<input id="ln-flow-speed" type="number" min="0.01" max="1" step="0.01" value="' + Number(STATE.layerFlowSpeed || 0.35).toFixed(2) + '"' + titleAttr(linkSettingHint("flow_speed")) + ">";
+  DOM.linkSettings.appendChild(flowRow);
 
   var metricRow = document.createElement("div");
   metricRow.className = "control-row";
   metricRow.innerHTML = ""
     + "<div>Link Metric</div>"
     + '<div class="inline-pair">'
-    + '<label>Mode<select id="ln-metric-mode">'
+    + '<label>Mode<div class="select"><select id="ln-metric-mode">'
     + mkOption("none", "None", String(nscale.mode || "none") === "none")
     + mkOption("jaccard", "Jaccard", String(nscale.mode || "none") === "jaccard")
     + mkOption("overlap", "Overlap", String(nscale.mode || "none") === "overlap")
     + mkOption("common_neighbors", "Common Neighbors", String(nscale.mode || "none") === "common_neighbors")
     + mkOption("ccm", "Clustering Coeff", String(nscale.mode || "none") === "ccm")
     + mkOption("twohop", "2-Hop", String(nscale.mode || "none") === "twohop")
-    + "</select></label>"
-    + '<label>Direction<select id="ln-metric-directed">'
+    + '</select><span class="focus"></span></div></label>'
+    + '<label>Direction<div class="select"><select id="ln-metric-directed">'
     + mkOption("undirected", "Undirected", String(nscale.directed || "undirected") === "undirected")
     + mkOption("out", "Outgoing", String(nscale.directed || "undirected") === "out")
     + mkOption("in", "Incoming", String(nscale.directed || "undirected") === "in")
-    + "</select></label>"
+    + '</select><span class="focus"></span></div></label>'
     + "</div>";
-  DOM.flowSpeedControl.appendChild(metricRow);
+  DOM.linkSettings.appendChild(metricRow);
 
   function layerRgbaFromInputs(layer, colorInput, alphaInput) {
     var hex = normalizeHexColor(colorInput ? colorInput.value : "", fallbackLayerColor(layer));
@@ -2972,7 +1424,8 @@ function renderLinkSettings() {
   function applyLayerColorChange(layer, colorInput, alphaInput) {
     if (!layer) return;
     var rgba = layerRgbaFromInputs(layer, colorInput, alphaInput);
-    STATE.layerColors[layer] = rgba;
+    if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
+    STATE.linkColors[layer] = rgba;
     renderLayerControls();
     applyUiSettingsNoRebuild(false);
     persistHook("lcol:" + layer + ":" + encodeURIComponent(rgba));
@@ -2994,6 +1447,19 @@ function renderLinkSettings() {
     });
   });
 
+  DOM.linkLayerList.querySelectorAll(".ln-visible").forEach(function (el) {
+    el.addEventListener("change", function () {
+      var layer = String(el.getAttribute("data-layer") || "");
+      var checked = !!el.checked;
+      STATE.layers[layer] = checked;
+      var card = el.closest ? el.closest(".link-type-card") : null;
+      if (card) card.classList.toggle("is-collapsed", !checked);
+      renderLayerControls();
+      applyUiSettingsNoRebuild(true);
+      persistHook("lenabled:" + layer + ":" + (checked ? "1" : "0"));
+    });
+  });
+
   DOM.linkLayerList.querySelectorAll(".ln-style").forEach(function (el) {
     el.addEventListener("change", function () {
       var layer = String(el.getAttribute("data-layer") || "");
@@ -3003,14 +1469,25 @@ function renderLinkSettings() {
     });
   });
 
-  DOM.linkLayerList.querySelectorAll(".ln-strength").forEach(function (el) {
+  DOM.linkLayerList.querySelectorAll(".ln-weight-mode").forEach(function (el) {
     el.addEventListener("change", function () {
       var layer = String(el.getAttribute("data-layer") || "");
-      var value = clamp(Number(el.value || 1), 0.1, 8);
-      STATE.linkStrengths[layer] = value;
+      var value = String(el.value || "manual").toLowerCase();
+      if (value !== "metric") value = "manual";
+      if (!STATE.linkWeightModes || typeof STATE.linkWeightModes !== "object") STATE.linkWeightModes = {};
+      STATE.linkWeightModes[layer] = value;
+      persistHook("lweightmode:" + layer + ":" + encodeURIComponent(value));
+    });
+  });
+
+  DOM.linkLayerList.querySelectorAll(".ln-weight").forEach(function (el) {
+    el.addEventListener("change", function () {
+      var layer = String(el.getAttribute("data-layer") || "");
+      var value = clamp(Number(el.value || 1), 0, 10);
+      if (!STATE.linkWeights || typeof STATE.linkWeights !== "object") STATE.linkWeights = {};
+      STATE.linkWeights[layer] = value;
       el.value = value.toFixed(2);
-      applyUiSettingsNoRebuild(true);
-      persistHook("lstrength:" + layer + ":" + value.toFixed(2));
+      persistHook("lweight:" + layer + ":" + value.toFixed(2));
     });
   });
 
@@ -3063,6 +1540,7 @@ function renderLinkSettings() {
   }
 }
 
+// === Engine/solver spec helpers =============================================
 function solverSpec() {
   return getEngineSolverSpec();
 }
@@ -3244,17 +1722,53 @@ function scheduleGraphViewportSync() {
 
 function switchSettingsTab(tabName) {
   var name = String(tabName || "notes");
-  if (!DOM.settingsTabs || !DOM.settingsPanes) return;
-  DOM.settingsTabs.forEach(function (btn) {
+  var tabs = (DOM.settingsTabs && DOM.settingsTabs.length)
+    ? DOM.settingsTabs
+    : Array.prototype.slice.call(document.querySelectorAll("#settings-tabs .settings-tab"));
+  var panes = (DOM.settingsPanes && DOM.settingsPanes.length)
+    ? DOM.settingsPanes
+    : Array.prototype.slice.call(document.querySelectorAll("#settings-panel .tab-pane"));
+  if (!tabs.length || !panes.length) return;
+  DOM.settingsTabs = tabs;
+  DOM.settingsPanes = panes;
+  tabs.forEach(function (btn) {
     btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
   });
-  DOM.settingsPanes.forEach(function (pane) {
+  panes.forEach(function (pane) {
     pane.classList.toggle("active", pane.id === ("tab-" + name));
   });
 }
+
+function reloadGraphStylesheet() {
+  var links = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"]'));
+  if (!links.length) return;
+  var target = null;
+  for (var i = 0; i < links.length; i += 1) {
+    var href = String(links[i].getAttribute("href") || "");
+    if (href.indexOf("graph.css") >= 0) {
+      target = links[i];
+      break;
+    }
+  }
+  if (!target) target = links[0];
+  var hrefRaw = String(target.getAttribute("href") || "");
+  if (!hrefRaw) return;
+  var stamp = String(Date.now());
+  var next = hrefRaw;
+  if (hrefRaw.indexOf("?") >= 0) {
+    if (/([?&])v=\d+/.test(hrefRaw)) {
+      next = hrefRaw.replace(/([?&])v=\d+/, "$1v=" + stamp);
+    } else {
+      next = hrefRaw + "&v=" + stamp;
+    }
+  } else {
+    next = hrefRaw + "?v=" + stamp;
+  }
+  target.setAttribute("href", next);
+}
+// === DOM wiring + event handlers =============================================
 function wireDom() {
   DOM.layerPills = byId("layer-pills");
-  DOM.layerList = byId("layer-list");
   DOM.noteTypeList = byId("note-type-list");
   DOM.searchInput = byId("search-input");
   DOM.searchGo = byId("search-go");
@@ -3266,7 +1780,6 @@ function wireDom() {
   DOM.statusCoords = byId("status-coords");
   DOM.debugCoords = byId("debug-coords");
   DOM.debugExtra = byId("debug-extra");
-  DOM.statusExtraText = byId("status-extra-text");
   DOM.debugCoordUse = byId("debug-coord-use");
   DOM.debugCoordVpX = byId("debug-coord-vp-x");
   DOM.debugCoordVpY = byId("debug-coord-vp-y");
@@ -3288,10 +1801,11 @@ function wireDom() {
   DOM.btnCloseSettings = byId("btn-close-settings");
   DOM.btnRefresh = byId("btn-refresh");
   DOM.btnDevTools = byId("btn-dev-tools");
+  DOM.btnReloadCss = byId("btn-reload-css");
   DOM.btnFit = byId("btn-fit");
   DOM.toggleUnlinked = byId("toggle-unlinked");
   DOM.linkLayerList = byId("link-layer-list");
-  DOM.flowSpeedControl = byId("flow-speed-control");
+  DOM.linkSettings = byId("link-settings");
   DOM.engineList = byId("engine-list");
   DOM.nodeSettings = byId("node-settings");
   DOM.solverList = byId("solver-list");
@@ -3309,6 +1823,11 @@ function wireDom() {
     DOM.btnSettings.addEventListener("click", function () {
       var nowClosed = DOM.settingsPanel.classList.contains("closed");
       updateSettingsVisibility(nowClosed);
+    });
+  }
+  if (DOM.btnReloadCss) {
+    DOM.btnReloadCss.addEventListener("click", function () {
+      reloadGraphStylesheet();
     });
   }
 
@@ -3331,15 +1850,17 @@ function wireDom() {
       STATE.pointerInsideGraph = true;
       STATE.pointerClientX = Number(evt.clientX);
       STATE.pointerClientY = Number(evt.clientY);
-      syncHoverTooltipToPointer();
-      updateCoordsStatus();
+      if (STATE.hoveredPointIndex !== null && STATE.hoveredPointIndex !== undefined) {
+        moveTooltip(STATE.pointerClientX, STATE.pointerClientY);
+      }
+      if (STATE.debugEnabled) updateCoordsStatus();
     });
     DOM.graphPanel.addEventListener("mouseleave", function (evt) {
       var toEl = evt && evt.relatedTarget ? evt.relatedTarget : null;
       if (toEl && DOM.graphPanel && DOM.graphPanel.contains(toEl)) return;
       STATE.pointerInsideGraph = false;
       clearHoverNodeState("panel-mouseleave");
-      updateCoordsStatus();
+      if (STATE.debugEnabled) updateCoordsStatus();
     });
     DOM.graphPanel.addEventListener("contextmenu", function (evt) {
       evt.preventDefault();
@@ -3480,10 +2001,30 @@ function wireDom() {
   });
 
   startPerfMonitor();
-  startHoverMonitor();
   ensureDebugExtraRows();
   switchSettingsTab("notes");
   window.addEventListener("resize", scheduleGraphViewportSync);
+  window.addEventListener("mousemove", function (evt) {
+    STATE.pointerClientX = Number(evt.clientX);
+    STATE.pointerClientY = Number(evt.clientY);
+    clearHoverIfPointerOutside("window-mousemove-outside");
+  }, { passive: true });
+  window.addEventListener("mouseout", function (evt) {
+    var related = evt && (evt.relatedTarget || evt.toElement);
+    if (related) return;
+    STATE.pointerInsideGraph = false;
+    clearHoverNodeState("window-mouseout");
+  });
+  window.addEventListener("blur", function () {
+    STATE.pointerInsideGraph = false;
+    clearHoverNodeState("window-blur");
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      STATE.pointerInsideGraph = false;
+      clearHoverNodeState("document-hidden");
+    }
+  });
 }
 
 function refreshUiOnly() {

@@ -21,7 +21,10 @@
       </div>
       <div id="toolbar-right">
         <button id="btn-fit" type="button">Fit</button>
-        <button id="btn-dev-tools" type="button">DevTools</button>
+        <div id="toolbar-debug">
+          <button id="btn-dev-tools" type="button">DevTools</button>
+          <button id="btn-reload-css" type="button">Reload CSS</button>
+        </div>
         <button id="btn-settings" type="button">Settings</button>
         <button id="btn-refresh" type="button">Rebuild</button>
       </div>
@@ -36,7 +39,7 @@
           <span id="status-extra-text"></span>
         </div>
 
-        <div id="status-debug-panel">
+        <div id="status-debug-panel" class="is-hidden">
           <span class="title">Debug mode: On</span>
           <span id="debug-coords">
             <div>use <span id="debug-coord-use">--</span></div>
@@ -65,7 +68,8 @@
       </section>
 
       <aside id="settings-panel" class="closed" aria-hidden="true">
-        <div class="settings-scroll">
+
+        <div id="settings-head">
           <div class="panel-head">
             <h2>Settings</h2>
             <button id="btn-close-settings" type="button">Close</button>
@@ -75,16 +79,19 @@
             <button class="settings-tab" type="button" data-tab="links">Links</button>
             <button class="settings-tab" type="button" data-tab="physics">Physics</button>
           </div>
+        </div>
 
+        <div class="settings-scroll">
           <section id="tab-notes" class="tab-pane active">
             <section class="settings-block">
               <h3>Runtime Filters</h3>
-              <label class="line-item">
-                <input id="toggle-unlinked" type="checkbox"/>
-                <span>Show unlinked nodes</span>
-              </label>
-              <div id="layer-list" class="stack"></div>
-              <span id="node-settings"></span>
+              <div id="note-runtime-settings" class="stack">
+                <label class="line-item">
+                  <input id="toggle-unlinked" type="checkbox"/>
+                  <span>Show unlinked nodes</span>
+                </label>
+                <span id="node-settings"></span>
+              </div>
             </section>
 
             <section class="settings-block">
@@ -97,7 +104,9 @@
           <section id="tab-links" class="tab-pane">
             <section class="settings-block">
               <h3>Link Settings</h3>
-              <div id="flow-speed-control"></div>
+              <div id="link-runtime-settings" class="stack">
+                <span id="link-settings"></span>
+              </div>
             </section>
             <section class="settings-block">
               <h3>Link Layers</h3>
@@ -154,6 +163,8 @@
   <script src="__GRAPH_DATA_JS__"></script>
   <script src="__GRAPH_SOLVER_JS__"></script>
   <script src="__GRAPH_RENDERER_JS__"></script>
+  <script src="__GRAPH_UI_DEPTREE_JS__"></script>
+  <script src="__GRAPH_UI_DEBUG_JS__"></script>
   <script src="__GRAPH_UI_JS__"></script>
   <script src="__GRAPH_MAIN_JS__"></script>
 </body>

@@ -289,7 +289,7 @@ function collectLayers(data) {
     var key = normalizeLayerKey(edge.layer, "edge");
     if (key) set.add(key);
   });
-  return Array.from(set.values()).filter(Boolean);
+  return orderedLayerKeys(Array.from(set.values()).filter(Boolean));
 }
 
 function buildLayerStats(data) {
@@ -319,10 +319,13 @@ function ensureRuntimeState() {
   var meta = data.meta || {};
   var metaLayerEnabled = normalizeLayerMap(meta.layer_enabled || {}, "edge");
   var metaLayerColors = normalizeLayerMap(meta.layer_colors || {}, "edge");
+  var metaLinkColors = normalizeLayerMap(meta.link_colors || {}, "edge");
   var metaLayerStyles = normalizeLayerMap(meta.layer_styles || {}, "edge");
   var metaLayerFlow = normalizeLayerMap(meta.layer_flow || {}, "edge");
   var metaLinkStrengths = normalizeLayerMap(meta.link_strengths || {}, "edge");
   var metaLinkDistances = normalizeLayerMap(meta.link_distances || {}, "edge");
+  var metaLinkWeights = normalizeLayerMap(meta.link_weights || {}, "edge");
+  var metaLinkWeightModes = normalizeLayerMap(meta.link_weight_modes || {}, "edge");
   if (!Object.prototype.hasOwnProperty.call(metaLayerEnabled, "notes")
       && Object.prototype.hasOwnProperty.call(metaLayerEnabled, "priority")) {
     metaLayerEnabled.notes = metaLayerEnabled.priority;
@@ -331,6 +334,7 @@ function ensureRuntimeState() {
   var allLayers = collectLayers(data);
   var nextLayers = {};
   var nextLayerColors = {};
+  var nextLinkColors = {};
 
   allLayers.forEach(function (layer) {
     var hasPrevious = Object.prototype.hasOwnProperty.call(STATE.layers, layer);
@@ -346,14 +350,27 @@ function ensureRuntimeState() {
     } else {
       nextLayerColors[layer] = fallbackLayerColor(layer);
     }
+
+    if (Object.prototype.hasOwnProperty.call(metaLinkColors, layer) && metaLinkColors[layer]) {
+      nextLinkColors[layer] = String(metaLinkColors[layer]);
+    } else if (STATE.linkColors && STATE.linkColors[layer]) {
+      nextLinkColors[layer] = STATE.linkColors[layer];
+    } else if (Object.prototype.hasOwnProperty.call(nextLayerColors, layer) && nextLayerColors[layer]) {
+      nextLinkColors[layer] = String(nextLayerColors[layer]);
+    } else {
+      nextLinkColors[layer] = fallbackLayerColor(layer);
+    }
   });
 
   STATE.layers = nextLayers;
   STATE.layerColors = nextLayerColors;
+  STATE.linkColors = nextLinkColors;
   STATE.layerStyles = Object.assign({}, metaLayerStyles, normalizeLayerMap(STATE.layerStyles || {}, "edge"));
   STATE.layerFlow = Object.assign({}, metaLayerFlow, normalizeLayerMap(STATE.layerFlow || {}, "edge"));
   STATE.linkStrengths = Object.assign({}, metaLinkStrengths, normalizeLayerMap(STATE.linkStrengths || {}, "edge"));
   STATE.linkDistances = Object.assign({}, metaLinkDistances, normalizeLayerMap(STATE.linkDistances || {}, "edge"));
+  STATE.linkWeights = Object.assign({}, metaLinkWeights, normalizeLayerMap(STATE.linkWeights || {}, "edge"));
+  STATE.linkWeightModes = Object.assign({}, metaLinkWeightModes, normalizeLayerMap(STATE.linkWeightModes || {}, "edge"));
 
   if (!Object.prototype.hasOwnProperty.call(STATE.layerColors, "notes")) {
     if (Object.prototype.hasOwnProperty.call(STATE.layerColors, "priority")) {
@@ -640,7 +657,7 @@ function buildExternalSeedMap(nodes) {
 }
 
 function linkColor(edge) {
-  var color = STATE.layerColors[edge.layer] || fallbackLayerColor(edge.layer);
+  var color = (STATE.linkColors && STATE.linkColors[edge.layer]) || fallbackLayerColor(edge.layer);
   return parseColor(color, 0.58);
 }
 

@@ -147,7 +147,7 @@ function flowEdgeColor(edge, edgeIndex) {
       return [clamp(r, 0, 1), clamp(g, 0, 1), clamp(b, 0, 1)];
     }
   }
-  return parseColor(STATE.layerColors[edge.layer] || fallbackLayerColor(edge.layer), 1);
+  return parseColor((STATE.linkColors && STATE.linkColors[edge.layer]) || fallbackLayerColor(edge.layer), 1);
 }
 
 function stopFlowParticles() {

@@ -1,5 +1,45 @@
-﻿"use strict";
+"use strict";
 
+var LAYER_ORDER = Object.freeze([
+  "notes",
+  "priority",
+  "families",
+  "note_links",
+  "examples",
+  "mass_links",
+  "kanji"
+]);
+
+var LAYER_ORDER_INDEX = (function buildLayerOrderIndex() {
+  var out = {};
+  LAYER_ORDER.forEach(function (layer, idx) {
+    out[String(layer)] = idx;
+  });
+  return out;
+})();
+
+function layerOrderRank(layer) {
+  var key = String(layer || "");
+  if (Object.prototype.hasOwnProperty.call(LAYER_ORDER_INDEX, key)) {
+    return Number(LAYER_ORDER_INDEX[key]);
+  }
+  return 9999;
+}
+
+function compareLayerOrder(a, b) {
+  var ak = String(a || "");
+  var bk = String(b || "");
+  var ar = layerOrderRank(ak);
+  var br = layerOrderRank(bk);
+  if (ar !== br) return ar - br;
+  return ak.localeCompare(bk);
+}
+
+function orderedLayerKeys(keys) {
+  var arr = Array.isArray(keys) ? keys.slice() : [];
+  arr.sort(compareLayerOrder);
+  return arr;
+}
 function byId(id) {
   return document.getElementById(id);
 }

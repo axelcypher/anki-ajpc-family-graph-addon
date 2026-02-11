@@ -1,5 +1,148 @@
 ﻿@use "graph.mixins" as mixins;
 
+#hover-tip {
+  @include mixins.overlay-panel(
+    $position: fixed,
+    $padding: 8px 10px,
+  );
+  pointer-events: none;
+  min-width: 180px;
+  max-width: 340px;
+  display: none;
+  line-height: 1.35;
+}
+
+#hover-tip.is-visible {
+  display: block;
+}
+
+#hover-tip .tip-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#hover-tip .tip-muted {
+  color: var(--text-soft);
+}
+
+#ctx-menu {
+  @include mixins.overlay-panel(
+    $position: fixed,
+    $padding: 6px,
+  );
+  display: none;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+#ctx-menu.is-visible {
+  display: block;
+}
+
+#ctx-menu .item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+#ctx-menu .item:hover {
+  background: var(--bg-chip-100);
+}
+
+#ctx-menu .divider {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border-100);
+}
+
+#ctx-menu .ctx-selected-dot,
+#ctx-menu .ctx-active-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 0 5px 1px 2px;
+}
+
+#ctx-menu .ctx-selected-dot {
+  border: 1.4px solid var(--danger);
+  background: transparent;
+}
+
+#ctx-menu .ctx-active-dot {
+  background: var(--ok);
+}
+
+#ctx-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(2, 6, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#ctx-picker .dialog {
+  width: min(360px, 92vw);
+  max-height: min(72vh, 520px);
+  border-radius: 14px;
+  border: 1px solid var(--border-100);
+  background: var(--bg-chip-200);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.5);
+  color: var(--text-main);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+#ctx-picker .title {
+  padding: 12px 14px 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#ctx-picker .list {
+  overflow: auto;
+  padding: 0 14px 10px 14px;
+}
+
+#ctx-picker .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+}
+
+#ctx-picker .btn-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 12px 12px;
+  border-top: 1px solid var(--border-100);
+}
+
+#ctx-picker .btn {
+  flex: 1 1 auto;
+  border-radius: 9px;
+  border: 1px solid var(--border-100);
+  background: var(--bg-chip-200);
+  color: var(--text-main);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+#ctx-picker .btn:hover {
+  background: var(--bg-chip-200);
+}
+
+#ctx-picker .btn.primary {
+  border-color: var(--border-dark);
+}
+
+
 #status-overlay-top-left {
   position: absolute;
   top: 0;
@@ -48,7 +191,7 @@
   }
 
   #status-debug-panel {
-    @include mixins.overlay-panel($bg-color: var(--bg-panel-soft));
+    @include mixins.overlay-panel();
       
     width: 250px;
     height: fit-content;
@@ -92,8 +235,12 @@
 
   }
 
+  #status-debug-panel.is-hidden {
+    display: none;
+  }
+
   #status-active {
-    @include mixins.overlay-panel($bg-color: var(--bg-panel-soft));
+    @include mixins.overlay-panel();
     width: min(400px, 21vw);
     transform: translateX(calc(-100% - 18px));
     pointer-events: none;
@@ -133,6 +280,13 @@
     line-height: 1.35;
     color: var(--text-soft);
     font-size: 11px;
+
+    .dep-tree-canvas {
+      width: 100%;
+      display: block;
+      background: transparent;
+      cursor: pointer;
+    }
   }
 }
 

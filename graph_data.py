@@ -502,12 +502,15 @@ def build_graph(col: Collection) -> dict[str, Any]:
     kg_cfg = cfg.get("kanji_gate") if isinstance(cfg, dict) else {}
     kanji_vocab_note_types = _normalize_note_type_map(col, (kg_cfg or {}).get("vocab_note_types") or {})
     layer_colors = graph_cfg.get("layer_colors") or {}
+    link_colors = graph_cfg.get("link_colors") or {}
     same_prio_edges = bool(graph_cfg.get("family_same_prio_edges", False))
     same_prio_opacity = float(graph_cfg.get("family_same_prio_opacity", 0.6))
     layer_styles = graph_cfg.get("layer_styles") or {}
     layer_flow = graph_cfg.get("layer_flow") or {}
     layer_enabled = graph_cfg.get("layer_enabled") or {}
     link_strengths = graph_cfg.get("link_strengths") or {}
+    link_weights = graph_cfg.get("link_weights") or {}
+    link_weight_modes = graph_cfg.get("link_weight_modes") or {}
     link_distances = graph_cfg.get("link_distances") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
     soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
@@ -1651,12 +1654,15 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layers": ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"],
             "note_types": note_type_meta,
             "layer_colors": layer_colors,
+            "link_colors": link_colors,
             "layer_enabled": layer_enabled,
             "family_same_prio_edges": same_prio_edges,
             "family_same_prio_opacity": same_prio_opacity,
             "layer_styles": layer_styles,
             "layer_flow": layer_flow,
             "link_strengths": link_strengths,
+            "link_weights": link_weights,
+            "link_weight_modes": link_weight_modes,
             "link_distances": link_distances,
             "family_edges_direct": family_edges_direct,
             "family_edges_chain": family_edges_chain,

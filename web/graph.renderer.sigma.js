@@ -82,6 +82,16 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     var alpha = smooth01(fadeT);
     if (alpha <= 0.01) return;
 
+    // Dim irrelevant labels while a node/context focus selection is active.
+    var st = window && window.STATE ? window.STATE : null;
+    var focusMask = st && st.focusNodeMask ? st.focusNodeMask : null;
+    var hasSelectionFocus = !!(st && (st.selectedNodeId || st.contextNodeId));
+    var nodeId = String(node.key !== undefined ? node.key : (node.id !== undefined ? node.id : ""));
+    var idx = (owner && owner.indexById && nodeId) ? owner.indexById.get(nodeId) : undefined;
+    var inFocus = idx !== undefined && focusMask && focusMask.length > idx ? !!focusMask[idx] : true;
+    if (hasSelectionFocus && !inFocus) alpha *= 0.18;
+    if (alpha <= 0.01) return;
+
     // Scale only between ~1x and ~2x zoom, then keep size capped.
     var z0 = Math.max(zoomMin, 0.0001);
     var z1 = z0 * 2.0;
@@ -106,7 +116,11 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     ctx.miterLimit = 2;
     ctx.strokeStyle = "rgba(2, 6, 23, " + String((0.80 * alpha).toFixed(3)) + ")";
     ctx.lineWidth = Math.max(1, fontSize * 0.18);
-    ctx.fillStyle = "rgba(229, 231, 235, " + String(alpha.toFixed(3)) + ")";
+    if (hasSelectionFocus && !inFocus) {
+      ctx.fillStyle = "rgba(160, 168, 184, " + String(alpha.toFixed(3)) + ")";
+    } else {
+      ctx.fillStyle = "rgba(229, 231, 235, " + String(alpha.toFixed(3)) + ")";
+    }
     ctx.strokeText(label, x, yTop);
     ctx.fillText(label, x, yTop);
     ctx.restore();

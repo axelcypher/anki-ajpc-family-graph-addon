@@ -24,6 +24,14 @@ DEFAULT_CFG: dict[str, Any] = {
         "mass_links": "#f97316",
         "kanji": "#f87171",
     },
+    "link_colors": {
+        "priority": "#6ee7b7",
+        "families": "#34d399",
+        "note_links": "#f59e0b",
+        "examples": "#60a5fa",
+        "mass_links": "#f97316",
+        "kanji": "#f87171",
+    },
     "family_same_prio_edges": False,
     "family_same_prio_opacity": 0.15,
     "layer_styles": {
@@ -50,6 +58,8 @@ DEFAULT_CFG: dict[str, Any] = {
         "kanji": 1.0,
         "kanji_component": 1.0,
     },
+    "link_weights": {},
+    "link_weight_modes": {},
     "link_distances": {},
     "solver": {
         "layout_enabled": True,
@@ -207,18 +217,34 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         "note_type_hubs",
         "layer_enabled",
         "layer_colors",
+        "link_colors",
         "layer_styles",
         "layer_flow",
         "link_strengths",
+        "link_weights",
+        "link_weight_modes",
         "link_distances",
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
     cfg["layer_colors"] = _migrate_layer_map(cfg.get("layer_colors", {}), copy_family_to_notes=True)
+    cfg["link_colors"] = _migrate_layer_map(cfg.get("link_colors", {}))
+    for layer in ("priority", "families", "note_links", "examples", "mass_links", "kanji"):
+        if layer in cfg["link_colors"]:
+            continue
+        from_layer = cfg["layer_colors"].get(layer)
+        if isinstance(from_layer, str) and from_layer.strip():
+            cfg["link_colors"][layer] = from_layer
+            continue
+        fallback = DEFAULT_CFG.get("link_colors", {}).get(layer)
+        if isinstance(fallback, str) and fallback.strip():
+            cfg["link_colors"][layer] = fallback
     cfg["layer_enabled"] = _migrate_layer_map(cfg.get("layer_enabled", {}), copy_family_to_notes=True)
     cfg["layer_styles"] = _migrate_layer_map(cfg.get("layer_styles", {}))
     cfg["layer_flow"] = _migrate_layer_map(cfg.get("layer_flow", {}))
     cfg["link_strengths"] = _migrate_layer_map(cfg.get("link_strengths", {}))
+    cfg["link_weights"] = _migrate_layer_map(cfg.get("link_weights", {}))
+    cfg["link_weight_modes"] = _migrate_layer_map(cfg.get("link_weight_modes", {}))
     cfg["link_distances"] = _migrate_layer_map(cfg.get("link_distances", {}))
     cfg["solver"] = _merge_section_defaults(cfg.get("solver"), DEFAULT_CFG.get("solver", {}))
     cfg["engine"] = _merge_section_defaults(cfg.get("engine"), DEFAULT_CFG.get("engine", {}))
@@ -475,6 +501,19 @@ def set_solver_value(key: str, value: Any) -> None:
     save_graph_config(cfg)
 
 
+def set_link_color(layer: str, color: str) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    color = (color or "").strip()
+    if not layer:
+        return
+    if not color or color.lower() == "auto":
+        cfg["link_colors"].pop(layer, None)
+    else:
+        cfg["link_colors"][layer] = color
+    save_graph_config(cfg)
+
+
 def set_renderer_value(key: str, value: Any) -> None:
     cfg = load_graph_config()
     key = (key or "").strip()
@@ -592,6 +631,33 @@ def set_link_distance(layer: str, distance: float) -> None:
         return
     cfg.setdefault("link_distances", {})
     cfg["link_distances"][layer] = value
+    save_graph_config(cfg)
+
+
+def set_link_weight(layer: str, weight: float) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    if not layer:
+        return
+    try:
+        value = float(weight)
+    except Exception:
+        return
+    cfg.setdefault("link_weights", {})
+    cfg["link_weights"][layer] = value
+    save_graph_config(cfg)
+
+
+def set_link_weight_mode(layer: str, mode: str) -> None:
+    cfg = load_graph_config()
+    layer = (layer or "").strip()
+    mode = (mode or "").strip().lower()
+    if not layer:
+        return
+    if mode not in ("manual", "metric"):
+        mode = "manual"
+    cfg.setdefault("link_weight_modes", {})
+    cfg["link_weight_modes"][layer] = mode
     save_graph_config(cfg)
 
 

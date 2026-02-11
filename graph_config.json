@@ -3,9 +3,9 @@
     "1768963265679": "SentMeaning",
     "1769741511321": "Concept",
     "1768669148068": "VocabMeaning",
-    "1768669162567": "VocabMeaning",
     "1768654427037": "VocabMeaning",
-    "1769454350497": "Concept"
+    "1769454350497": "Concept",
+    "1768669162567": "VocabMeaning"
   },
   "note_type_visible": {
     "1769281677593": false,
@@ -39,7 +39,8 @@
     "families": "rgba(49,198,141,0.580)",
     "examples": "rgba(250,95,216,0.580)",
     "mass_links": "rgba(172,89,17,0.200)",
-    "notes": "#ffffff"
+    "notes": "rgba(85,85,255,0.580)",
+    "kanji": "rgba(248,113,113,0.150)"
   },
   "family_same_prio_edges": false,
   "layer_styles": {
@@ -170,7 +171,7 @@
     "mass_links": 45.0
   },
   "neighbor_scaling": {
-    "mode": "ccm",
+    "mode": "common_neighbors",
     "directed": "out",
     "weights": {
       "priority": 1.4,
@@ -228,5 +229,15 @@
   "node": {
     "node_degree_size_factor": 0.9
   },
-  "engine": {}
+  "engine": {},
+  "link_colors": {
+    "priority": "rgba(53,114,227,0.580)",
+    "families": "rgba(52,211,153,0.580)",
+    "note_links": "#f59e0b",
+    "examples": "#60a5fa",
+    "mass_links": "#f97316",
+    "kanji": "#f87171"
+  },
+  "link_weights": {},
+  "link_weight_modes": {}
 }

@@ -163,8 +163,10 @@ function eid(payload) { if (!payload) return null; return payload.edge === undef
 function hev(payload) {
   var e = payload && payload.event ? payload.event : null;
   var o = e && e.original ? e.original : null;
-  if (o && typeof o.clientX === "number" && typeof o.clientY === "number") return { clientX: Number(o.clientX), clientY: Number(o.clientY) };
-  if (e && typeof e.x === "number" && typeof e.y === "number") return { clientX: Number(e.x), clientY: Number(e.y) };
+  if (o && typeof o.clientX === "number" && typeof o.clientY === "number") {
+    return { clientX: Number(o.clientX), clientY: Number(o.clientY) };
+  }
+  // Avoid sigma-local coordinates here (e.x/e.y): tooltip hit-tests run in client space.
   return null;
 }
 
@@ -1139,9 +1141,14 @@ function ensureGraphInstance() {
     onPointMouseOver: function (index, _pointPos, evt) {
       var node = STATE.activeNodes[index];
       if (!node) return;
+      STATE.pointerInsideGraph = true;
       if (evt && isFinite(evt.clientX) && isFinite(evt.clientY)) {
         STATE.pointerClientX = Number(evt.clientX);
         STATE.pointerClientY = Number(evt.clientY);
+      }
+      if (Number(STATE.hoveredPointIndex) === Number(index)) {
+        moveTooltip(STATE.pointerClientX, STATE.pointerClientY);
+        return;
       }
       STATE.hoveredPointIndex = index;
       applyVisualStyles(0.08);
@@ -1154,16 +1161,15 @@ function ensureGraphInstance() {
           pointerY: STATE.pointerClientY
         });
       }
-      showTooltip(node, evt);
+      showTooltip(node, { clientX: STATE.pointerClientX, clientY: STATE.pointerClientY });
     },
     onPointMouseOut: function () {
-      // Do not clear immediately here. Sigma's leaveNode can fire transiently on tiny nodes
-      // while moving/zooming. The hover monitor performs the actual hit-test-based clear.
       if (typeof setHoverDebug === "function") {
         setHoverDebug("leave-node-event", {
           idx: STATE.hoveredPointIndex
         });
       }
+      clearHoverNodeState("leave-node-event");
     },
     onLinkMouseOver: function (linkIndex) { STATE.hoveredLinkIndex = linkIndex; },
     onLinkMouseOut: function () { STATE.hoveredLinkIndex = null; },

@@ -1,7 +1,7 @@
 @mixin interactive-control(
-  $radius: 9px,
-  $border: var(--border-light),
-  $background: var(--bg-panel-soft),
+  $radius: var(--radius-small),
+  $border: var(--border-100),
+  $background: var(--bg-panel-100),
   $padding: 8px 10px,
   $font-size: 13px
 ) {
@@ -15,23 +15,23 @@
 
 @mixin form-input(
   $radius: 7px,
-  $border: var(--line),
+  $border: var(--border-100),
   $background: var(--bg-panel),
   $padding: 5px 6px,
   $font-size: 12px
 ) {
   border-radius: $radius;
   border: 1px solid $border;
-  background: $background;
+  background-color: $background;
   color: var(--text-main);
   padding: $padding;
   font-size: $font-size;
-}
+} 
 
 @mixin surface-card(
-  $border: var(--border),
-  $background: var(--bg-chip),
-  $radius: 8px,
+  $border: var(--border-100),
+  $background: var(--bg-panel),
+  $radius: var(--radius-small),
   $padding: 8px
 ) {
   border: 1px solid $border;
@@ -41,7 +41,7 @@
 }
 
 @mixin row-chip(
-  $border: var(--border),
+  $border: var(--border-100),
   $background: var(--bg-chip),
   $radius: 8px,
   $padding: 5px 6px
@@ -53,18 +53,54 @@
 }
 
 @mixin overlay-panel(
-  $border: var(--border-dark),
-  $bg-color: var(--bg-panel),
-  $radius: var(--radius-small),
+  $position: relative,
   $padding: 7px 12px,
-  $color: var(--text-soft)
 ) {
-  position: relative;
-  border: 1px solid $border;
-  border-radius: $radius;
-  background: color-mix(in srgb, $bg-color, transparent 60%);
-  backdrop-filter: blur(5px);
-  padding: $padding;
-  color: var(--text-soft);
+  position: $position;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-100);
+  background: var(--bg-chip-200);
+  backdrop-filter: blur(8px);
+  padding: 7px 12px;
+  color: var(--text-main);
   font-size: 12px;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  z-index: 500;
+}
+
+
+@mixin scrollbar() {
+    &::-webkit-scrollbar {
+      width: 10px;
+      background: transparent;
+      margin: var(--radius-small) 0;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 999px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--accent-200);
+      border-radius: 999px;
+    }
+
+    &::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+}
+
+@mixin hover-hint() {
+  &:hover::after {
+  content: attr(title);
+  position: absolute;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-chip);
+  border: 1px solid var(--border);
+  top: -100%;
+  left: 0;
+}
 }

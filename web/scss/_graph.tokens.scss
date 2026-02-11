@@ -1,30 +1,35 @@
 ﻿:root,
 #app {
-  --bg-main:          #16181d; //Jez Black (dark)
-  --bg-main-soft:     #22252e; //Jet Black (medium)
-  
-  --bg-panel:         #20232b; //Twilight Indigo (dark)
-  --bg-panel-soft:    rgb(34, 37, 44); //Twilight Indigo (medium)
+  --bg-main:          #16181d; 
+  --bg-main-100:      #16181d69; 
 
-  --bg-chip:          #282c35; //
-  --bg-chip-soft:     #262d3b; //Twilight Indigo (medium)
+  --bg-panel:         #20232b; 
+  --bg-panel-100:     #34394660; 
+  --bg-panel-200:     #4d55686b; 
 
-  --bg-btn:           #212a3b; //
-  --bg-btn-rfs-border:#83601a; //
-  --bg-btn-rfs:       #2d2210; //
-  --bg-btn-soft:      #252e3d; //Twilight Indigo (medium)
+  --bg-chip:          #282c35; 
+  --bg-chip-100:      #3e435080; 
+  --bg-chip-200:      #17191f54; 
 
-  --text-main:        #dbdbdb; //Thistle (light)
-  --text-soft:        #adadad; //Thistle (medium)
+  --bg-btn:           var(--bg-chip); 
+  --bg-btn-soft:      color-mix(
+                        in srgb, 
+                        var(--bg-btn), 
+                        var(--accent) 25%
+                      ); 
 
-  --line:             #1f2027; //Dark Evergreen
-  --accent:           #6247AA; //Deep Lilac
-  --accent-light:     #A06CD5; //Lavender Purple
-  --accent-lighter:   #C19EE0; //Wisteria
+  --border:           #17181a; 
+  --border-100:       #232427; 
+  --border-200:       #37393d83; 
 
-  --border:           #0d0e11; //Dark Evergreen
-  --border-dark:      #0d0e11; //Dark Evergreen
-  --border-light:     #323641; //Dark Evergreen
+  --accent:           #6247AA;
+  --accent-100:       #6147aab2; 
+  --accent-200:       #6147aa80; 
+  --accent-300:       #6147aa49; 
+
+  --text-main:        #dbdbdb; 
+  --text-soft:        #adadad; 
+
 
   --radius-small:     10px;
   --radius-medium:    20px; 
@@ -35,5 +40,13 @@
   --danger:           #fb7185;
 
 
+
+
+  --bg-btn-rfs-border:#83601a; 
+  --bg-btn-rfs:       #2d2210; 
+  --line:             #1f2027; //Dark Evergreen
+  --accent-light:     #A06CD5; //Lavender Purple
+  --accent-lighter:   #C19EE0; //Wisteria
+  --bg-main-soft:     #22252e; //Jet Black (medium)
 }
 

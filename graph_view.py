@@ -34,7 +34,7 @@ from .graph_config import (
     set_note_type_tooltip_fields,
     set_note_type_visible,
     set_note_type_color,
-    set_layer_color,
+    set_link_color,
     set_layer_enabled,
     set_family_same_prio_edges,
     set_family_same_prio_opacity,
@@ -42,6 +42,8 @@ from .graph_config import (
     set_layer_flow,
     set_layer_flow_speed,
     set_link_strength,
+    set_link_weight,
+    set_link_weight_mode,
     set_link_distance,
     set_engine_value,
     set_solver_value,
@@ -128,6 +130,8 @@ def _html(payload: dict[str, Any]) -> str:
     graph_data_js_src = asset_url("graph.data.graphology.js")
     graph_solver_js_src = asset_url("graph.solver.d3.js")
     graph_renderer_js_src = asset_url("graph.renderer.sigma.js")
+    graph_ui_deptree_js_src = asset_url("ui/graph.ui.deptree.js")
+    graph_ui_debug_js_src = asset_url("ui/graph.ui.debug.js")
     graph_ui_js_src = asset_url("graph.ui.js")
     graph_main_js_src = asset_url("graph.main.js")
     graph_css_src = asset_url("graph.css")
@@ -161,6 +165,8 @@ def _html(payload: dict[str, Any]) -> str:
     html = html.replace("__GRAPH_DATA_JS__", graph_data_js_src)
     html = html.replace("__GRAPH_SOLVER_JS__", graph_solver_js_src)
     html = html.replace("__GRAPH_RENDERER_JS__", graph_renderer_js_src)
+    html = html.replace("__GRAPH_UI_DEPTREE_JS__", graph_ui_deptree_js_src)
+    html = html.replace("__GRAPH_UI_DEBUG_JS__", graph_ui_debug_js_src)
     html = html.replace("__GRAPH_UI_JS__", graph_ui_js_src)
     html = html.replace("__GRAPH_MAIN_JS__", graph_main_js_src)
     return html
@@ -388,10 +394,10 @@ class FamilyGraphWindow(QWidget):
                 _prefix, rest = message.split(":", 1)
                 layer, enc = rest.split(":", 1)
                 color = unquote(enc)
-                set_layer_color(layer, color)
-                logger.dbg("layer color", layer, color)
+                set_link_color(layer, color)
+                logger.dbg("link color", layer, color)
             except Exception:
-                logger.dbg("layer color parse failed", message)
+                logger.dbg("link color parse failed", message)
         elif message.startswith("lenabled:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -425,6 +431,23 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("link strength", layer, val)
             except Exception:
                 logger.dbg("link strength parse failed", message)
+        elif message.startswith("lweight:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, val = rest.split(":", 1)
+                set_link_weight(layer, float(val))
+                logger.dbg("link weight", layer, val)
+            except Exception:
+                logger.dbg("link weight parse failed", message)
+        elif message.startswith("lweightmode:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                layer, enc = rest.split(":", 1)
+                mode = unquote(enc)
+                set_link_weight_mode(layer, mode)
+                logger.dbg("link weight mode", layer, mode)
+            except Exception:
+                logger.dbg("link weight mode parse failed", message)
         elif message.startswith("ldistance:"):
             try:
                 _prefix, rest = message.split(":", 1)
