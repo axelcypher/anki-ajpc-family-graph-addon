@@ -86,7 +86,6 @@
       "  {",
       "    float ajpcDim = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));",
       "    float ajpcRgbMul = mix(1.0, u_dim_rgb_mul, ajpcDim);",
-      "    float ajpcAlphaMul = mix(1.0, u_dim_alpha_mul, ajpcDim);",
       "    float ajpcFlowGate = step(0.5, v_flow) * step(0.001, u_flow_speed);",
       "    float ajpcSpacing = ajpcHalfThickness * max(u_flow_spacing_mul, 0.00001);",
       "    float ajpcCyclesPerSec = 0.65 + (u_flow_speed * 1.1);",
@@ -107,7 +106,9 @@
       "      ajpcPhoton = max(ajpcPhotonFwd, ajpcPhotonRev);",
       "    }",
       "    ajpcPhoton *= ajpcFlowGate;",
-      "    float ajpcBaseAlpha = clamp(v_color.a * ajpcLineMask * ajpcAlphaMul, 0.0, 1.0);",
+      "    float ajpcBaseAlphaRaw = clamp(v_color.a * ajpcLineMask, 0.0, 1.0);",
+      "    float ajpcDimAlpha = clamp(u_dim_alpha_mul * ajpcLineMask, 0.0, 1.0);",
+      "    float ajpcBaseAlpha = mix(ajpcBaseAlphaRaw, ajpcDimAlpha, ajpcDim);",
       "    float ajpcPhotonAlpha = clamp(v_color.a * ajpcPhoton * 0.58, 0.0, 1.0);",
       "    float ajpcAlpha = clamp(ajpcBaseAlpha + ajpcPhotonAlpha, 0.0, 1.0);",
       "    if (ajpcAlpha <= 0.001) gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);",
@@ -179,7 +180,7 @@
       var dimRgbMul = Number(runtime && runtime.focusDimRgbMul);
       if (!isFinite(dimRgbMul)) dimRgbMul = 0.58;
       var dimAlphaMul = Number(runtime && runtime.focusDimAlphaMul);
-      if (!isFinite(dimAlphaMul)) dimAlphaMul = 0.16;
+      if (!isFinite(dimAlphaMul)) dimAlphaMul = 0.1;
       var flowSpeed = Number(runtime && runtime.flowAnimSpeed);
       if (!isFinite(flowSpeed)) flowSpeed = 0;
       if (flowSpeed < 0) flowSpeed = 0;

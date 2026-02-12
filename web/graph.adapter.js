@@ -17,7 +17,17 @@
     if (typeof fn !== "function") return undefined;
     try {
       return fn.apply(null, args || []);
-    } catch (_e) {
+    } catch (err) {
+      try {
+        if (typeof log === "function") {
+          log("adapter.error: " + key + ": " + String(err && err.message ? err.message : err));
+        }
+      } catch (_e0) {}
+      try {
+        if (root && root.console && typeof root.console.error === "function") {
+          root.console.error("[GraphAdapter]", key, err);
+        }
+      } catch (_e1) {}
       return undefined;
     }
   }
@@ -65,4 +75,3 @@
 
   root.GraphAdapter = adapter;
 })();
-

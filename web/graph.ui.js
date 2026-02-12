@@ -335,13 +335,6 @@ function renderActiveCards(node) {
     return;
   }
 
-  var byStatus = { normal: 0, suspended: 0, buried: 0, other: 0 };
-  for (var i = 0; i < cards.length; i += 1) {
-    var key = String(cards[i] && cards[i].status || "").toLowerCase();
-    if (key === "normal" || key === "suspended" || key === "buried") byStatus[key] += 1;
-    else byStatus.other += 1;
-  }
-
   var rows = cards.map(function (card) {
     
     var c = card && typeof card === "object" ? card : {};
@@ -352,9 +345,9 @@ function renderActiveCards(node) {
     var stabilityText = formatCardStability(c.stability);
     return renderHtmlTemplate(
       `<div class="active-card-row">
-        <span class="active-card-ord">{{name}}</span>
-        <span class="active-card-status">{{status}}</span>
-        <span class="active-card-stability">{{stability}}</span>
+        <span class="active-card-cell active-card-ord">{{name}}</span>
+        <span class="active-card-cell active-card-status">{{status}}</span>
+        <span class="active-card-cell active-card-stability">{{stability}} days</span>
       </div>`,
       { name: cardName, status: statusText, stability: stabilityText }
     );
@@ -362,7 +355,14 @@ function renderActiveCards(node) {
 
   DOM.statusActiveCards.innerHTML = renderHtmlTemplate(
     `<div class="title"><h3>{{title}}</h3></div>
-    <div class="active-cards-list">{{{rows}}}</div>`,
+    <div class="active-cards-table">
+      <div class="active-cards-head">
+        <span class="active-card-col active-card-col-name">Card</span>
+        <span class="active-card-col active-card-col-status">Status</span>
+        <span class="active-card-col active-card-col-stability">Stability</span>
+      </div>
+      <div class="active-cards-list">{{{rows}}}</div>
+    </div>`,
     { title: "Cards", rows: rows }
   );
 }
@@ -492,49 +492,27 @@ function updateStatus(extraText) {
   if (!isFinite(families) || families < 0) families = 0;
   if (!isFinite(edges) || edges < 0) edges = 0;
   var summary = "Notes: " + notes + " | Families: " + families + " | Links: " + edges;
-  if (DOM.statusExtraText) DOM.statusExtraText.textContent = extraText ? String(extraText) : "";
+  if (STATE && typeof STATE === "object") {
+    if (!Object.prototype.hasOwnProperty.call(STATE, "statusOverrideText")) STATE.statusOverrideText = "";
+    if (arguments.length === 0) {
+      STATE.statusOverrideText = "";
+    } else {
+      var next = (extraText === null || extraText === undefined) ? "" : String(extraText);
+      STATE.statusOverrideText = next ? next : "";
+    }
+  }
+  var overrideText = (STATE && typeof STATE.statusOverrideText === "string") ? STATE.statusOverrideText : "";
+  var statusText = overrideText || summary;
 
-  if (DOM.statusSummary) DOM.statusSummary.textContent = summary;
+  if (DOM.statusSummary) DOM.statusSummary.textContent = statusText;
+  if (DOM.statusExtraText) DOM.statusExtraText.textContent = "";
   renderActiveDetails();
 
   if (STATE.graph && DOM.statusZoom) {
     var zoom = STATE.graph.getZoomLevel();
     DOM.statusZoom.textContent = "Zoom: " + Number(zoom || 1).toFixed(2) + "x";
   }
-}
-
-function stopPerfMonitor() {
-  if (STATE.perfRaf) {
-    window.cancelAnimationFrame(STATE.perfRaf);
-    STATE.perfRaf = null;
-  }
-}
-
-function startPerfMonitor() {
-  if ((!DOM.statusFps && !DOM.debugCoords) || STATE.perfRaf) return;
-  if (DOM.statusFps) DOM.statusFps.textContent = "FPS: --";
-  if (DOM.debugCoords) clearDebugValueTables();
-  STATE.perfWindowStart = 0;
-  STATE.perfFrameCount = 0;
-
-  function tick(ts) {
-    if (!STATE.perfWindowStart) STATE.perfWindowStart = ts;
-    STATE.perfFrameCount += 1;
-
-    var elapsed = ts - STATE.perfWindowStart;
-    if (elapsed >= 500) {
-      var fps = (STATE.perfFrameCount * 1000) / elapsed;
-      STATE.perfFps = fps;
-      if (DOM.statusFps) DOM.statusFps.textContent = "FPS: " + fps.toFixed(1);
-      STATE.perfFrameCount = 0;
-      STATE.perfWindowStart = ts;
-    }
-    if (STATE.debugEnabled) updateCoordsStatus();
-
-    STATE.perfRaf = window.requestAnimationFrame(tick);
-  }
-
-  STATE.perfRaf = window.requestAnimationFrame(tick);
+  if (typeof syncDebugPerfMonitor === "function") syncDebugPerfMonitor();
 }
 
 function appendSearchValue(parts, value, seen, budget) {
@@ -1585,7 +1563,6 @@ function wireDom() {
   DOM.searchWrap = byId("search-wrap");
   DOM.statusSummary = byId("status-summary");
   DOM.statusZoom = byId("status-zoom");
-  DOM.statusFps = byId("status-fps");
   DOM.statusExtraText = byId("status-extra-text");
   DOM.statusActive = byId("status-active");
   DOM.statusActiveDetails = byId("status-active-details");
@@ -1805,8 +1782,7 @@ function wireDom() {
     }
   });
 
-  startPerfMonitor();
-  ensureDebugExtraRows();
+  if (typeof syncDebugPerfMonitor === "function") syncDebugPerfMonitor();
   switchSettingsTab("notes");
 
   window.addEventListener("resize", scheduleGraphViewportSync);

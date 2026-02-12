@@ -251,7 +251,9 @@ function ensureDepTreeCanvas(payload) {
         }
       }
       if (!hit) return;
-      depTreeCallEngine("focusNodeById", String(hit.id || ""), true);
+      var focusId = depTreeResolveActiveNodeIdFromHit(hit);
+      if (!focusId) return;
+      depTreeCallEngine("focusNodeById", focusId, true);
     });
     canvas.addEventListener("dblclick", function (evt) {
       var c = evt.currentTarget;
@@ -327,6 +329,25 @@ function depTreeResolveActiveNodeId(depTreeNodeId) {
     var prefixed = "n" + id;
     if (byId.has(prefixed)) return prefixed;
   }
+  return "";
+}
+
+function depTreeResolveActiveNodeIdFromHit(hit) {
+  var h = hit && typeof hit === "object" ? hit : {};
+  var fromId = depTreeResolveActiveNodeId(String(h.id || ""));
+  if (fromId) return fromId;
+
+  var byId = STATE.activeIndexById instanceof Map ? STATE.activeIndexById : null;
+  if (!byId) return "";
+
+  var nid = Number(h.nid || 0);
+  if (!isFiniteNumber(nid) || nid <= 0) return "";
+  nid = Math.round(nid);
+
+  var raw = String(nid);
+  if (byId.has(raw)) return raw;
+  var prefixed = "n" + raw;
+  if (byId.has(prefixed)) return prefixed;
   return "";
 }
 

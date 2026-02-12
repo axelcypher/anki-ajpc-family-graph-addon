@@ -3,6 +3,7 @@
 // Debug panel UI module (extracted from graph.ui.js)
 
 var DEBUG_EXTRA_SPEC = [
+  { key: "fps", a: "perfFps", b: null },
   { key: "hov", a: "hoverReason", b: "hoverIdx" },
   { key: "node", a: "hoverNode", b: "hoverType" },
   { key: "sty", a: "styleMode", b: "styleCount" },
@@ -63,13 +64,13 @@ function ensureDebugExtraRows() {
     a.className = "coord-val";
     a.textContent = "--";
     var b = document.createElement("div");
-    b.className = "coord-val";
+    b.className = row.b ? "coord-val" : "coord-empty";
     b.textContent = "--";
     table.appendChild(k);
     table.appendChild(a);
     table.appendChild(b);
     DOM.debugExtraCells[row.a] = a;
-    DOM.debugExtraCells[row.b] = b;
+    if (row.b) DOM.debugExtraCells[row.b] = b;
   });
   DOM.debugExtra.innerHTML = "";
   DOM.debugExtra.appendChild(table);
@@ -91,7 +92,7 @@ function setDebugExtraValues(v) {
   if (!DOM.debugExtraCells) return;
   DEBUG_EXTRA_SPEC.forEach(function (row) {
     if (DOM.debugExtraCells[row.a]) DOM.debugExtraCells[row.a].textContent = String(x[row.a] || "--");
-    if (DOM.debugExtraCells[row.b]) DOM.debugExtraCells[row.b].textContent = String(x[row.b] || "--");
+    if (row.b && DOM.debugExtraCells[row.b]) DOM.debugExtraCells[row.b].textContent = String(x[row.b] || "--");
   });
 }
 
@@ -107,6 +108,7 @@ function clearDebugValueTables() {
     camR: "--"
   });
   setDebugExtraValues({
+    perfFps: "--",
     hoverReason: "--",
     hoverIdx: "--",
     hoverNode: "--",
@@ -140,6 +142,58 @@ function syncDebugPanelVisibility() {
   DOM.statusDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
 }
 
+function stopDebugPerfMonitor() {
+  if (STATE.perfRaf) {
+    window.cancelAnimationFrame(STATE.perfRaf);
+    STATE.perfRaf = null;
+  }
+  STATE.perfWindowStart = 0;
+  STATE.perfFrameCount = 0;
+  STATE.perfFps = NaN;
+}
+
+function startDebugPerfMonitor() {
+  if (!STATE.debugEnabled) return;
+  if ((!DOM.debugCoords && !DOM.debugExtra) || STATE.perfRaf) return;
+  ensureDebugCoordRows();
+  ensureDebugExtraRows();
+  STATE.perfFps = NaN;
+
+  function tick(ts) {
+    if (!STATE.debugEnabled) {
+      stopDebugPerfMonitor();
+      clearDebugValueTables();
+      syncDebugPanelVisibility();
+      return;
+    }
+
+    if (!STATE.perfWindowStart) STATE.perfWindowStart = ts;
+    STATE.perfFrameCount += 1;
+
+    var elapsed = ts - STATE.perfWindowStart;
+    if (elapsed >= 500) {
+      var fps = (STATE.perfFrameCount * 1000) / elapsed;
+      STATE.perfFps = fps;
+      STATE.perfFrameCount = 0;
+      STATE.perfWindowStart = ts;
+    }
+    updateCoordsStatus();
+    STATE.perfRaf = window.requestAnimationFrame(tick);
+  }
+
+  STATE.perfRaf = window.requestAnimationFrame(tick);
+}
+
+function syncDebugPerfMonitor() {
+  syncDebugPanelVisibility();
+  if (!STATE.debugEnabled) {
+    stopDebugPerfMonitor();
+    clearDebugValueTables();
+    return;
+  }
+  startDebugPerfMonitor();
+}
+
 function updateCoordsStatus() {
   if (!STATE.debugEnabled) {
     syncDebugPanelVisibility();
@@ -166,6 +220,7 @@ function updateCoordsStatus() {
           camR: "--"
         });
         setDebugExtraValues({
+          perfFps: (isFiniteNumber(STATE.perfFps) ? Number(STATE.perfFps).toFixed(1) : "--"),
           hoverReason: hReason0,
           hoverIdx: hIdx0,
           hoverNode: "--",
@@ -266,6 +321,7 @@ function updateCoordsStatus() {
       camR: camR
     });
     setDebugExtraValues({
+      perfFps: (isFiniteNumber(STATE.perfFps) ? Number(STATE.perfFps).toFixed(1) : "--"),
       hoverReason: hReason,
       hoverIdx: hIdx,
       hoverNode: hNode,
@@ -313,6 +369,7 @@ function wireDebugDom() {
   DOM.debugCoords = byId("debug-coords");
   DOM.debugExtra = byId("debug-extra");
   DOM.debugCoordCells = null;
+  DOM.debugExtraCells = null;
 
   DOM.statusDebugPanel = byId("status-debug-panel");
 
@@ -333,5 +390,5 @@ function wireDebugDom() {
       }
     });
   }
-
+  syncDebugPerfMonitor();
 }

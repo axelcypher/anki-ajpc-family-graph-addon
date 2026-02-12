@@ -486,7 +486,7 @@ function setFocusDimRuntime(active) {
   if (!runtime) return;
   runtime.focusDimActive = !!active;
   runtime.focusDimRgbMul = 0.58;
-  runtime.focusDimAlphaMul = 0.16;
+  runtime.focusDimAlphaMul = 0.1;
 }
 
 function setFlowShaderRuntime(speed, spacingMul, radiusMul) {
@@ -1966,7 +1966,7 @@ function triggerNodePingByIndex(index, sourceTag) {
   if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return false;
   if (STATE.runtimeNodeVisibleMask && idx < STATE.runtimeNodeVisibleMask.length && !STATE.runtimeNodeVisibleMask[idx]) return false;
 
-  var nowMs = Date.now();
+  var nowMs = performance.now();
   var nowSec = nowMs * 0.001;
   var durationSec = 0.85;
   var durationMs = Math.round(durationSec * 1000);
@@ -2006,15 +2006,22 @@ function triggerNodePingByIndex(index, sourceTag) {
   return true;
 }
 
-function clearNodeFxState() {
+function clearNodeFxState(forceAllNodes) {
   clearNodeFxPingTimers();
   if (STATE.graph && typeof STATE.graph.setNodeFxStatesBatch === "function") {
     var patches = [];
-    if (isFinite(Number(STATE.nodeFxRingSelectedIndex)) && Number(STATE.nodeFxRingSelectedIndex) >= 0) {
-      patches.push({ index: Number(STATE.nodeFxRingSelectedIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
-    }
-    if (isFinite(Number(STATE.nodeFxRingContextIndex)) && Number(STATE.nodeFxRingContextIndex) >= 0) {
-      patches.push({ index: Number(STATE.nodeFxRingContextIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
+    var forceAll = !!forceAllNodes;
+    if (forceAll && Array.isArray(STATE.activeNodes) && STATE.activeNodes.length) {
+      for (var i = 0; i < STATE.activeNodes.length; i += 1) {
+        patches.push({ index: i, ringMode: 0, ringColor: [1, 1, 1, 0], pingMode: 0, pingDur: 0 });
+      }
+    } else {
+      if (isFinite(Number(STATE.nodeFxRingSelectedIndex)) && Number(STATE.nodeFxRingSelectedIndex) >= 0) {
+        patches.push({ index: Number(STATE.nodeFxRingSelectedIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
+      }
+      if (isFinite(Number(STATE.nodeFxRingContextIndex)) && Number(STATE.nodeFxRingContextIndex) >= 0) {
+        patches.push({ index: Number(STATE.nodeFxRingContextIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
+      }
     }
     if (patches.length) STATE.graph.setNodeFxStatesBatch(patches);
     if (typeof STATE.graph.setNodeFxAnimationState === "function") STATE.graph.setNodeFxAnimationState(false, 0);
@@ -2129,6 +2136,8 @@ function ensureGraphInstance() {
       applyVisualStyles(0.08);
     },
     onBackgroundClick: function () {
+      var hadSelected = STATE.selectedNodeId !== null && STATE.selectedNodeId !== undefined && STATE.selectedNodeId !== "";
+      var hadContext = STATE.contextNodeId !== null && STATE.contextNodeId !== undefined && STATE.contextNodeId !== "";
       STATE.selectedNodeId = null;
       STATE.selectedPointIndex = null;
       STATE.contextNodeId = null;
@@ -2137,8 +2146,9 @@ function ensureGraphInstance() {
       STATE.hoveredLinkIndex = null;
       STATE.focusedIndex = undefined;
       if (STATE.graph && typeof STATE.graph.unselectPoints === "function") { STATE.graph.unselectPoints(); }
+      if (hadSelected || hadContext) clearNodeFxState(true);
       cityHideTooltip();
-      cityHideContextMenu();
+      cityHideContextMenu(true);
       applyVisualStyles();
       cityUpdateStatus();
     },

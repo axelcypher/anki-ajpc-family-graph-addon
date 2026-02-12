@@ -243,7 +243,7 @@
   "link_weights": {
     "families": 1.0,
     "priority": 0.5,
-    "note_links": 0.5
+    "note_links": 2.0
   },
   "link_weight_modes": {
     "priority": "metric"

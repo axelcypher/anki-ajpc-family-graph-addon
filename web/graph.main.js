@@ -57,5 +57,6 @@ if (document.readyState === "loading") {
   });
 } else {
   wireDom();
+  wireDebugDom();
   updateSettingsVisibility(false);
 }

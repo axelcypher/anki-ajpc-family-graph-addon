@@ -455,10 +455,28 @@ function buildContextMenuGroupsForCtx(ctx) {
   return groups;
 }
 
-function hideContextMenu() {
+function hideContextMenu(suppressStateClear) {
   if (!DOM.ctxMenu) return;
+  if (suppressStateClear === true) {
+    DOM.ctxMenu.classList.remove("is-visible");
+    DOM.ctxMenu.setAttribute("aria-hidden", "true");
+    return;
+  }
+  var hadContext = !!(STATE && STATE.contextNodeId !== null && STATE.contextNodeId !== undefined && STATE.contextNodeId !== "");
   DOM.ctxMenu.classList.remove("is-visible");
   DOM.ctxMenu.setAttribute("aria-hidden", "true");
+  if (STATE) {
+    STATE.contextNodeId = null;
+    STATE.contextPointIndex = null;
+  }
+  if (hadContext) {
+    var adapter = window && window.GraphAdapter;
+    if (adapter && typeof adapter.callEngine === "function") {
+      adapter.callEngine("applyVisualStyles", 0.08);
+    } else if (typeof callEngineApplyVisualStyles === "function") {
+      callEngineApplyVisualStyles(0.08);
+    }
+  }
 }
 
 function showContextMenu(node, evt) {
