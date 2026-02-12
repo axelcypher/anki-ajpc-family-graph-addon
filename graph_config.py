@@ -25,6 +25,7 @@ DEFAULT_CFG: dict[str, Any] = {
         "kanji": "#f87171",
     },
     "link_colors": {
+        "notes": "#3d95e7",
         "priority": "#6ee7b7",
         "families": "#34d399",
         "note_links": "#f59e0b",
@@ -124,6 +125,8 @@ DEFAULT_CFG: dict[str, Any] = {
     "kanji_quantile_norm": False,
     "soft_pin_radius": 140,
     "layer_flow_speed": 0.35,
+    "layer_flow_spacing_mul": 18.0,
+    "layer_flow_radius_mul": 3.6,
     "family_chain_edges": True,
     "selected_decks": [],
     "reference_auto_opacity": 0.15,
@@ -231,7 +234,7 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
     cfg["layer_colors"] = _migrate_layer_map(cfg.get("layer_colors", {}), copy_family_to_notes=True)
     cfg["link_colors"] = _migrate_layer_map(cfg.get("link_colors", {}))
-    for layer in ("priority", "families", "note_links", "examples", "mass_links", "kanji"):
+    for layer in ("notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"):
         if layer in cfg["link_colors"]:
             continue
         from_layer = cfg["layer_colors"].get(layer)
@@ -283,6 +286,10 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["family_chain_edges"] = DEFAULT_CFG["family_chain_edges"]
     if not isinstance(cfg.get("layer_flow_speed"), (int, float)):
         cfg["layer_flow_speed"] = DEFAULT_CFG["layer_flow_speed"]
+    if not isinstance(cfg.get("layer_flow_spacing_mul"), (int, float)):
+        cfg["layer_flow_spacing_mul"] = DEFAULT_CFG["layer_flow_spacing_mul"]
+    if not isinstance(cfg.get("layer_flow_radius_mul"), (int, float)):
+        cfg["layer_flow_radius_mul"] = DEFAULT_CFG["layer_flow_radius_mul"]
     if not isinstance(cfg.get("soft_pin_radius"), (int, float)):
         cfg["soft_pin_radius"] = DEFAULT_CFG["soft_pin_radius"]
     if not isinstance(cfg.get("selected_decks"), list):
@@ -479,6 +486,24 @@ def set_layer_flow_speed(speed: float) -> None:
     cfg = load_graph_config()
     try:
         cfg["layer_flow_speed"] = float(speed)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_layer_flow_spacing_mul(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["layer_flow_spacing_mul"] = float(value)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_layer_flow_radius_mul(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["layer_flow_radius_mul"] = float(value)
     except Exception:
         return
     save_graph_config(cfg)

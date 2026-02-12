@@ -488,13 +488,24 @@ function setFocusDimRuntime(active) {
   runtime.focusDimAlphaMul = 0.16;
 }
 
-function setFlowShaderRuntime(speed) {
+function setFlowShaderRuntime(speed, spacingMul, radiusMul) {
   var runtime = ensureSigmaRuntimeState();
   if (!runtime) return;
   var s = Number(speed);
+  if (!fin(s)) s = Number(STATE && STATE.layerFlowSpeed);
   if (!fin(s)) s = 0;
   s = cl(s, 0, 3);
+  var spacing = Number(spacingMul);
+  if (!fin(spacing)) spacing = Number(STATE && STATE.layerFlowSpacingMul);
+  if (!fin(spacing)) spacing = 18;
+  spacing = cl(spacing, 0.1, 80);
+  var radius = Number(radiusMul);
+  if (!fin(radius)) radius = Number(STATE && STATE.layerFlowRadiusMul);
+  if (!fin(radius)) radius = 3.6;
+  radius = cl(radius, 0.1, 12);
   runtime.flowAnimSpeed = s;
+  runtime.flowSpacingMul = spacing;
+  runtime.flowRadiusMul = radius;
   runtime.flowAnimEnabled = s > 0.001;
 }
 

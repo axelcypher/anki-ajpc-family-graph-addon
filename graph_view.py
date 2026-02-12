@@ -41,6 +41,8 @@ from .graph_config import (
     set_layer_style,
     set_layer_flow,
     set_layer_flow_speed,
+    set_layer_flow_spacing_mul,
+    set_layer_flow_radius_mul,
     set_link_strength,
     set_link_weight,
     set_link_weight_mode,
@@ -471,6 +473,20 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow speed", val)
             except Exception:
                 logger.dbg("layer flow speed parse failed", message)
+        elif message.startswith("lflowspacing:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_layer_flow_spacing_mul(float(val))
+                logger.dbg("layer flow spacing", val)
+            except Exception:
+                logger.dbg("layer flow spacing parse failed", message)
+        elif message.startswith("lflowwidth:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_layer_flow_radius_mul(float(val))
+                logger.dbg("layer flow width", val)
+            except Exception:
+                logger.dbg("layer flow width parse failed", message)
         elif message == "devtools":
             logger.dbg("devtools open")
             try:

@@ -67,7 +67,7 @@
     if (!/varying\s+float\s+v_focus\s*;/.test(fs)) {
       fs = fs.replace(
         /(precision\s+(?:lowp|mediump|highp|)\s*float\s*;)/,
-        "$1\nvarying float v_focus;\nvarying float v_flow;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;\nuniform float u_flow_spacing_mul;"
+        "$1\nvarying float v_focus;\nvarying float v_flow;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;\nuniform float u_flow_spacing_mul;\nuniform float u_flow_radius_mul;"
       );
     }
     var injection = [
@@ -97,7 +97,7 @@
       "    float ajpcFlowGate = step(0.5, v_flow) * step(0.001, u_flow_speed);",
       "    float ajpcSpacing = ajpcHalfThickness * max(u_flow_spacing_mul, 0.00001);",
       "    float ajpcCyclesPerSec = 0.65 + (u_flow_speed * 1.1);",
-      "    float ajpcRadius = ajpcHalfThickness * 3.6;",
+      "    float ajpcRadius = ajpcHalfThickness * max(u_flow_radius_mul, 0.00001);",
       "    float ajpcTravel = u_time * ajpcCyclesPerSec * ajpcSpacing;",
       "    float ajpcLocal = mod(ajpcAlongWorld - ajpcTravel, ajpcSpacing) - (ajpcSpacing * 0.5);",
       "    float ajpcDist = sqrt((ajpcLocal * ajpcLocal) + (ajpcRadial * ajpcRadial));",
@@ -138,6 +138,7 @@
       if (uniforms.indexOf("u_time") < 0) uniforms.push("u_time");
       if (uniforms.indexOf("u_flow_speed") < 0) uniforms.push("u_flow_speed");
       if (uniforms.indexOf("u_flow_spacing_mul") < 0) uniforms.push("u_flow_spacing_mul");
+      if (uniforms.indexOf("u_flow_radius_mul") < 0) uniforms.push("u_flow_radius_mul");
       def.UNIFORMS = uniforms;
       if (def.VERTEX_SHADER_SOURCE) def.VERTEX_SHADER_SOURCE = patchFocusVertexShader(def.VERTEX_SHADER_SOURCE);
       if (def.FRAGMENT_SHADER_SOURCE) def.FRAGMENT_SHADER_SOURCE = patchDottedFragmentShader(def.FRAGMENT_SHADER_SOURCE);
@@ -176,12 +177,16 @@
       var flowSpacingMul = Number(runtime && runtime.flowSpacingMul);
       if (!isFinite(flowSpacingMul)) flowSpacingMul = 18.0;
       if (flowSpacingMul < 0.1) flowSpacingMul = 0.1;
+      var flowRadiusMul = Number(runtime && runtime.flowRadiusMul);
+      if (!isFinite(flowRadiusMul)) flowRadiusMul = 3.6;
+      if (flowRadiusMul < 0.1) flowRadiusMul = 0.1;
       if (uniformLocations.u_focus_active !== undefined && uniformLocations.u_focus_active !== null) gl.uniform1f(uniformLocations.u_focus_active, focusActive ? 1 : 0);
       if (uniformLocations.u_dim_rgb_mul !== undefined && uniformLocations.u_dim_rgb_mul !== null) gl.uniform1f(uniformLocations.u_dim_rgb_mul, dimRgbMul);
       if (uniformLocations.u_dim_alpha_mul !== undefined && uniformLocations.u_dim_alpha_mul !== null) gl.uniform1f(uniformLocations.u_dim_alpha_mul, dimAlphaMul);
       if (uniformLocations.u_time !== undefined && uniformLocations.u_time !== null) gl.uniform1f(uniformLocations.u_time, performance.now() * 0.001);
       if (uniformLocations.u_flow_speed !== undefined && uniformLocations.u_flow_speed !== null) gl.uniform1f(uniformLocations.u_flow_speed, flowSpeed);
       if (uniformLocations.u_flow_spacing_mul !== undefined && uniformLocations.u_flow_spacing_mul !== null) gl.uniform1f(uniformLocations.u_flow_spacing_mul, flowSpacingMul);
+      if (uniformLocations.u_flow_radius_mul !== undefined && uniformLocations.u_flow_radius_mul !== null) gl.uniform1f(uniformLocations.u_flow_radius_mul, flowRadiusMul);
     }
   }
 

@@ -118,6 +118,145 @@ function syncCardSettingsFromMeta() {
   STATE.cards = collectCardSettings(merged);
 }
 
+// === Link Settings Contracts =================================================
+var AJPC_LINK_SETTINGS_DEFAULTS = {
+  layer_flow_speed: 0.35,
+  layer_flow_spacing_mul: 18.0,
+  layer_flow_radius_mul: 3.6,
+  notes_swatch_color: "#3d95e7"
+};
+
+var AJPC_LINK_SETTINGS_SPEC = [
+  {
+    key: "layer_flow_speed",
+    label: "Particle Flow Speed",
+    type: "number",
+    min: 0.01,
+    max: 3,
+    step: 0.01,
+    affectsEngine: false,
+    hint: "Global particle flow speed for edge shader animation."
+  },
+  {
+    key: "layer_flow_spacing_mul",
+    label: "Particle Flow Spacing",
+    type: "number",
+    min: 0.1,
+    max: 80,
+    step: 0.1,
+    affectsEngine: false,
+    hint: "Spacing multiplier for flow photons along edges."
+  },
+  {
+    key: "layer_flow_radius_mul",
+    label: "Particle Flow Width",
+    type: "number",
+    min: 0.1,
+    max: 12,
+    step: 0.1,
+    affectsEngine: false,
+    hint: "Radius multiplier for flow photons."
+  },
+  {
+    key: "notes_swatch_color",
+    label: "Notes Swatch Color",
+    type: "color",
+    affectsEngine: false,
+    hint: "Toolbar swatch color for Notes layer."
+  }
+];
+
+window.ajpcLinkSettings = {
+  defaults: Object.assign({}, AJPC_LINK_SETTINGS_DEFAULTS),
+  spec: AJPC_LINK_SETTINGS_SPEC.slice()
+};
+
+function getLinkSettingsDefaults() {
+  var src = window.ajpcLinkSettings && typeof window.ajpcLinkSettings === "object"
+    ? window.ajpcLinkSettings
+    : null;
+  if (src && src.defaults && typeof src.defaults === "object") {
+    return Object.assign({}, src.defaults);
+  }
+  return Object.assign({}, AJPC_LINK_SETTINGS_DEFAULTS);
+}
+
+function getLinkSettingsSpec() {
+  var src = window.ajpcLinkSettings && typeof window.ajpcLinkSettings === "object"
+    ? window.ajpcLinkSettings
+    : null;
+  if (src && Array.isArray(src.spec)) return src.spec.slice();
+  return AJPC_LINK_SETTINGS_SPEC.slice();
+}
+
+function linkSettingsSpec() {
+  return getLinkSettingsSpec();
+}
+
+function collectLinkSettings(input) {
+  var src = (input && typeof input === "object") ? input : {};
+  var defaults = getLinkSettingsDefaults();
+  var out = Object.assign({}, defaults);
+
+  var flowSpeed = Number(src.layer_flow_speed);
+  if (!isFinite(flowSpeed)) flowSpeed = Number(defaults.layer_flow_speed);
+  out.layer_flow_speed = clamp(flowSpeed, 0.01, 3);
+
+  var flowSpacing = Number(src.layer_flow_spacing_mul);
+  if (!isFinite(flowSpacing)) flowSpacing = Number(defaults.layer_flow_spacing_mul);
+  out.layer_flow_spacing_mul = clamp(flowSpacing, 0.1, 80);
+
+  var flowRadius = Number(src.layer_flow_radius_mul);
+  if (!isFinite(flowRadius)) flowRadius = Number(defaults.layer_flow_radius_mul);
+  out.layer_flow_radius_mul = clamp(flowRadius, 0.1, 12);
+
+  out.notes_swatch_color = normalizeHexColor(
+    String(src.notes_swatch_color || defaults.notes_swatch_color || "#3d95e7"),
+    "#3d95e7"
+  );
+
+  return out;
+}
+
+function linkSettingsFromMeta() {
+  var meta = (STATE && STATE.raw && STATE.raw.meta && typeof STATE.raw.meta === "object")
+    ? STATE.raw.meta
+    : {};
+  var metaLink = (meta.link_settings && typeof meta.link_settings === "object")
+    ? meta.link_settings
+    : {};
+
+  return {
+    layer_flow_speed: (metaLink.layer_flow_speed !== undefined) ? metaLink.layer_flow_speed : meta.layer_flow_speed,
+    layer_flow_spacing_mul: (metaLink.layer_flow_spacing_mul !== undefined) ? metaLink.layer_flow_spacing_mul : meta.layer_flow_spacing_mul,
+    layer_flow_radius_mul: (metaLink.layer_flow_radius_mul !== undefined) ? metaLink.layer_flow_radius_mul : meta.layer_flow_radius_mul,
+    notes_swatch_color: (metaLink.notes_swatch_color !== undefined)
+      ? metaLink.notes_swatch_color
+      : ((meta.link_colors && meta.link_colors.notes !== undefined) ? meta.link_colors.notes : undefined)
+  };
+}
+
+function syncLinkSettingsFromMeta() {
+  var merged = Object.assign(
+    {},
+    linkSettingsFromMeta(),
+    {
+      layer_flow_speed: STATE.layerFlowSpeed,
+      layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
+      layer_flow_radius_mul: STATE.layerFlowRadiusMul,
+      notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
+    },
+    STATE.linkSettings || {}
+  );
+  var collected = collectLinkSettings(merged);
+  STATE.linkSettings = collected;
+  STATE.layerFlowSpeed = Number(collected.layer_flow_speed);
+  STATE.layerFlowSpacingMul = Number(collected.layer_flow_spacing_mul);
+  STATE.layerFlowRadiusMul = Number(collected.layer_flow_radius_mul);
+  if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
+  STATE.linkColors.notes = normalizeHexColor(String(collected.notes_swatch_color || "#3d95e7"), "#3d95e7");
+}
+
 function getEngineSettings() {
   if (window.ajpcEngineSettings && typeof window.ajpcEngineSettings === "object") {
     return window.ajpcEngineSettings;
@@ -478,9 +617,7 @@ function ensureRuntimeState() {
   STATE.renderer = collectRendererSettings(Object.assign({}, meta.renderer || {}, STATE.renderer || {}));
   STATE.node = collectNodeSettings(Object.assign({}, meta.node || {}, STATE.node || {}));
   STATE.neighborScaling = normalizeNeighborScaling(meta.neighbor_scaling || STATE.neighborScaling || null);
-  if (meta.layer_flow_speed !== undefined && meta.layer_flow_speed !== null) {
-    STATE.layerFlowSpeed = Number(meta.layer_flow_speed) || STATE.layerFlowSpeed;
-  }
+  syncLinkSettingsFromMeta();
   var debugEnabled = !!STATE.debugEnabled;
   if (Object.prototype.hasOwnProperty.call(meta, "debug_enabled")) {
     debugEnabled = !!meta.debug_enabled;
@@ -1649,6 +1786,11 @@ window.applyRuntimeUiSettings = applyRuntimeUiSettings;
   adapter.registerCityPort("collectCardSettings", collectCardSettings);
   adapter.registerCityPort("cardSettingsFromMeta", cardSettingsFromMeta);
   adapter.registerCityPort("syncCardSettingsFromMeta", syncCardSettingsFromMeta);
+  adapter.registerCityPort("getLinkSettingsDefaults", getLinkSettingsDefaults);
+  adapter.registerCityPort("getLinkSettingsSpec", getLinkSettingsSpec);
+  adapter.registerCityPort("collectLinkSettings", collectLinkSettings);
+  adapter.registerCityPort("linkSettingsFromMeta", linkSettingsFromMeta);
+  adapter.registerCityPort("syncLinkSettingsFromMeta", syncLinkSettingsFromMeta);
   adapter.registerCityPort("AjpcNodeBaseSize", ajpcNodeBaseSize);
   adapter.registerCityPort("buildGraphArrays", buildGraphArrays);
   adapter.registerCityPort("applyRuntimeUiSettings", applyRuntimeUiSettings);

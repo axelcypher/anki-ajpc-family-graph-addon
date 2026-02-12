@@ -513,6 +513,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
     link_weight_modes = graph_cfg.get("link_weight_modes") or {}
     link_distances = graph_cfg.get("link_distances") or {}
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
+    layer_flow_spacing_mul = float(graph_cfg.get("layer_flow_spacing_mul", 18.0))
+    layer_flow_radius_mul = float(graph_cfg.get("layer_flow_radius_mul", 3.6))
     soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
     solver_cfg = graph_cfg.get("solver") or {}
     engine_cfg = graph_cfg.get("engine") or {}
@@ -1669,6 +1671,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "family_hub_edges_direct": family_hub_edges_direct,
             "family_hub_edges_chain": family_hub_edges_chain,
             "layer_flow_speed": layer_flow_speed,
+            "layer_flow_spacing_mul": layer_flow_spacing_mul,
+            "layer_flow_radius_mul": layer_flow_radius_mul,
+            "link_settings": {
+                "layer_flow_speed": layer_flow_speed,
+                "layer_flow_spacing_mul": layer_flow_spacing_mul,
+                "layer_flow_radius_mul": layer_flow_radius_mul,
+                "notes_swatch_color": link_colors.get("notes"),
+            },
             "soft_pin_radius": soft_pin_radius,
             "solver": solver_cfg,
             "engine": engine_cfg,

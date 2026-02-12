@@ -110,6 +110,25 @@ function callCitySyncCardSettingsFromMeta() {
   return adapterCallCity("syncCardSettingsFromMeta");
 }
 
+function callCityGetLinkSettingsDefaults() {
+  var out = adapterCallCity("getLinkSettingsDefaults");
+  return (out && typeof out === "object") ? out : {};
+}
+
+function callCityGetLinkSettingsSpec() {
+  var out = adapterCallCity("getLinkSettingsSpec");
+  return Array.isArray(out) ? out : [];
+}
+
+function callCityCollectLinkSettings(input) {
+  var out = adapterCallCity("collectLinkSettings", input);
+  return (out && typeof out === "object") ? out : {};
+}
+
+function callCitySyncLinkSettingsFromMeta() {
+  return adapterCallCity("syncLinkSettingsFromMeta");
+}
+
 // === Hover hit testing =======================================================
 function isClientPointInsideGraphPanel(clientX, clientY) {
   if (!DOM.graphPanel) return false;
@@ -306,6 +325,7 @@ function selectedNodeForStatus() {
 function renderActiveCards(node) {
   if (!DOM.statusActiveCards) return;
   var cards = node && Array.isArray(node.cards) ? node.cards : [];
+  
   if (!cards.length) {
     DOM.statusActiveCards.innerHTML = renderHtmlTemplate(
       `<div class="title"><h3>{{title}}</h3></div>
@@ -322,13 +342,8 @@ function renderActiveCards(node) {
     else byStatus.other += 1;
   }
 
-  var summary = "Total: " + cards.length
-    + " | N: " + byStatus.normal
-    + " | S: " + byStatus.suspended
-    + " | B: " + byStatus.buried
-    + (byStatus.other ? (" | ?: " + byStatus.other) : "");
-
   var rows = cards.map(function (card) {
+    
     var c = card && typeof card === "object" ? card : {};
     var ord = Number(c.ord);
     var ordText = isFiniteNumber(ord) ? String(ord + 1) : "--";
@@ -346,9 +361,8 @@ function renderActiveCards(node) {
 
   DOM.statusActiveCards.innerHTML = renderHtmlTemplate(
     `<div class="title"><h3>{{title}}</h3></div>
-    <div class="active-cards-summary">{{summary}}</div>
     <div class="active-cards-list">{{{rows}}}</div>`,
-    { title: "Cards", summary: summary, rows: rows }
+    { title: "Cards", rows: rows }
   );
 }
 
@@ -676,14 +690,16 @@ function renderSuggestions(query) {
   });
 }
 
-// === Context menu ============================================================`r`n`r`n
 // === Settings UI =============================================================
 function renderLayerControls() {
   if (!DOM.layerPills) return;
   DOM.layerPills.innerHTML = "";
 
   orderedLayerKeys(Object.keys(STATE.layers)).forEach(function (layer) {
-    var color = normalizeHexColor(STATE.layerColors[layer] || fallbackLayerColor(layer), fallbackLayerColor(layer));
+    var rawSwatch = (STATE.linkColors && STATE.linkColors[layer])
+      ? STATE.linkColors[layer]
+      : (STATE.layerColors[layer] || fallbackLayerColor(layer));
+    var color = normalizeHexColor(rawSwatch, fallbackLayerColor(layer));
     var enabled = !!STATE.layers[layer];
     var stat = STATE.layerStats[layer] || { nodes: 0, edges: 0 };
 
@@ -906,6 +922,16 @@ function renderLinkSettings() {
     ? normalizeNeighborScaling(STATE.neighborScaling || null)
     : { mode: "none", directed: "undirected", weights: {} };
   STATE.neighborScaling = nscale;
+  callCitySyncLinkSettingsFromMeta();
+  STATE.linkSettings = callCityCollectLinkSettings(STATE.linkSettings || {});
+  STATE.layerFlowSpeed = Number(STATE.linkSettings.layer_flow_speed || STATE.layerFlowSpeed || 0.35);
+  STATE.layerFlowSpacingMul = Number(STATE.linkSettings.layer_flow_spacing_mul || STATE.layerFlowSpacingMul || 18);
+  STATE.layerFlowRadiusMul = Number(STATE.linkSettings.layer_flow_radius_mul || STATE.layerFlowRadiusMul || 3.6);
+  if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
+  STATE.linkColors.notes = normalizeHexColor(
+    String(STATE.linkSettings.notes_swatch_color || STATE.linkColors.notes || fallbackLayerColor("notes")),
+    fallbackLayerColor("notes")
+  );
 
   var layers = orderedLayerKeys(Object.keys(STATE.layers)).filter(function (layer) {
     return String(layer || "") !== "notes";
@@ -972,17 +998,56 @@ function renderLinkSettings() {
     DOM.linkLayerList.appendChild(row);
   });
 
-  var flowRow = document.createElement("div");
-  flowRow.className = "control-row";
-  flowRow.innerHTML = renderHtmlTemplate(
+  var flowSpeedRow = document.createElement("div");
+  flowSpeedRow.className = "control-row";
+  flowSpeedRow.innerHTML = renderHtmlTemplate(
     `<div{{{hintAttr}}}>Particle Flow Speed</div>
-    <input id="ln-flow-speed" type="number" min="0.01" max="1" step="0.01" value="{{flowSpeed}}"{{{hintAttr}}}>`,
+    <input id="ln-flow-speed" type="number" min="0.01" max="3" step="0.01" value="{{flowSpeed}}"{{{hintAttr}}}>`,
     {
       hintAttr: titleAttr(linkSettingHint("flow_speed")),
       flowSpeed: Number(STATE.layerFlowSpeed || 0.35).toFixed(2)
     }
   );
-  DOM.linkSettings.appendChild(flowRow);
+  DOM.linkSettings.appendChild(flowSpeedRow);
+
+  var flowSpacingRow = document.createElement("div");
+  flowSpacingRow.className = "control-row";
+  flowSpacingRow.innerHTML = renderHtmlTemplate(
+    `<div{{{hintAttr}}}>Particle Flow Spacing</div>
+    <input id="ln-flow-spacing" type="number" min="0.1" max="80" step="0.1" value="{{flowSpacing}}"{{{hintAttr}}}>`,
+    {
+      hintAttr: titleAttr(linkSettingHint("flow_spacing")),
+      flowSpacing: Number(STATE.layerFlowSpacingMul || 18).toFixed(1)
+    }
+  );
+  DOM.linkSettings.appendChild(flowSpacingRow);
+
+  var flowWidthRow = document.createElement("div");
+  flowWidthRow.className = "control-row";
+  flowWidthRow.innerHTML = renderHtmlTemplate(
+    `<div{{{hintAttr}}}>Particle Flow Width</div>
+    <input id="ln-flow-width" type="number" min="0.1" max="12" step="0.1" value="{{flowWidth}}"{{{hintAttr}}}>`,
+    {
+      hintAttr: titleAttr(linkSettingHint("flow_width")),
+      flowWidth: Number(STATE.layerFlowRadiusMul || 3.6).toFixed(1)
+    }
+  );
+  DOM.linkSettings.appendChild(flowWidthRow);
+
+  var notesSwatchRow = document.createElement("div");
+  notesSwatchRow.className = "control-row";
+  notesSwatchRow.innerHTML = renderHtmlTemplate(
+    `<div{{{hintAttr}}}>Notes Swatch Color</div>
+    <div class="ln-color-alpha"><div class="color-picker"><input id="ln-notes-swatch-color" type="color" value="{{value}}"{{{hintAttr}}}></div></div>`,
+    {
+      hintAttr: titleAttr(linkSettingHint("notes_swatch_color")),
+      value: normalizeHexColor(
+        String((STATE.linkSettings && STATE.linkSettings.notes_swatch_color) || (STATE.linkColors && STATE.linkColors.notes) || fallbackLayerColor("notes")),
+        fallbackLayerColor("notes")
+      )
+    }
+  );
+  DOM.linkSettings.appendChild(notesSwatchRow);
 
   var metricRow = document.createElement("div");
   metricRow.className = "control-row";
@@ -1092,14 +1157,59 @@ function renderLinkSettings() {
     });
   });
 
+  function applyLinkSettingsRuntimePatch() {
+    STATE.linkSettings = callCityCollectLinkSettings(Object.assign({}, STATE.linkSettings || {}, {
+      layer_flow_speed: STATE.layerFlowSpeed,
+      layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
+      layer_flow_radius_mul: STATE.layerFlowRadiusMul,
+      notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
+    }));
+    callEngineApplyVisualStyles();
+  }
+
   var flowInput = byId("ln-flow-speed");
   if (flowInput) {
     flowInput.addEventListener("change", function () {
-      var value = clamp(Number(flowInput.value || 0.35), 0, 3);
+      var value = clamp(Number(flowInput.value || 0.35), 0.01, 3);
       STATE.layerFlowSpeed = value;
       flowInput.value = value.toFixed(2);
-      callEngineApplyVisualStyles();
+      applyLinkSettingsRuntimePatch();
       persistHook("lflowspeed:" + value.toFixed(2));
+    });
+  }
+
+  var flowSpacingInput = byId("ln-flow-spacing");
+  if (flowSpacingInput) {
+    flowSpacingInput.addEventListener("change", function () {
+      var value = clamp(Number(flowSpacingInput.value || 18), 0.1, 80);
+      STATE.layerFlowSpacingMul = value;
+      flowSpacingInput.value = value.toFixed(1);
+      applyLinkSettingsRuntimePatch();
+      persistHook("lflowspacing:" + value.toFixed(1));
+    });
+  }
+
+  var flowWidthInput = byId("ln-flow-width");
+  if (flowWidthInput) {
+    flowWidthInput.addEventListener("change", function () {
+      var value = clamp(Number(flowWidthInput.value || 3.6), 0.1, 12);
+      STATE.layerFlowRadiusMul = value;
+      flowWidthInput.value = value.toFixed(1);
+      applyLinkSettingsRuntimePatch();
+      persistHook("lflowwidth:" + value.toFixed(1));
+    });
+  }
+
+  var notesSwatchInput = byId("ln-notes-swatch-color");
+  if (notesSwatchInput) {
+    notesSwatchInput.addEventListener("change", function () {
+      var value = normalizeHexColor(String(notesSwatchInput.value || ""), fallbackLayerColor("notes"));
+      notesSwatchInput.value = value;
+      if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
+      STATE.linkColors.notes = value;
+      renderLayerControls();
+      applyLinkSettingsRuntimePatch();
+      persistHook("lcol:notes:" + encodeURIComponent(value));
     });
   }
 
