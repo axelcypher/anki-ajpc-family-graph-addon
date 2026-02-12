@@ -96,7 +96,9 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - `web/graph.flow.js` drives the shader flow animation loop and frame requests.
 - Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.
 - Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.sigma.program.edge.*.js`).
+- Bidirectional links render two-way shader photons on one collapsed edge (`ajpc_bidir` attribute path).
 - Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
+- Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.sigma.program.node.hub.js`).
 - Pulse and ring are rendered in separate passes (pulse first, ring second) and scale proportionally with node screen radius (zoom-coupled).
 - Node fills are rendered opaque in engine styling to avoid translucency artifacts.
 - Overlay effects can be toggled via `OVERLAY_EFFECTS_ENABLED` in `web/graph.state.js` (currently `false` for perf baseline testing).

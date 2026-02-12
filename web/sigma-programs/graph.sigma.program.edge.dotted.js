@@ -27,24 +27,36 @@
     var vs = String(source || "");
     if (!vs || vs.indexOf("AJPC_EDGE_FOCUS_PATCH") >= 0) return vs;
     if (!/attribute\s+float\s+a_focus\s*;/.test(vs)) {
-      if (/attribute\s+vec4\s+a_id\s*;/.test(vs)) vs = vs.replace(/attribute\s+vec4\s+a_id\s*;/, "attribute vec4 a_id;\nattribute float a_focus;\nattribute float a_flow;");
+      if (/attribute\s+vec4\s+a_id\s*;/.test(vs)) vs = vs.replace(/attribute\s+vec4\s+a_id\s*;/, "attribute vec4 a_id;\nattribute float a_focus;\nattribute float a_flow;\nattribute float a_bidir;");
       else vs = "attribute float a_focus;\n" + vs;
       if (!/attribute\s+float\s+a_flow\s*;/.test(vs)) vs = "attribute float a_flow;\n" + vs;
+      if (!/attribute\s+float\s+a_bidir\s*;/.test(vs)) vs = "attribute float a_bidir;\n" + vs;
     }
     if (!/attribute\s+float\s+a_flow\s*;/.test(vs)) {
       if (/attribute\s+float\s+a_focus\s*;/.test(vs)) vs = vs.replace(/attribute\s+float\s+a_focus\s*;/, "attribute float a_focus;\nattribute float a_flow;");
       else vs = "attribute float a_flow;\n" + vs;
     }
+    if (!/attribute\s+float\s+a_bidir\s*;/.test(vs)) {
+      if (/attribute\s+float\s+a_flow\s*;/.test(vs)) vs = vs.replace(/attribute\s+float\s+a_flow\s*;/, "attribute float a_flow;\nattribute float a_bidir;");
+      else if (/attribute\s+float\s+a_focus\s*;/.test(vs)) vs = vs.replace(/attribute\s+float\s+a_focus\s*;/, "attribute float a_focus;\nattribute float a_bidir;");
+      else vs = "attribute float a_bidir;\n" + vs;
+    }
     if (!/varying\s+float\s+v_focus\s*;/.test(vs)) {
-      if (/varying\s+vec4\s+v_color\s*;/.test(vs)) vs = vs.replace(/varying\s+vec4\s+v_color\s*;/, "varying vec4 v_color;\nvarying float v_focus;\nvarying float v_flow;");
+      if (/varying\s+vec4\s+v_color\s*;/.test(vs)) vs = vs.replace(/varying\s+vec4\s+v_color\s*;/, "varying vec4 v_color;\nvarying float v_focus;\nvarying float v_flow;\nvarying float v_bidir;");
       else vs = "varying float v_focus;\n" + vs;
       if (!/varying\s+float\s+v_flow\s*;/.test(vs)) vs = "varying float v_flow;\n" + vs;
+      if (!/varying\s+float\s+v_bidir\s*;/.test(vs)) vs = "varying float v_bidir;\n" + vs;
     }
     if (!/varying\s+float\s+v_flow\s*;/.test(vs)) {
       if (/varying\s+float\s+v_focus\s*;/.test(vs)) vs = vs.replace(/varying\s+float\s+v_focus\s*;/, "varying float v_focus;\nvarying float v_flow;");
       else vs = "varying float v_flow;\n" + vs;
     }
-    vs = vs.replace(/\}\s*$/, "  v_focus = a_focus;\n  v_flow = a_flow;\n}\n// AJPC_EDGE_FOCUS_PATCH");
+    if (!/varying\s+float\s+v_bidir\s*;/.test(vs)) {
+      if (/varying\s+float\s+v_flow\s*;/.test(vs)) vs = vs.replace(/varying\s+float\s+v_flow\s*;/, "varying float v_flow;\nvarying float v_bidir;");
+      else if (/varying\s+float\s+v_focus\s*;/.test(vs)) vs = vs.replace(/varying\s+float\s+v_focus\s*;/, "varying float v_focus;\nvarying float v_bidir;");
+      else vs = "varying float v_bidir;\n" + vs;
+    }
+    vs = vs.replace(/\}\s*$/, "  v_focus = a_focus;\n  v_flow = a_flow;\n  v_bidir = a_bidir;\n}\n// AJPC_EDGE_FOCUS_PATCH");
     return vs;
   }
 
@@ -67,8 +79,10 @@
     if (!/varying\s+float\s+v_focus\s*;/.test(fs)) {
       fs = fs.replace(
         /(precision\s+(?:lowp|mediump|highp|)\s*float\s*;)/,
-        "$1\nvarying float v_focus;\nvarying float v_flow;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;\nuniform float u_flow_spacing_mul;\nuniform float u_flow_radius_mul;"
+        "$1\nvarying float v_focus;\nvarying float v_flow;\nvarying float v_bidir;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;\nuniform float u_flow_spacing_mul;\nuniform float u_flow_radius_mul;"
       );
+    } else if (!/varying\s+float\s+v_bidir\s*;/.test(fs)) {
+      fs = fs.replace(/varying\s+float\s+v_flow\s*;/, "varying float v_flow;\nvarying float v_bidir;");
     }
     var injection = [
       "#ifndef PICKING_MODE",
@@ -99,11 +113,21 @@
       "    float ajpcCyclesPerSec = 0.65 + (u_flow_speed * 1.1);",
       "    float ajpcRadius = ajpcHalfThickness * max(u_flow_radius_mul, 0.00001);",
       "    float ajpcTravel = u_time * ajpcCyclesPerSec * ajpcSpacing;",
-      "    float ajpcLocal = mod(ajpcAlongWorld - ajpcTravel, ajpcSpacing) - (ajpcSpacing * 0.5);",
-      "    float ajpcDist = sqrt((ajpcLocal * ajpcLocal) + (ajpcRadial * ajpcRadial));",
-      "    float ajpcCore = 1.0 - smoothstep(ajpcRadius * 0.34, ajpcRadius * 0.84, ajpcDist);",
-      "    float ajpcGlow = 1.0 - smoothstep(ajpcRadius * 0.90, ajpcRadius * 1.45, ajpcDist);",
-      "    float ajpcPhoton = clamp(max(ajpcCore, 0.22 * ajpcGlow), 0.0, 1.0) * ajpcFlowGate;",
+      "    float ajpcLocalFwd = mod(ajpcAlongWorld - ajpcTravel, ajpcSpacing) - (ajpcSpacing * 0.5);",
+      "    float ajpcDistFwd = sqrt((ajpcLocalFwd * ajpcLocalFwd) + (ajpcRadial * ajpcRadial));",
+      "    float ajpcCoreFwd = 1.0 - smoothstep(ajpcRadius * 0.34, ajpcRadius * 0.84, ajpcDistFwd);",
+      "    float ajpcGlowFwd = 1.0 - smoothstep(ajpcRadius * 0.90, ajpcRadius * 1.45, ajpcDistFwd);",
+      "    float ajpcPhotonFwd = clamp(max(ajpcCoreFwd, 0.22 * ajpcGlowFwd), 0.0, 1.0);",
+      "    float ajpcPhoton = ajpcPhotonFwd;",
+      "    if (v_bidir > 0.5) {",
+      "      float ajpcLocalRev = mod(ajpcAlongWorld + ajpcTravel, ajpcSpacing) - (ajpcSpacing * 0.5);",
+      "      float ajpcDistRev = sqrt((ajpcLocalRev * ajpcLocalRev) + (ajpcRadial * ajpcRadial));",
+      "      float ajpcCoreRev = 1.0 - smoothstep(ajpcRadius * 0.34, ajpcRadius * 0.84, ajpcDistRev);",
+      "      float ajpcGlowRev = 1.0 - smoothstep(ajpcRadius * 0.90, ajpcRadius * 1.45, ajpcDistRev);",
+      "      float ajpcPhotonRev = clamp(max(ajpcCoreRev, 0.22 * ajpcGlowRev), 0.0, 1.0);",
+      "      ajpcPhoton = max(ajpcPhotonFwd, ajpcPhotonRev);",
+      "    }",
+      "    ajpcPhoton *= ajpcFlowGate;",
       "    float ajpcBaseAlpha = clamp(v_color.a * ajpcLineMask * ajpcAlphaMul, 0.0, 1.0);",
       "    float ajpcPhotonAlpha = clamp(v_color.a * ajpcPhoton * 0.58, 0.0, 1.0);",
       "    float ajpcAlpha = clamp(ajpcBaseAlpha + ajpcPhotonAlpha, 0.0, 1.0);",
@@ -130,6 +154,8 @@
       attrs.push({ name: "a_focus", size: 1, type: WebGLRenderingContext.FLOAT });
       this._ajpcFlowOffset = attributeItems(attrs);
       attrs.push({ name: "a_flow", size: 1, type: WebGLRenderingContext.FLOAT });
+      this._ajpcBidirOffset = attributeItems(attrs);
+      attrs.push({ name: "a_bidir", size: 1, type: WebGLRenderingContext.FLOAT });
       def.ATTRIBUTES = attrs;
       var uniforms = Array.isArray(def.UNIFORMS) ? def.UNIFORMS.slice() : [];
       if (uniforms.indexOf("u_focus_active") < 0) uniforms.push("u_focus_active");
@@ -156,8 +182,13 @@
       if (!isFinite(focus)) focus = 0;
       var flow = Number(edgeData && edgeData.ajpc_flow);
       if (!isFinite(flow)) flow = 0;
+      var bidir = Number(edgeData && edgeData.ajpc_bidir);
+      if (!isFinite(bidir)) bidir = 0;
+      var bidirOffset = this._ajpcBidirOffset;
+      if (!isFinite(bidirOffset)) bidirOffset = flowOffset + 1;
       this.array[startIndex + offset] = focus > 0 ? 1 : 0;
       this.array[startIndex + flowOffset] = flow > 0 ? 1 : 0;
+      this.array[startIndex + bidirOffset] = bidir > 0 ? 1 : 0;
     }
 
     setUniforms(params, context) {

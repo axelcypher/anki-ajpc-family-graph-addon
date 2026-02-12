@@ -64,24 +64,10 @@
     fs = ensureLine(fs, "uniform float u_dim_rgb_mul;", /uniform\s+float\s+u_dim_rgb_mul\s*;/);
     fs = ensureLine(fs, "uniform float u_dim_alpha_mul;", /uniform\s+float\s+u_dim_alpha_mul\s*;/);
 
-    if (fs.indexOf("float ajpcDimNode") < 0) {
-      fs = fs.replace(
-        /#else/,
-        "#else\n    float ajpcDimNode = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));\n    float ajpcDimRgb = mix(1.0, u_dim_rgb_mul, ajpcDimNode);\n    float ajpcDimAlpha = mix(1.0, u_dim_alpha_mul, ajpcDimNode);"
-      );
-    }
-
-    if (fs.indexOf("AJPC_HUB_FOCUS_PATCH") < 0) {
-      fs = fs.replace(
-        /gl_FragColor\s*=\s*vec4\s*\(\s*v_color\.rgb\s*\*\s*alpha\s*,\s*alpha\s*\)\s*;/,
-        "gl_FragColor = vec4((v_color.rgb * ajpcDimRgb) * (alpha * ajpcDimAlpha), alpha * ajpcDimAlpha);"
-      );
-      fs = fs.replace(
-        /gl_FragColor\s*=\s*vec4\s*\(\s*v_color\.rgb\s*,\s*v_color\.a\s*\)\s*;/,
-        "gl_FragColor = vec4(v_color.rgb * ajpcDimRgb, v_color.a * ajpcDimAlpha);"
-      );
-      fs = fs + "\n// AJPC_HUB_FOCUS_PATCH";
-    }
+    fs = fs.replace(
+      /\}\s*$/,
+      "\n#ifndef PICKING_MODE\n  float ajpcDimNode = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));\n  float ajpcDimRgb = mix(1.0, u_dim_rgb_mul, ajpcDimNode);\n  float ajpcDimAlpha = mix(1.0, u_dim_alpha_mul, ajpcDimNode);\n  gl_FragColor.rgb *= ajpcDimRgb;\n  gl_FragColor.a *= ajpcDimAlpha;\n#endif\n}\n// AJPC_HUB_FOCUS_PATCH"
+    );
 
     return fs;
   }
