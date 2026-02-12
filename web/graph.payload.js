@@ -123,6 +123,7 @@ var AJPC_LINK_SETTINGS_DEFAULTS = {
   layer_flow_speed: 0.35,
   layer_flow_spacing_mul: 18.0,
   layer_flow_radius_mul: 3.6,
+  trailing_hub_distance: 18.0,
   notes_swatch_color: "#3d95e7"
 };
 
@@ -156,6 +157,16 @@ var AJPC_LINK_SETTINGS_SPEC = [
     step: 0.1,
     affectsEngine: false,
     hint: "Radius multiplier for flow photons."
+  },
+  {
+    key: "trailing_hub_distance",
+    label: "Trailing Hub Distance",
+    type: "number",
+    min: 0,
+    max: 5000,
+    step: 1,
+    affectsEngine: false,
+    hint: "Target link distance for family hub edges when a hub has only one connected node."
   },
   {
     key: "notes_swatch_color",
@@ -210,6 +221,10 @@ function collectLinkSettings(input) {
   if (!isFinite(flowRadius)) flowRadius = Number(defaults.layer_flow_radius_mul);
   out.layer_flow_radius_mul = clamp(flowRadius, 0.1, 12);
 
+  var trailingHubDistance = Number(src.trailing_hub_distance);
+  if (!isFinite(trailingHubDistance)) trailingHubDistance = Number(defaults.trailing_hub_distance);
+  out.trailing_hub_distance = clamp(trailingHubDistance, 0, 5000);
+
   out.notes_swatch_color = normalizeHexColor(
     String(src.notes_swatch_color || defaults.notes_swatch_color || "#3d95e7"),
     "#3d95e7"
@@ -230,6 +245,7 @@ function linkSettingsFromMeta() {
     layer_flow_speed: (metaLink.layer_flow_speed !== undefined) ? metaLink.layer_flow_speed : meta.layer_flow_speed,
     layer_flow_spacing_mul: (metaLink.layer_flow_spacing_mul !== undefined) ? metaLink.layer_flow_spacing_mul : meta.layer_flow_spacing_mul,
     layer_flow_radius_mul: (metaLink.layer_flow_radius_mul !== undefined) ? metaLink.layer_flow_radius_mul : meta.layer_flow_radius_mul,
+    trailing_hub_distance: (metaLink.trailing_hub_distance !== undefined) ? metaLink.trailing_hub_distance : meta.trailing_hub_distance,
     notes_swatch_color: (metaLink.notes_swatch_color !== undefined)
       ? metaLink.notes_swatch_color
       : ((meta.link_colors && meta.link_colors.notes !== undefined) ? meta.link_colors.notes : undefined)
@@ -244,6 +260,7 @@ function syncLinkSettingsFromMeta() {
       layer_flow_speed: STATE.layerFlowSpeed,
       layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
       layer_flow_radius_mul: STATE.layerFlowRadiusMul,
+      trailing_hub_distance: STATE.trailingHubDistance,
       notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
     },
     STATE.linkSettings || {}
@@ -253,6 +270,7 @@ function syncLinkSettingsFromMeta() {
   STATE.layerFlowSpeed = Number(collected.layer_flow_speed);
   STATE.layerFlowSpacingMul = Number(collected.layer_flow_spacing_mul);
   STATE.layerFlowRadiusMul = Number(collected.layer_flow_radius_mul);
+  STATE.trailingHubDistance = Number(collected.trailing_hub_distance);
   if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
   STATE.linkColors.notes = normalizeHexColor(String(collected.notes_swatch_color || "#3d95e7"), "#3d95e7");
 }
@@ -896,9 +914,9 @@ function linkColor(edge) {
 
 function linkWidth(edge) {
   var style = String(STATE.layerStyles[edge.layer] || "");
-  var strength = Number(STATE.linkStrengths[edge.layer]);
-  if (!isFinite(strength)) strength = 1;
-  var base = 1.8 * strength;
+  var lineStrength = Number(STATE.linkStrengths[edge.layer]);
+  if (!isFinite(lineStrength) || lineStrength < 0) lineStrength = 1;
+  var base = 1.8 * lineStrength;
   if (style === "dotted") return base * 0.55;
   if (style === "dashed") return base * 0.82;
   return base;
@@ -1100,9 +1118,75 @@ function resolveBaseLinkDistance(edge) {
 
 function resolveBaseLinkStrength(edge) {
   var layer = edgeLayerKey(edge);
-  var base = Number(STATE.linkStrengths[layer]);
-  if (!isFinite(base) || base <= 0) base = 1;
+  var base = Number(STATE.linkWeights[layer]);
+  if (!isFinite(base) || base < 0) base = 1;
   return clamp(base, 0.01, 50);
+}
+
+function resolveTrailingHubDistance() {
+  var value = NaN;
+  if (STATE.linkSettings && typeof STATE.linkSettings === "object") {
+    value = Number(STATE.linkSettings.trailing_hub_distance);
+  }
+  if (!isFinite(value)) value = Number(STATE.trailingHubDistance);
+  if (!isFinite(value)) {
+    var defaults = getLinkSettingsDefaults();
+    value = Number(defaults.trailing_hub_distance);
+  }
+  if (!isFinite(value)) return 0;
+  return clamp(value, 0, 5000);
+}
+
+function trailingHubIdForEdge(edge) {
+  if (!edge || String(edge.layer || "") !== "families") return "";
+  var meta = edgeMeta(edge);
+  if (String(meta.kind || "") !== "hub") return "";
+  var source = String(edge.source || "");
+  var target = String(edge.target || "");
+  if (source.indexOf("family:") === 0) return source;
+  if (target.indexOf("family:") === 0) return target;
+  return "";
+}
+
+function buildTrailingHubDegreeMap(edgeRecords, baseStrengths) {
+  var map = new Map();
+  if (!Array.isArray(edgeRecords) || !edgeRecords.length) return map;
+
+  for (var i = 0; i < edgeRecords.length; i += 1) {
+    var rec = edgeRecords[i];
+    if (!rec || !rec.edge) continue;
+    if (baseStrengths && baseStrengths.length > i) {
+      var activeStrength = Number(baseStrengths[i]);
+      if (!isFinite(activeStrength) || activeStrength <= 0) continue;
+    }
+    var hubId = trailingHubIdForEdge(rec.edge);
+    if (!hubId) continue;
+    map.set(hubId, (Number(map.get(hubId) || 0) + 1));
+  }
+
+  return map;
+}
+
+function applyTrailingHubDistances(edgeRecords, distances, baseStrengths) {
+  if (!Array.isArray(edgeRecords) || !distances || !distances.length) return;
+  var trailingDistance = resolveTrailingHubDistance();
+  if (!isFinite(trailingDistance) || trailingDistance <= 0) return;
+
+  var degreeMap = buildTrailingHubDegreeMap(edgeRecords, baseStrengths);
+  if (!degreeMap.size) return;
+
+  for (var i = 0; i < edgeRecords.length; i += 1) {
+    var rec = edgeRecords[i];
+    if (!rec || !rec.edge) continue;
+    if (baseStrengths && baseStrengths.length > i) {
+      var activeStrength = Number(baseStrengths[i]);
+      if (!isFinite(activeStrength) || activeStrength <= 0) continue;
+    }
+    var hubId = trailingHubIdForEdge(rec.edge);
+    if (!hubId) continue;
+    if (Number(degreeMap.get(hubId) || 0) !== 1) continue;
+    distances[i] = trailingDistance;
+  }
 }
 
 function createAdjacencySets(nodeCount) {
@@ -1339,15 +1423,17 @@ function buildAlgorithmicLinkScalars(edgeRecords, nodeCount, baseStrengths) {
     var rec = edgeRecords[i];
     if (!rec || !rec.edge) continue;
     var baseDistance = resolveBaseLinkDistance(rec.edge);
-    var baseStrength = (baseStrengths && baseStrengths.length > i)
+    var weight = (baseStrengths && baseStrengths.length > i)
       ? Number(baseStrengths[i] || 0)
       : resolveBaseLinkStrength(rec.edge);
-    if (!isFinite(baseStrength) || baseStrength < 0) baseStrength = 0;
+    if (!isFinite(weight) || weight < 0) weight = 0;
     var metric = Number(metrics[i] || 0);
+    var metricScale = strengthScaleFromMetric(metric);
     distances[i] = clamp(baseDistance * distanceScaleFromMetric(metric), 1, 5000);
-    strengths[i] = clamp(baseStrength * strengthScaleFromMetric(metric), 0, 50);
+    strengths[i] = clamp(weight * metricScale, 0, 50);
   }
 
+  applyTrailingHubDistances(edgeRecords, distances, baseStrengths);
   return { linkDistance: distances, linkStrength: strengths };
 }
 
@@ -1387,16 +1473,18 @@ function buildLinkScalarArrays(edgeRecords, baseStrengths) {
     if (!rec || !rec.edge) continue;
 
     var baseDistance = resolveBaseLinkDistance(rec.edge);
-    var baseStrength = (baseStrengths && baseStrengths.length > i)
+    var weight = (baseStrengths && baseStrengths.length > i)
       ? Number(baseStrengths[i] || 0)
       : resolveBaseLinkStrength(rec.edge);
-    if (!isFinite(baseStrength) || baseStrength < 0) baseStrength = 0;
+    if (!isFinite(weight) || weight < 0) weight = 0;
     var metric = Number(metrics[i] || 0);
+    var metricScale = strengthScaleFromMetric(metric);
 
     distances[i] = clamp(baseDistance * distanceScaleFromMetric(metric) * LINK_SCALAR_DISTANCE_SCALE, 1, 5000);
-    strengths[i] = clamp(baseStrength * strengthScaleFromMetric(metric) * LINK_SCALAR_STRENGTH_SCALE, 0, 50);
+    strengths[i] = clamp(weight * metricScale * LINK_SCALAR_STRENGTH_SCALE, 0, 50);
   }
 
+  applyTrailingHubDistances(edgeRecords, distances, baseStrengths);
   return { linkDistance: distances, linkStrength: strengths };
 }
 
@@ -1468,7 +1556,7 @@ function buildGraphArrays(active) {
     var col = linkColor(edge);
     var suppressed = !!(suppressHubDirectMask && suppressHubDirectMask.length > edgeIdx && suppressHubDirectMask[edgeIdx]);
     var width = linkWidth(edge);
-    var strength = clamp(Number(STATE.linkStrengths[edge.layer] || 1), 0.01, 50);
+    var strength = resolveBaseLinkStrength(edge);
     if (suppressed) {
       width = 0;
       strength = 0;

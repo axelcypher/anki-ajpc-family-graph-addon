@@ -16,6 +16,7 @@ var STATE = {
   layerFlowSpeed: 0.35,
   layerFlowSpacingMul: 18,
   layerFlowRadiusMul: 3.6,
+  trailingHubDistance: 18,
   linkSettings: {},
   engine: {},
   solver: {},

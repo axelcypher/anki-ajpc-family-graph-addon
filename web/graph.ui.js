@@ -927,6 +927,7 @@ function renderLinkSettings() {
   STATE.layerFlowSpeed = Number(STATE.linkSettings.layer_flow_speed || STATE.layerFlowSpeed || 0.35);
   STATE.layerFlowSpacingMul = Number(STATE.linkSettings.layer_flow_spacing_mul || STATE.layerFlowSpacingMul || 18);
   STATE.layerFlowRadiusMul = Number(STATE.linkSettings.layer_flow_radius_mul || STATE.layerFlowRadiusMul || 3.6);
+  STATE.trailingHubDistance = Number(STATE.linkSettings.trailing_hub_distance || STATE.trailingHubDistance || 18);
   if (!STATE.linkColors || typeof STATE.linkColors !== "object") STATE.linkColors = {};
   STATE.linkColors.notes = normalizeHexColor(
     String(STATE.linkSettings.notes_swatch_color || STATE.linkColors.notes || fallbackLayerColor("notes")),
@@ -946,8 +947,8 @@ function renderLinkSettings() {
     var style = String(STATE.layerStyles[layer] || "solid");
     var weightValue = Number(STATE.linkWeights && STATE.linkWeights[layer]);
     if (!isFiniteNumber(weightValue)) weightValue = 1;
-    var weightModeRaw = String((STATE.linkWeightModes && STATE.linkWeightModes[layer]) || "manual").toLowerCase();
-    var weightMode = (weightModeRaw === "metric") ? "metric" : "manual";
+    var lineStrengthValue = Number(STATE.linkStrengths && STATE.linkStrengths[layer]);
+    if (!isFiniteNumber(lineStrengthValue) || lineStrengthValue < 0) lineStrengthValue = 1;
 
     var row = document.createElement("div");
     row.className = "link-type-card" + (visible ? "" : " is-collapsed");
@@ -966,9 +967,9 @@ function renderLinkSettings() {
         </div>
         <div class="link-fields-right">
           <label{{{styleHintAttr}}}>Style<div class="select"><select class="ln-style" data-layer="{{layer}}"{{{styleHintAttr}}}>{{{styleOptions}}}</select><span class="focus"></span></div></label>
-          <label{{{weightModeHintAttr}}}>Weight Mode<div class="select"><select class="ln-weight-mode" data-layer="{{layer}}"{{{weightModeHintAttr}}}>{{{weightModeOptions}}}</select><span class="focus"></span></div></label>
+          <label{{{lineStrengthHintAttr}}}>Line Strength<input type="number" step="0.05" min="0" max="10" class="ln-line-strength" data-layer="{{layer}}" value="{{lineStrength}}"{{{lineStrengthHintAttr}}}></label>
         </div>
-        <div class="link-fields-bottom"><label{{{weightHintAttr}}}>Weight<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="{{layer}}" value="{{weight}}"{{{weightHintAttr}}}></label></div>
+        <div class="link-fields-bottom"><label{{{weightHintAttr}}}>Weight Factor<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="{{layer}}" value="{{weight}}"{{{weightHintAttr}}}></label></div>
       </div>
       </div></div>`,
       {
@@ -979,18 +980,15 @@ function renderLinkSettings() {
         colorHintAttr: titleAttr(linkSettingHint("color")),
         alphaHintAttr: titleAttr(linkSettingHint("alpha")),
         styleHintAttr: titleAttr(linkSettingHint("style")),
-        weightModeHintAttr: titleAttr(linkSettingHint("weight_mode")),
+        lineStrengthHintAttr: titleAttr(linkSettingHint("line_strength")),
         weightHintAttr: titleAttr(linkSettingHint("weight")),
         color: color,
         alpha: alpha.toFixed(2),
+        lineStrength: lineStrengthValue.toFixed(2),
         styleOptions: [
           mkOption("solid", "Solid", style === "solid"),
           mkOption("dashed", "Dashed", style === "dashed"),
           mkOption("dotted", "Dotted", style === "dotted")
-        ].join(""),
-        weightModeOptions: [
-          mkOption("manual", "Manual", weightMode === "manual"),
-          mkOption("metric", "Metric", weightMode === "metric")
         ].join(""),
         weight: weightValue.toFixed(2)
       }
@@ -1033,6 +1031,18 @@ function renderLinkSettings() {
     }
   );
   DOM.linkSettings.appendChild(flowWidthRow);
+
+  var trailingHubDistanceRow = document.createElement("div");
+  trailingHubDistanceRow.className = "control-row";
+  trailingHubDistanceRow.innerHTML = renderHtmlTemplate(
+    `<div{{{hintAttr}}}>Trailing Hub Distance</div>
+    <input id="ln-trailing-hub-distance" type="number" min="0" max="5000" step="1" value="{{trailingHubDistance}}"{{{hintAttr}}}>`,
+    {
+      hintAttr: titleAttr(linkSettingHint("trailing_hub_distance")),
+      trailingHubDistance: Number(STATE.trailingHubDistance || 18).toFixed(0)
+    }
+  );
+  DOM.linkSettings.appendChild(trailingHubDistanceRow);
 
   var notesSwatchRow = document.createElement("div");
   notesSwatchRow.className = "control-row";
@@ -1135,14 +1145,15 @@ function renderLinkSettings() {
     });
   });
 
-  DOM.linkLayerList.querySelectorAll(".ln-weight-mode").forEach(function (el) {
+  DOM.linkLayerList.querySelectorAll(".ln-line-strength").forEach(function (el) {
     el.addEventListener("change", function () {
       var layer = String(el.getAttribute("data-layer") || "");
-      var value = String(el.value || "manual").toLowerCase();
-      if (value !== "metric") value = "manual";
-      if (!STATE.linkWeightModes || typeof STATE.linkWeightModes !== "object") STATE.linkWeightModes = {};
-      STATE.linkWeightModes[layer] = value;
-      persistHook("lweightmode:" + layer + ":" + encodeURIComponent(value));
+      var value = clamp(Number(el.value || 1), 0, 10);
+      if (!STATE.linkStrengths || typeof STATE.linkStrengths !== "object") STATE.linkStrengths = {};
+      STATE.linkStrengths[layer] = value;
+      el.value = value.toFixed(2);
+      applyUiSettingsNoRebuild(false);
+      persistHook("lstrength:" + layer + ":" + value.toFixed(2));
     });
   });
 
@@ -1153,6 +1164,8 @@ function renderLinkSettings() {
       if (!STATE.linkWeights || typeof STATE.linkWeights !== "object") STATE.linkWeights = {};
       STATE.linkWeights[layer] = value;
       el.value = value.toFixed(2);
+      var updated = !!callCityApplyRuntimeLinkDistances(true);
+      if (!updated) applyUiSettingsNoRebuild(true);
       persistHook("lweight:" + layer + ":" + value.toFixed(2));
     });
   });
@@ -1162,6 +1175,7 @@ function renderLinkSettings() {
       layer_flow_speed: STATE.layerFlowSpeed,
       layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
       layer_flow_radius_mul: STATE.layerFlowRadiusMul,
+      trailing_hub_distance: STATE.trailingHubDistance,
       notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
     }));
     callEngineApplyVisualStyles();
@@ -1197,6 +1211,21 @@ function renderLinkSettings() {
       flowWidthInput.value = value.toFixed(1);
       applyLinkSettingsRuntimePatch();
       persistHook("lflowwidth:" + value.toFixed(1));
+    });
+  }
+
+  var trailingHubDistanceInput = byId("ln-trailing-hub-distance");
+  if (trailingHubDistanceInput) {
+    trailingHubDistanceInput.addEventListener("change", function () {
+      var value = clamp(Number(trailingHubDistanceInput.value || 18), 0, 5000);
+      STATE.trailingHubDistance = value;
+      trailingHubDistanceInput.value = value.toFixed(0);
+      STATE.linkSettings = callCityCollectLinkSettings(Object.assign({}, STATE.linkSettings || {}, {
+        trailing_hub_distance: value
+      }));
+      var updated = !!callCityApplyRuntimeLinkDistances(true);
+      if (!updated) applyUiSettingsNoRebuild(true);
+      persistHook("ltrailinghubdist:" + value.toFixed(0));
     });
   }
 

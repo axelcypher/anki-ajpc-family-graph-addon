@@ -515,6 +515,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
     layer_flow_speed = float(graph_cfg.get("layer_flow_speed", 0.02))
     layer_flow_spacing_mul = float(graph_cfg.get("layer_flow_spacing_mul", 18.0))
     layer_flow_radius_mul = float(graph_cfg.get("layer_flow_radius_mul", 3.6))
+    trailing_hub_distance = float(graph_cfg.get("trailing_hub_distance", 18.0))
     soft_pin_radius = float(graph_cfg.get("soft_pin_radius", 140))
     solver_cfg = graph_cfg.get("solver") or {}
     engine_cfg = graph_cfg.get("engine") or {}
@@ -1673,10 +1674,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layer_flow_speed": layer_flow_speed,
             "layer_flow_spacing_mul": layer_flow_spacing_mul,
             "layer_flow_radius_mul": layer_flow_radius_mul,
+            "trailing_hub_distance": trailing_hub_distance,
             "link_settings": {
                 "layer_flow_speed": layer_flow_speed,
                 "layer_flow_spacing_mul": layer_flow_spacing_mul,
                 "layer_flow_radius_mul": layer_flow_radius_mul,
+                "trailing_hub_distance": trailing_hub_distance,
                 "notes_swatch_color": link_colors.get("notes"),
             },
             "soft_pin_radius": soft_pin_radius,

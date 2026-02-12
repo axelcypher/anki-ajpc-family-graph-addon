@@ -43,9 +43,9 @@ from .graph_config import (
     set_layer_flow_speed,
     set_layer_flow_spacing_mul,
     set_layer_flow_radius_mul,
+    set_trailing_hub_distance,
     set_link_strength,
     set_link_weight,
-    set_link_weight_mode,
     set_link_distance,
     set_engine_value,
     set_solver_value,
@@ -449,15 +449,6 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("link weight", layer, val)
             except Exception:
                 logger.dbg("link weight parse failed", message)
-        elif message.startswith("lweightmode:"):
-            try:
-                _prefix, rest = message.split(":", 1)
-                layer, enc = rest.split(":", 1)
-                mode = unquote(enc)
-                set_link_weight_mode(layer, mode)
-                logger.dbg("link weight mode", layer, mode)
-            except Exception:
-                logger.dbg("link weight mode parse failed", message)
         elif message.startswith("ldistance:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -487,6 +478,13 @@ class FamilyGraphWindow(QWidget):
                 logger.dbg("layer flow width", val)
             except Exception:
                 logger.dbg("layer flow width parse failed", message)
+        elif message.startswith("ltrailinghubdist:"):
+            try:
+                _prefix, val = message.split(":", 1)
+                set_trailing_hub_distance(float(val))
+                logger.dbg("trailing hub distance", val)
+            except Exception:
+                logger.dbg("trailing hub distance parse failed", message)
         elif message == "devtools":
             logger.dbg("devtools open")
             try:

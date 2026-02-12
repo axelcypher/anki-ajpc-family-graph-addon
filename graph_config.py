@@ -127,6 +127,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "layer_flow_speed": 0.35,
     "layer_flow_spacing_mul": 18.0,
     "layer_flow_radius_mul": 3.6,
+    "trailing_hub_distance": 18.0,
     "family_chain_edges": True,
     "selected_decks": [],
     "reference_auto_opacity": 0.15,
@@ -290,6 +291,8 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
         cfg["layer_flow_spacing_mul"] = DEFAULT_CFG["layer_flow_spacing_mul"]
     if not isinstance(cfg.get("layer_flow_radius_mul"), (int, float)):
         cfg["layer_flow_radius_mul"] = DEFAULT_CFG["layer_flow_radius_mul"]
+    if not isinstance(cfg.get("trailing_hub_distance"), (int, float)):
+        cfg["trailing_hub_distance"] = DEFAULT_CFG["trailing_hub_distance"]
     if not isinstance(cfg.get("soft_pin_radius"), (int, float)):
         cfg["soft_pin_radius"] = DEFAULT_CFG["soft_pin_radius"]
     if not isinstance(cfg.get("selected_decks"), list):
@@ -504,6 +507,15 @@ def set_layer_flow_radius_mul(value: float) -> None:
     cfg = load_graph_config()
     try:
         cfg["layer_flow_radius_mul"] = float(value)
+    except Exception:
+        return
+    save_graph_config(cfg)
+
+
+def set_trailing_hub_distance(value: float) -> None:
+    cfg = load_graph_config()
+    try:
+        cfg["trailing_hub_distance"] = float(value)
     except Exception:
         return
     save_graph_config(cfg)
