@@ -41,6 +41,9 @@ function edgeVisibleInRuntime(edge, edgeIndex) {
 function shouldAnimateEdge(edge, edgeIndex, selectedSet) {
   if (!edge) return false;
   if (!edgeVisibleInRuntime(edge, edgeIndex)) return false;
+  if (STATE.lastStyleHasFocus && STATE.focusEdgeMask && edgeIndex >= 0 && edgeIndex < STATE.focusEdgeMask.length) {
+    if (!STATE.focusEdgeMask[edgeIndex]) return false;
+  }
   if (edgeHasFlow(edge)) return true;
   if (STATE.focusEdgeMask && edgeIndex >= 0 && edgeIndex < STATE.focusEdgeMask.length) {
     if (STATE.focusEdgeMask[edgeIndex]) return true;

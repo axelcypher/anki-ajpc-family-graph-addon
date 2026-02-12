@@ -28,6 +28,9 @@
     "u_color_buried",
     "u_color_plus_bg",
     "u_color_plus_fg",
+    "u_focus_active",
+    "u_dim_rgb_mul",
+    "u_dim_alpha_mul",
     "u_matrix"
   ];
 
@@ -40,6 +43,7 @@
     "attribute float a_mask_normal;",
     "attribute float a_mask_suspended;",
     "attribute float a_mask_buried;",
+    "attribute float a_focus;",
     "attribute float a_angle;",
     "",
     "uniform mat3 u_matrix;",
@@ -56,6 +60,7 @@
     "varying float v_mask_normal;",
     "varying float v_mask_suspended;",
     "varying float v_mask_buried;",
+    "varying float v_focus;",
     "",
     "void main(void) {",
     "  float baseSize = a_size * u_correctionRatio / u_sizeRatio * 4.0;",
@@ -73,6 +78,7 @@
     "  v_mask_normal = a_mask_normal;",
     "  v_mask_suspended = a_mask_suspended;",
     "  v_mask_buried = a_mask_buried;",
+    "  v_focus = a_focus;",
     "}"
   ].join("\n");
 
@@ -87,6 +93,7 @@
     "varying float v_mask_normal;",
     "varying float v_mask_suspended;",
     "varying float v_mask_buried;",
+    "varying float v_focus;",
     "",
     "uniform float u_correctionRatio;",
     "uniform float u_ringRadiusMul;",
@@ -97,6 +104,9 @@
     "uniform vec4 u_color_buried;",
     "uniform vec4 u_color_plus_bg;",
     "uniform vec4 u_color_plus_fg;",
+    "uniform float u_focus_active;",
+    "uniform float u_dim_rgb_mul;",
+    "uniform float u_dim_alpha_mul;",
     "",
     "const float PI = 3.14159265358979323846;",
     "const float TAU = 6.28318530717958647692;",
@@ -178,11 +188,16 @@
     "  }",
     "",
     "  float alpha = outer * v_color.a * color.a;",
+    "  float dimNode = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));",
+    "  float dimRgb = mix(1.0, u_dim_rgb_mul, dimNode);",
+    "  float dimAlpha = mix(1.0, u_dim_alpha_mul, dimNode);",
+    "  alpha *= dimAlpha;",
+    "  vec3 rgb = color.rgb * dimRgb;",
     "",
     "  #ifdef PICKING_MODE",
     "    gl_FragColor = vec4(v_id.rgb, v_id.a * outer);",
     "  #else",
-    "    gl_FragColor = vec4(color.rgb * alpha, alpha);",
+    "    gl_FragColor = vec4(rgb * alpha, alpha);",
     "  #endif",
     "}"
   ].join("\n");
@@ -302,6 +317,7 @@
           { name: "a_mask_normal", size: 1, type: FLOAT },
           { name: "a_mask_suspended", size: 1, type: FLOAT },
           { name: "a_mask_buried", size: 1, type: FLOAT },
+          { name: "a_focus", size: 1, type: FLOAT },
           { name: "a_color", size: 4, type: UNSIGNED_BYTE, normalized: true },
           { name: "a_id", size: 4, type: UNSIGNED_BYTE, normalized: true }
         ],
@@ -321,6 +337,7 @@
       var maskNormal = numOr(data.cards_mask_normal !== undefined ? data.cards_mask_normal : data.cardMaskNormal, 0);
       var maskSuspended = numOr(data.cards_mask_suspended !== undefined ? data.cards_mask_suspended : data.cardMaskSuspended, 0);
       var maskBuried = numOr(data.cards_mask_buried !== undefined ? data.cards_mask_buried : data.cardMaskBuried, 0);
+      var focus = numOr(data.ajpc_focus, 0);
 
       array[startIndex++] = numOr(data.x, 0);
       array[startIndex++] = numOr(data.y, 0);
@@ -329,6 +346,7 @@
       array[startIndex++] = maskNormal;
       array[startIndex++] = maskSuspended;
       array[startIndex++] = maskBuried;
+      array[startIndex++] = focus > 0 ? 1 : 0;
       array[startIndex++] = color;
       array[startIndex++] = nodeIndex;
     }
@@ -337,6 +355,12 @@
       var gl = context.gl;
       var uniformLocations = context.uniformLocations;
       var c = CARD_DOTS_SHADER_COLORS;
+      var runtime = root && root.AJPCSigmaRuntime && typeof root.AJPCSigmaRuntime === "object" ? root.AJPCSigmaRuntime : null;
+      var focusActive = runtime && runtime.focusDimActive !== undefined ? !!runtime.focusDimActive : false;
+      var dimRgbMul = Number(runtime && runtime.focusDimRgbMul);
+      if (!isFinite(dimRgbMul)) dimRgbMul = 0.58;
+      var dimAlphaMul = Number(runtime && runtime.focusDimAlphaMul);
+      if (!isFinite(dimAlphaMul)) dimAlphaMul = 0.16;
       gl.uniform1f(uniformLocations.u_sizeRatio, params.sizeRatio);
       gl.uniform1f(uniformLocations.u_correctionRatio, params.correctionRatio);
       gl.uniform1f(uniformLocations.u_ringRadiusMul, 0.7); //Dot distance to center
@@ -347,6 +371,9 @@
       gl.uniform4f(uniformLocations.u_color_buried, c.colorBuried[0], c.colorBuried[1], c.colorBuried[2], c.colorBuried[3]);
       gl.uniform4f(uniformLocations.u_color_plus_bg, c.colorPlusBg[0], c.colorPlusBg[1], c.colorPlusBg[2], c.colorPlusBg[3]);
       gl.uniform4f(uniformLocations.u_color_plus_fg, c.colorPlusFg[0], c.colorPlusFg[1], c.colorPlusFg[2], c.colorPlusFg[3]);
+      gl.uniform1f(uniformLocations.u_focus_active, focusActive ? 1 : 0);
+      gl.uniform1f(uniformLocations.u_dim_rgb_mul, dimRgbMul);
+      gl.uniform1f(uniformLocations.u_dim_alpha_mul, dimAlphaMul);
       gl.uniformMatrix3fv(uniformLocations.u_matrix, false, params.matrix);
     }
   }

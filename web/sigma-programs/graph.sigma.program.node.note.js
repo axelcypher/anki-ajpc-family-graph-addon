@@ -21,10 +21,14 @@
     "varying vec2 v_diffVector;",
     "varying float v_radius;",
     "varying float v_seed;",
+    "varying float v_focus;",
     "",
     "uniform float u_correctionRatio;",
     "uniform float u_aaEnabled;",
     "uniform float u_time;",
+    "uniform float u_focus_active;",
+    "uniform float u_dim_rgb_mul;",
+    "uniform float u_dim_alpha_mul;",
     "",
     "float band(float d, float inner, float outer, float aa) {",
     "  float inA = smoothstep(inner - aa, inner + aa, d);",
@@ -58,21 +62,34 @@
     "  #ifdef PICKING_MODE",
     "    gl_FragColor = v_color;",
     "  #else",
+    "    float dimNode = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));",
+    "    float dimRgb = mix(1.0, u_dim_rgb_mul, dimNode);",
+    "    float dimAlpha = mix(1.0, u_dim_alpha_mul, dimNode);",
+    "    vec3 baseRgb = v_color.rgb * dimRgb;",
     "    float baseAlpha = v_color.a * clamp(core + ring, 0.0, 1.0);",
     "    float pulseAlpha = v_color.a * (0.3 * pulse);",
-    "    float alpha = max(baseAlpha, pulseAlpha);",
+    "    float alpha = max(baseAlpha, pulseAlpha) * dimAlpha;",
     "    if (alpha <= 0.001) discard;",
     "    float maxOuter = mix(pulseOuter, pulseOuter + aa, aaOn);",
     "    if (d > maxOuter) discard;",
-    "    gl_FragColor = vec4(v_color.rgb * alpha, alpha);",
+    "    gl_FragColor = vec4(baseRgb * alpha, alpha);",
     "  #endif",
     "}"
   ].join("\n");
-  var VERTEX_SHADER_SOURCE = "\nattribute vec4 a_id;\nattribute vec4 a_color;\nattribute vec2 a_position;\nattribute float a_size;\nattribute float a_seed;\nattribute float a_angle;\n\nuniform mat3 u_matrix;\nuniform float u_sizeRatio;\nuniform float u_correctionRatio;\n\nvarying vec4 v_color;\nvarying vec2 v_diffVector;\nvarying float v_radius;\nvarying float v_seed;\n\nconst float bias = 255.0 / 254.0;\nconst float coverageScale = 2.1;\n\nvoid main() {\n  float baseSize = a_size * u_correctionRatio / u_sizeRatio * 4.0;\n  vec2 unit = vec2(cos(a_angle), sin(a_angle));\n  vec2 diffVector = (baseSize * coverageScale) * unit;\n  vec2 position = a_position + diffVector;\n  gl_Position = vec4((u_matrix * vec3(position, 1.0)).xy, 0.0, 1.0);\n\n  v_diffVector = diffVector;\n  v_radius = baseSize / 2.0;\n  v_seed = a_seed;\n\n  #ifdef PICKING_MODE\n    v_color = a_id;\n  #else\n    v_color = a_color;\n  #endif\n\n  v_color.a *= bias;\n}\n";
+  var VERTEX_SHADER_SOURCE = "\nattribute vec4 a_id;\nattribute vec4 a_color;\nattribute vec2 a_position;\nattribute float a_size;\nattribute float a_seed;\nattribute float a_focus;\nattribute float a_angle;\n\nuniform mat3 u_matrix;\nuniform float u_sizeRatio;\nuniform float u_correctionRatio;\n\nvarying vec4 v_color;\nvarying vec2 v_diffVector;\nvarying float v_radius;\nvarying float v_seed;\nvarying float v_focus;\n\nconst float bias = 255.0 / 254.0;\nconst float coverageScale = 2.1;\n\nvoid main() {\n  float baseSize = a_size * u_correctionRatio / u_sizeRatio * 4.0;\n  vec2 unit = vec2(cos(a_angle), sin(a_angle));\n  vec2 diffVector = (baseSize * coverageScale) * unit;\n  vec2 position = a_position + diffVector;\n  gl_Position = vec4((u_matrix * vec3(position, 1.0)).xy, 0.0, 1.0);\n\n  v_diffVector = diffVector;\n  v_radius = baseSize / 2.0;\n  v_seed = a_seed;\n  v_focus = a_focus;\n\n  #ifdef PICKING_MODE\n    v_color = a_id;\n  #else\n    v_color = a_color;\n  #endif\n\n  v_color.a *= bias;\n}\n";
 
   var UNSIGNED_BYTE = WebGLRenderingContext.UNSIGNED_BYTE;
   var FLOAT = WebGLRenderingContext.FLOAT;
-  var UNIFORMS = ["u_sizeRatio", "u_correctionRatio", "u_aaEnabled", "u_time", "u_matrix"];
+  var UNIFORMS = [
+    "u_sizeRatio",
+    "u_correctionRatio",
+    "u_aaEnabled",
+    "u_time",
+    "u_focus_active",
+    "u_dim_rgb_mul",
+    "u_dim_alpha_mul",
+    "u_matrix"
+  ];
 
   class AJPCNoteNodeProgram extends NodeProgram {
     getDefinition() {
@@ -86,6 +103,7 @@
           { name: "a_position", size: 2, type: FLOAT },
           { name: "a_size", size: 1, type: FLOAT },
           { name: "a_seed", size: 1, type: FLOAT },
+          { name: "a_focus", size: 1, type: FLOAT },
           { name: "a_color", size: 4, type: UNSIGNED_BYTE, normalized: true },
           { name: "a_id", size: 4, type: UNSIGNED_BYTE, normalized: true }
         ],
@@ -102,10 +120,13 @@
       var array = this.array;
       var color = floatColor(data.color);
       var seed = (Math.abs((nodeIndex * 1103515245) + 12345) % 2048) / 2048;
+      var focus = Number(data && data.ajpc_focus);
+      if (!isFinite(focus)) focus = 0;
       array[startIndex++] = data.x;
       array[startIndex++] = data.y;
       array[startIndex++] = data.size;
       array[startIndex++] = seed;
+      array[startIndex++] = focus > 0 ? 1 : 0;
       array[startIndex++] = color;
       array[startIndex++] = nodeIndex;
     }
@@ -115,10 +136,18 @@
       var uniformLocations = context.uniformLocations;
       var runtime = root && root.AJPCSigmaRuntime && typeof root.AJPCSigmaRuntime === "object" ? root.AJPCSigmaRuntime : null;
       var aaEnabled = runtime && runtime.noteNodeAAEnabled !== undefined ? !!runtime.noteNodeAAEnabled : true;
+      var focusActive = runtime && runtime.focusDimActive !== undefined ? !!runtime.focusDimActive : false;
+      var dimRgbMul = Number(runtime && runtime.focusDimRgbMul);
+      if (!isFinite(dimRgbMul)) dimRgbMul = 0.58;
+      var dimAlphaMul = Number(runtime && runtime.focusDimAlphaMul);
+      if (!isFinite(dimAlphaMul)) dimAlphaMul = 0.16;
       gl.uniform1f(uniformLocations.u_sizeRatio, params.sizeRatio);
       gl.uniform1f(uniformLocations.u_correctionRatio, params.correctionRatio);
       gl.uniform1f(uniformLocations.u_aaEnabled, aaEnabled ? 1 : 0);
       gl.uniform1f(uniformLocations.u_time, performance.now() * 0.001);
+      gl.uniform1f(uniformLocations.u_focus_active, focusActive ? 1 : 0);
+      gl.uniform1f(uniformLocations.u_dim_rgb_mul, dimRgbMul);
+      gl.uniform1f(uniformLocations.u_dim_alpha_mul, dimAlphaMul);
       gl.uniformMatrix3fv(uniformLocations.u_matrix, false, params.matrix);
     }
   }

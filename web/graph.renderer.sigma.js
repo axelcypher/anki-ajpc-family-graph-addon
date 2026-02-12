@@ -33,7 +33,7 @@ AjpcGraphRendererSigma.prototype._settings = function () {
   var lp = null;
   var npNote = nodeProgByName("note");
   var npCardDots = nodeProgByName("card_dots");
-  var npCircle = null;
+  var npCircle = nodeProgByName("hub");
   var npNoteWithCardDots = npNote;
   var edgePrograms = {};
   var nodePrograms = {};
@@ -43,8 +43,10 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     if (typeof SigmaApi.rendering.EdgeLineProgram === "function") lp = SigmaApi.rendering.EdgeLineProgram;
     else if (typeof SigmaApi.rendering.EdgeRectangleProgram === "function") lp = SigmaApi.rendering.EdgeRectangleProgram;
 
-    if (typeof SigmaApi.rendering.NodeCircleProgram === "function") npCircle = SigmaApi.rendering.NodeCircleProgram;
-    else if (typeof SigmaApi.rendering.NodePointProgram === "function") npCircle = SigmaApi.rendering.NodePointProgram;
+    if (typeof npCircle !== "function") {
+      if (typeof SigmaApi.rendering.NodeCircleProgram === "function") npCircle = SigmaApi.rendering.NodeCircleProgram;
+      else if (typeof SigmaApi.rendering.NodePointProgram === "function") npCircle = SigmaApi.rendering.NodePointProgram;
+    }
     if (typeof SigmaApi.rendering.createNodeCompoundProgram === "function") mkNodeCompound = SigmaApi.rendering.createNodeCompoundProgram;
   }
 
