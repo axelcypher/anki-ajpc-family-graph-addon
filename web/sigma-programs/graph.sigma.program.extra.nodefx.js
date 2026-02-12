@@ -69,7 +69,10 @@
     "void main(void) {",
     "  float baseSize = a_size * u_correctionRatio / u_sizeRatio * 4.0;",
     "  float nodeRadius = baseSize * 0.5;",
-    "  float coverageRadius = nodeRadius * u_maxCoverageMul;",
+    // For sigma triangle geometry, inradius is half of circumradius.
+    // We want a safe circular coverage radius of (nodeRadius * u_maxCoverageMul),
+    // so circumradius must be doubled.
+    "  float coverageRadius = nodeRadius * u_maxCoverageMul * 2.0;",
     "  vec2 local = coverageRadius * vec2(cos(a_angle), sin(a_angle));",
     "  vec2 position = a_position + local;",
     "  gl_Position = vec4((u_matrix * vec3(position, 1.0)).xy, 0.0, 1.0);",
@@ -103,6 +106,7 @@
     "",
     "uniform float u_correctionRatio;",
     "uniform float u_time;",
+    "uniform float u_maxCoverageMul;",
     "uniform float u_ping_max_radius_mul;",
     "uniform float u_ping_width_mul;",
     "uniform float u_ping_alpha;",
@@ -122,22 +126,35 @@
     "  return clamp(outer - inner, 0.0, 1.0);",
     "}",
     "",
+    "void compositePremul(inout vec3 dstRgb, inout float dstA, vec3 srcRgb, float srcA) {",
+    "  float a = clamp(srcA, 0.0, 1.0);",
+    "  float inv = 1.0 - dstA;",
+    "  dstRgb += (srcRgb * a) * inv;",
+    "  dstA += a * inv;",
+    "}",
+    "",
     "void main(void) {",
-    "  if (v_node_radius <= 0.0) discard;",
+    "  if (!(v_node_radius > 0.0)) discard;",
     "",
     "  float dist = length(v_local);",
-    "  float aa = max(0.75, v_node_radius * 0.05 * u_correctionRatio);",
+    "  if (!(dist >= 0.0)) discard;",
+    "  float aa = clamp(v_node_radius * 0.03 * u_correctionRatio, 0.35, 2.5);",
+    // Keep all animated geometry comfortably inside the triangle inradius to avoid clipping artifacts.
+    "  float safeMaxRadius = max((v_node_radius * u_maxCoverageMul) - (aa * 3.0), aa * 2.0);",
     "  vec3 rgb = vec3(0.0);",
     "  float alpha = 0.0;",
+    "  float activeOuter = -1.0;",
     "",
     "  if (v_ring_mode > 0.5 && v_ring_color.a > 0.0) {",
     "    float phase = 0.5 + (0.5 * sin(u_time * u_ring_speed));",
     "    float ringRadius = v_node_radius * (u_ring_base_mul + (phase * u_ring_pulse_mul));",
+    "    ringRadius = min(ringRadius, safeMaxRadius);",
     "    float ringWidth = max(v_node_radius * u_ring_width_mul, aa * 1.2);",
+    "    activeOuter = max(activeOuter, min(ringRadius + ringWidth + aa, safeMaxRadius));",
     "    float ringMask = bandMask(dist, ringRadius, ringWidth, aa);",
+    "    if (!(ringMask >= 0.0)) ringMask = 0.0;",
     "    float ringA = ringMask * u_ring_alpha * v_ring_color.a;",
-    "    rgb += v_ring_color.rgb * ringA;",
-    "    alpha = alpha + (ringA * (1.0 - alpha));",
+    "    compositePremul(rgb, alpha, v_ring_color.rgb, ringA);",
     "  }",
     "",
     "  if (v_ping_mode > 0.5 && v_ping_dur > 0.001 && v_ping_color.a > 0.0) {",
@@ -145,22 +162,27 @@
     "    if (t >= 0.0 && t <= 1.0) {",
     "      float ease = t * t * (3.0 - (2.0 * t));",
     "      float pingRadius = mix(v_node_radius * 1.02, v_node_radius * u_ping_max_radius_mul, ease);",
+    "      pingRadius = min(pingRadius, safeMaxRadius);",
     "      float pingWidth = max(v_node_radius * u_ping_width_mul, aa * 1.6);",
+    "      activeOuter = max(activeOuter, min(pingRadius + pingWidth + aa, safeMaxRadius));",
     "      float pingMask = bandMask(dist, pingRadius, pingWidth, aa);",
+    "      if (!(pingMask >= 0.0)) pingMask = 0.0;",
     "      float fade = 1.0 - ease;",
     "      float pingA = pingMask * fade * u_ping_alpha * v_ping_color.a;",
-    "      rgb += v_ping_color.rgb * pingA;",
-    "      alpha = alpha + (pingA * (1.0 - alpha));",
+    "      compositePremul(rgb, alpha, v_ping_color.rgb, pingA);",
     "    }",
     "  }",
     "",
-    "  if (alpha <= 0.001) discard;",
+    "  if (!(activeOuter > 0.0)) discard;",
+    "  if (dist > activeOuter) discard;",
+    "  if (!(alpha > 0.001)) discard;",
     "",
     "  float dimNode = step(0.5, u_focus_active) * (1.0 - step(0.5, v_focus));",
     "  float dimRgb = mix(1.0, u_dim_rgb_mul, dimNode);",
     "  float dimAlpha = mix(1.0, u_dim_alpha_mul, dimNode);",
-    "  rgb *= dimRgb;",
     "  alpha *= dimAlpha;",
+    "  if (!(alpha > 0.001)) discard;",
+    "  rgb *= (dimRgb * dimAlpha);",
     "",
     "  #ifdef PICKING_MODE",
     "    discard;",
@@ -309,31 +331,38 @@
 
       var pingRadiusMul = numOr(runtime && runtime.nodeFxPingRadiusMul, 2.9);
       if (pingRadiusMul < 1.05) pingRadiusMul = 1.05;
+      if (pingRadiusMul > 4.5) pingRadiusMul = 4.5;
       var pingWidthMul = numOr(runtime && runtime.nodeFxPingWidthMul, 0.22);
       if (pingWidthMul < 0.02) pingWidthMul = 0.02;
+      if (pingWidthMul > 0.8) pingWidthMul = 0.8;
       var pingAlpha = clamp01(numOr(runtime && runtime.nodeFxPingAlpha, 0.92));
 
       var ringBaseMul = numOr(runtime && runtime.nodeFxRingBaseMul, 1.28);
       if (ringBaseMul < 1.02) ringBaseMul = 1.02;
+      if (ringBaseMul > 2.2) ringBaseMul = 2.2;
       var ringPulseMul = numOr(runtime && runtime.nodeFxRingPulseMul, 0.24);
       if (ringPulseMul < 0) ringPulseMul = 0;
+      if (ringPulseMul > 0.9) ringPulseMul = 0.9;
       var ringWidthMul = numOr(runtime && runtime.nodeFxRingWidthMul, 0.11);
       if (ringWidthMul < 0.02) ringWidthMul = 0.02;
+      if (ringWidthMul > 0.5) ringWidthMul = 0.5;
       var ringAlpha = clamp01(numOr(runtime && runtime.nodeFxRingAlpha, 0.95));
       var ringSpeed = numOr(runtime && runtime.nodeFxRingSpeed, 4.6);
       if (ringSpeed < 0) ringSpeed = 0;
+      if (ringSpeed > 12) ringSpeed = 12;
 
       var maxCoverage = Math.max(
         pingRadiusMul + pingWidthMul + 0.8,
         ringBaseMul + ringPulseMul + ringWidthMul + 0.8
       );
       if (maxCoverage < 1.4) maxCoverage = 1.4;
+      if (maxCoverage > 6.5) maxCoverage = 6.5;
 
       var focusActive = runtime && runtime.focusDimActive !== undefined ? !!runtime.focusDimActive : false;
       var dimRgbMul = numOr(runtime && runtime.focusDimRgbMul, 0.58);
       if (dimRgbMul < 0) dimRgbMul = 0;
       if (dimRgbMul > 1) dimRgbMul = 1;
-      var dimAlphaMul = numOr(runtime && runtime.focusDimAlphaMul, 0.16);
+      var dimAlphaMul = numOr(runtime && runtime.focusDimAlphaMul, 0.1);
       if (dimAlphaMul < 0) dimAlphaMul = 0;
       if (dimAlphaMul > 1) dimAlphaMul = 1;
 
@@ -358,4 +387,3 @@
 
   registry.node.node_fx = AJPCNodeFxProgram;
 })();
-
