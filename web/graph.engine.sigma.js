@@ -421,6 +421,7 @@ function SigmaGraphCompat(container, config) {
   this.linkDistance = new Float32Array(0);
   this.linkStyleCodes = new Uint8Array(0);
   this.linkFlowMask = new Uint8Array(0);
+  this.linkBidirMask = new Uint8Array(0);
   this.linkArrows = new Float32Array(0);
 
   this.idByIndex = [];
@@ -689,6 +690,7 @@ SigmaGraphCompat.prototype.setLinkStrength = function (arr) { this.linkStrength 
 SigmaGraphCompat.prototype.setLinkDistance = function (arr) { this.linkDistance = (arr && arr.length) ? arr : new Float32Array(0); };
 SigmaGraphCompat.prototype.setLinkStyleCodes = function (arr) { this.linkStyleCodes = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkFlowMask = function (arr) { this.linkFlowMask = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
+SigmaGraphCompat.prototype.setLinkBidirMask = function (arr) { this.linkBidirMask = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointColors = function (arr) { this.pointColors = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointSizes = function (arr) { this.pointSizes = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointTypeCodes = function (arr) { this.pointTypeCodes = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
@@ -1972,6 +1974,7 @@ function applyGraphData(fitView) {
   STATE.graph.setLinkDistance(arrays.linkDistance);
   STATE.graph.setLinkStyleCodes(arrays.linkStyleCodes);
   if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(STATE.runtimeEdgeFlowMask);
+  if (typeof STATE.graph.setLinkBidirMask === "function") STATE.graph.setLinkBidirMask(arrays.linkBidirMask);
   STATE.graph.setPointColors(STATE.pointStyleColors);
   STATE.graph.setPointSizes(STATE.pointStyleSizes);
   if (typeof STATE.graph.setPointTypeCodes === "function") STATE.graph.setPointTypeCodes(arrays.pointTypeCodes);

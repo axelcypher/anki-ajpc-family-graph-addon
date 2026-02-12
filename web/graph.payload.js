@@ -1545,6 +1545,7 @@ function buildGraphArrays(active) {
   var linkStrengthFlat = [];
   var linkStyleCodes = [];
   var linkFlowMask = [];
+  var linkBidirMask = [];
   var edgeRecords = [];
   var visibleEdges = [];
 
@@ -1563,12 +1564,14 @@ function buildGraphArrays(active) {
       col[3] = 0;
     }
     var hasFlow = 0;
+    var hasBidir = edgeMeta(edge).bidirectional ? 1 : 0;
     flatLinks.push(s, t);
     linkColorsFlat.push(col[0], col[1], col[2], col[3]);
     linkWidths.push(width);
     linkStrengthFlat.push(strength);
     linkStyleCodes.push(linkStyleCode(edge));
     linkFlowMask.push(hasFlow);
+    linkBidirMask.push(hasBidir);
     edgeRecords.push({ edge: edge, sourceIndex: s, targetIndex: t });
     visibleEdges.push(edge);
   });
@@ -1595,7 +1598,8 @@ function buildGraphArrays(active) {
     linkStrength: algoScalars.linkStrength,
     linkDistance: algoScalars.linkDistance,
     linkStyleCodes: new Uint8Array(linkStyleCodes),
-    linkFlowMask: new Uint8Array(linkFlowMask)
+    linkFlowMask: new Uint8Array(linkFlowMask),
+    linkBidirMask: new Uint8Array(linkBidirMask)
   };
 }
 
@@ -1703,6 +1707,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   var linkStrengthBase = new Float32Array(edges.length);
   var linkStyleCodes = new Uint8Array(edges.length);
   var edgeFlowMask = new Uint8Array(edges.length);
+  var edgeBidirMask = new Uint8Array(edges.length);
   var edgeRecords = new Array(edges.length);
   for (i = 0; i < edges.length; i += 1) {
     var edge = edges[i];
@@ -1721,6 +1726,7 @@ function applyRuntimeUiSettings(reheatLayout) {
       edgeRendered[i] = 1;
     }
     linkStyleCodes[i] = lstyle;
+    edgeBidirMask[i] = edgeMeta(edge).bidirectional ? 1 : 0;
     linkColorsFlat.push(lcol[0], lcol[1], lcol[2], lcol[3]);
     linkWidths[i] = lwidth;
     linkStrengthBase[i] = lstrength;
@@ -1783,6 +1789,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   if (typeof STATE.graph.setLinkStrength === "function") STATE.graph.setLinkStrength(linkStrength);
   if (typeof STATE.graph.setLinkStyleCodes === "function") STATE.graph.setLinkStyleCodes(linkStyleCodes);
   if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(edgeFlowMask);
+  if (typeof STATE.graph.setLinkBidirMask === "function") STATE.graph.setLinkBidirMask(edgeBidirMask);
   if (typeof STATE.graph.setLinkDistance === "function") STATE.graph.setLinkDistance(linkDistance);
 
   var adapter = window && window.GraphAdapter;

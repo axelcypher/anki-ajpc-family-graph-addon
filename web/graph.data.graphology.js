@@ -290,10 +290,7 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
     var edgeAlpha = Number(owner.linkColors[(e * 4) + 3] || 0);
     var hiddenEdge = !fin(width) || width <= 0 || !fin(edgeAlpha) || edgeAlpha <= 0.001;
     var flow = (owner.linkFlowMask && owner.linkFlowMask.length > e && owner.linkFlowMask[e]) ? 1 : 0;
-    var edgeMeta = (owner.activeEdges && owner.activeEdges.length > e && owner.activeEdges[e] && owner.activeEdges[e].meta)
-      ? owner.activeEdges[e].meta
-      : null;
-    var bidir = (edgeMeta && edgeMeta.bidirectional) ? 1 : 0;
+    var bidir = (owner.linkBidirMask && owner.linkBidirMask.length > e && owner.linkBidirMask[e]) ? 1 : 0;
 
     if (hiddenEdge) hiddenEdgeCount += 1;
     edgeTypeCounts[edgeType] = (edgeTypeCounts[edgeType] || 0) + 1;
@@ -369,10 +366,7 @@ AjpcGraphDataGraphology.prototype.styleGraph = function () {
     var edgeAlpha = Number(owner.linkColors[(e * 4) + 3] || 0);
     var hidden = !fin(width) || width <= 0 || !fin(edgeAlpha) || edgeAlpha <= 0.001;
     var flow = (owner.linkFlowMask && owner.linkFlowMask.length > e && owner.linkFlowMask[e]) ? 1 : 0;
-    var edgeMeta = (owner.activeEdges && owner.activeEdges.length > e && owner.activeEdges[e] && owner.activeEdges[e].meta)
-      ? owner.activeEdges[e].meta
-      : null;
-    var bidir = (edgeMeta && edgeMeta.bidirectional) ? 1 : 0;
+    var bidir = (owner.linkBidirMask && owner.linkBidirMask.length > e && owner.linkBidirMask[e]) ? 1 : 0;
 
     graph.mergeEdgeAttributes(edgeId, {
       size: width,
