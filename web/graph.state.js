@@ -74,6 +74,7 @@ var STATE = {
   runtimeNodeVisibleMask: new Uint8Array(0),
   runtimeEdgeVisibleMask: new Uint8Array(0),
   runtimeEdgeFlowMask: new Uint8Array(0),
+  runtimeFlowActiveEdgeIndices: [],
   runtimeFlowEdgeMask: new Uint8Array(0),
   focusNodeMask: new Uint8Array(0),
   focusEdgeMask: new Uint8Array(0),

@@ -81,9 +81,11 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 ## Frontend architecture (dev)
 - Runtime entry points: `window.ajpcGraphInit(data)` and `window.ajpcGraphUpdate(data)`.
 - Frontend runtime is split into prefixed modules under `web/graph.*.js`:
-  - `graph.state.js`, `graph.bridge.js`, `graph.utils.js`, `graph.payload.js`
+  - `graph.state.js`, `graph.bridge.js`, `graph.adapter.js`, `graph.utils.js`, `graph.payload.js`
   - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
-  - `graph.solver.d3.js`, `graph.renderer.sigma.js`, `graph.ui.js`, `graph.main.js`
+  - `graph.solver.d3.js`, `graph.renderer.sigma.js`
+  - `ui/graph.ui.deptree.js`, `ui/graph.ui.debug.js`, `ui/graph.ui.tooltip.js`, `ui/graph.ui.ctx.js`
+  - `graph.ui.js`, `graph.main.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
 - Engine runtime implementation is in `web/graph.engine.sigma.js`.
@@ -91,9 +93,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
-- Flow overlay in `web/graph.flow.js` samples conic curves in graph-space and projects to screen.
+- `web/graph.flow.js` drives the shader flow animation loop and frame requests.
 - Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.
-- Flow particles are rendered on `#flow-canvas` above the graph layer.
+- Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.sigma.program.edge.*.js`).
+- Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
 - Pulse and ring are rendered in separate passes (pulse first, ring second) and scale proportionally with node screen radius (zoom-coupled).
 - Node fills are rendered opaque in engine styling to avoid translucency artifacts.
 - Overlay effects can be toggled via `OVERLAY_EFFECTS_ENABLED` in `web/graph.state.js` (currently `false` for perf baseline testing).
