@@ -68,8 +68,31 @@ function requestDepTreeForNid(nid) {
   persistHook("deptree:" + String(target));
 }
 
+function depTreeHasData(payload) {
+  var p = normalizeDepTreePayload(payload);
+  return (p.nodes.length > 0) || (p.edges.length > 0);
+}
+
+function depTreeSetEmptyState(isEmpty) {
+  if (!DOM.statusActiveDepTree || !DOM.statusActiveDepTree.classList) return;
+  DOM.statusActiveDepTree.classList.toggle("is-empty", !!isEmpty);
+}
+
+function depTreeRenderEmptyState(payload, text) {
+  if (!DOM.statusActiveDepTree) return;
+  depTreeSetEmptyState(true);
+  DOM.statusActiveDepTree.innerHTML = renderHtmlTemplate(
+    `<div class="dep-tree-empty">
+      <h3>Dependency Tree:</h3> {{message}}
+    </div>`,
+    { message: String(text || "No dependency data") }
+  );
+  DOM.statusActiveDepTreeCanvas = null;
+}
+
 function depTreeCanvasHeight(payload) {
   var p = normalizeDepTreePayload(payload);
+  if (!depTreeHasData(p)) return 32;
   var h = Number(p.estimated_height || 0);
   if (!isFiniteNumber(h) || h <= 0) h = 170;
   if (h < 120) h = 120;
@@ -205,6 +228,7 @@ function markDepTreeRendered(nid, payload) {
 
 function ensureDepTreeCanvas(payload) {
   if (!DOM.statusActiveDepTree) return null;
+  depTreeSetEmptyState(false);
   var canvas = DOM.statusActiveDepTreeCanvas;
   if (canvas && canvas.parentNode !== DOM.statusActiveDepTree) canvas = null;
   if (!canvas) {
@@ -871,6 +895,10 @@ function depTreeRoundRectPath(ctx, x, y, w, h, r) {
 function renderDepTreeCanvas(payload) {
   var p = normalizeDepTreePayload(payload);
   if (!DOM.statusActiveDepTree) return;
+  if (!depTreeHasData(p)) {
+    depTreeRenderEmptyState(p, "No dependency data");
+    return;
+  }
   var canvas = ensureDepTreeCanvas(p);
   if (!canvas) return;
   var cssW = Math.max(120, Math.floor(Number(canvas.clientWidth || DOM.statusActiveDepTree.clientWidth || 320)));
@@ -898,10 +926,7 @@ function renderDepTreeCanvas(payload) {
   }
 
   if (!layout.nodes.length) {
-    ctx.fillStyle = "#9a9a9a";
-    ctx.font = "12px sans-serif";
-    ctx.fillText("No dependency data", 10, 20);
-    canvas.__ajpcHitBoxes = [];
+    depTreeRenderEmptyState(p, "No dependency data");
     return;
   }
 
@@ -1155,6 +1180,7 @@ function renderActiveDepTree(node) {
   if (!DOM.statusActiveDepTree) return;
   var nid = nodeNidForDepTree(node);
   if (!nid) {
+    depTreeSetEmptyState(false);
     DOM.statusActiveDepTree.innerHTML = "";
     DOM.statusActiveDepTreeCanvas = null;
     resetDepTreeRenderState();
@@ -1163,12 +1189,18 @@ function renderActiveDepTree(node) {
   var cache = depTreeCacheMap();
   if (cache.has(nid)) {
     var payload = cache.get(nid);
+    if (!depTreeHasData(payload)) {
+      depTreeRenderEmptyState(payload, "No dependency data");
+      markDepTreeRendered(nid, payload);
+      return;
+    }
     if (!shouldRenderDepTreeCanvas(nid, payload, false)) return;
     renderDepTreeCanvas(payload);
     markDepTreeRendered(nid, payload);
     return;
   }
   if (Number(STATE.depTreeLoadingNid || 0) !== nid || !DOM.statusActiveDepTreeCanvas) {
+    depTreeSetEmptyState(false);
     DOM.statusActiveDepTree.innerHTML = renderHtmlTemplate(
       `<div>
         <h3>Dependency Tree:</h3> {{status}}
@@ -1191,6 +1223,11 @@ window.setActiveDepTreeFromPy = function (payload) {
   var sel = selectedNodeForStatus();
   if (!sel || !sel.node) return;
   if (nodeNidForDepTree(sel.node) !== nid) return;
+  if (!depTreeHasData(p)) {
+    depTreeRenderEmptyState(p, "No dependency data");
+    markDepTreeRendered(nid, p);
+    return;
+  }
   if (!shouldRenderDepTreeCanvas(nid, p, false)) return;
   renderDepTreeCanvas(p);
   markDepTreeRendered(nid, p);
