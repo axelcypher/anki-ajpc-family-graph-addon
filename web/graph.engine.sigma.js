@@ -1103,7 +1103,7 @@ function selectNodeByIndex(index, statusLabel) {
   STATE.focusedIndex = idx;
   if (STATE.graph && typeof STATE.graph.selectPointByIndex === "function") { STATE.graph.selectPointByIndex(idx); }
   applyVisualStyles();
-  updateStatus(statusLabel || ("Active: " + node.label));
+  //updateStatus(statusLabel || ("Active: " + node.label));
   return true;
 }
 
@@ -1221,6 +1221,7 @@ function applyGraphData(fitView) {
     STATE.runtimeFlowEdgeMask = new Uint8Array(0);
     stopPointSizeAnimation();
     STATE.pointStyleSizes = new Float32Array(0);
+    STATE.visibleGraphCounts = { notes: 0, families: 0, edges: 0 };
     STATE.contextNodeId = null;
     STATE.contextPointIndex = null;
     buildSearchEntries();

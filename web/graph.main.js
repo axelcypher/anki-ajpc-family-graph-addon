@@ -46,6 +46,7 @@ window.ajpcGraphUpdate = function (data) {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", function () {
     wireDom();
+    wireDebugDom();
     updateSettingsVisibility(false);
   });
 } else {

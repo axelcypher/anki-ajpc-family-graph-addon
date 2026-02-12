@@ -35,30 +35,40 @@
         <div id="statusbar">
           <span id="status-summary">Nodes: 0 | Edges: 0</span>
           <span id="status-fps">FPS: --</span>
-          <span id="status-coords">Coords: --, --</span>
           <span id="status-extra-text"></span>
         </div>
 
-        <div id="status-debug-panel" class="is-hidden">
-          <span class="title">Debug mode: On</span>
-          <span id="debug-coords">
-            <div>use <span id="debug-coord-use">--</span></div>
-            <div>ratio <span id="debug-coord-ratio">--</span></div>
-            <div class="coord-table" aria-label="debug coordinates">
-              <div class="coord-key">vp</div><div class="coord-val" id="debug-coord-vp-x">--</div><div class="coord-val" id="debug-coord-vp-y">--</div>
-              <div class="coord-key">cl</div><div class="coord-val" id="debug-coord-cl-x">--</div><div class="coord-val" id="debug-coord-cl-y">--</div>
-              <div class="coord-key">cam</div><div class="coord-val" id="debug-coord-cam-x">--</div><div class="coord-val" id="debug-coord-cam-y">--</div>
-            </div>
-          </span>
-          <span id="debug-extra"></span>
-        </div>
+        
 
         <div id="status-active">
           <span id="status-active-details"></span>
           <span id="status-active-deptree"></span>
+          <button id="btn-editor" type="button">Editor</button>
         </div>
 
       </div>
+
+      <aside id="editor-panel" class="closed" aria-hidden="true">
+
+        <div id="edit-head">
+          <div class="panel-head">
+            <h2>Settings</h2>
+            
+            <button id="btn-close-editor" type="button">Close</button>
+          </div>
+        </div>
+
+        <div class="edit-scroll">
+          <section id="tab-editor" class="tab-pane active">
+            <section class="editor-block">
+              <h3>Note Types</h3>
+              <p class="hint">All fields here are now wired for persistence.</p>
+              <div id="editor" class="stack"></div>
+            </section>
+          </section>
+
+        </div>
+      </aside>  
 
       <section id="graph-panel">
         <div id="graph"></div>
@@ -135,6 +145,13 @@
       <div id="status-overlay-bottom-right">
         <div id="status-zoom-pill">
           <span id="status-zoom">Zoom: 1.00x</span>
+        </div>
+
+
+        <div id="status-debug-panel" class="is-hidden">
+          <span class="title">Debug mode: On</span>
+          <span id="debug-extra"></span>
+          <span id="debug-coords"></span>
         </div>
       </div>
 

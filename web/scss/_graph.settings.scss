@@ -326,3 +326,94 @@
     }
   }
 }
+
+
+#editor-panel {
+  $cut-border-width: 2px;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(390px, 42vw);
+  min-height: 0;
+  background: var(--bg-panel);
+  transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
+  z-index: 120;
+  overflow: visible;
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: calc(var(--radius-medium) * -1);
+    top: 24px;
+    width: var(--radius-medium);
+    height: var(--radius-medium);
+    background: var(--bg-panel);
+    pointer-events: none;
+    z-index: 121;
+    mask: radial-gradient(circle var(--radius-medium) at 100% 100%,
+        transparent calc(var(--radius-medium) - 0px),
+        #000 var(--radius-medium));
+  }
+
+  &.closed {
+    transform: translateX(calc((100% + 16px) * -1));
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  #edit-head {
+    height: 12%;
+    overflow: auto;
+    padding: 12px 12px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border);
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+    }
+  }
+  .edit-scroll {
+    @include mixins.scrollbar();
+
+    height: 88%;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px 12px;
+    box-sizing: border-box;
+    border: none;
+
+    .editor-block {
+      @include mixins.surface-card($border: var(--border-100),
+        $background: var(--bg-panel-100),
+        $radius: var(--radius-small),
+        $padding: 10px
+      );
+      margin-bottom: 10px;
+
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+      }
+    }
+
+    .tab-pane {
+      display: none;
+
+      &.active {
+        display: block;
+      }
+    }
+  }
+}

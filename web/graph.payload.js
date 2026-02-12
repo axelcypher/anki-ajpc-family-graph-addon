@@ -1426,13 +1426,23 @@ function applyRuntimeUiSettings(reheatLayout) {
   STATE.pointStyleSizes = pointSizes;
 
   var visibleNodeCount = 0;
+  var visibleNoteCount = 0;
+  var visibleFamilyCount = 0;
   var visibleEdgeCount = 0;
   for (i = 0; i < nodeVisible.length; i += 1) {
-    if (nodeVisible[i]) visibleNodeCount += 1;
+    if (!nodeVisible[i]) continue;
+    visibleNodeCount += 1;
+    if (nodes[i] && nodes[i].kind === "family") visibleFamilyCount += 1;
+    else visibleNoteCount += 1;
   }
   for (i = 0; i < edgeRendered.length; i += 1) {
     if (edgeRendered[i]) visibleEdgeCount += 1;
   }
+  STATE.visibleGraphCounts = {
+    notes: visibleNoteCount,
+    families: visibleFamilyCount,
+    edges: visibleEdgeCount
+  };
 
   if (typeof STATE.graph.setPointColors === "function") STATE.graph.setPointColors(basePointColors);
   if (typeof STATE.graph.setPointSizes === "function") STATE.graph.setPointSizes(pointSizes);

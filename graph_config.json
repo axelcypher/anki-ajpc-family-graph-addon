@@ -80,19 +80,19 @@
   "family_same_prio_opacity": 0.15,
   "note_type_tooltip_fields": {
     "1768669162567": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768654427037": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768669148068": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768738698248": [
       "Kanji",
@@ -239,5 +239,7 @@
     "kanji": "#f87171"
   },
   "link_weights": {},
-  "link_weight_modes": {}
+  "link_weight_modes": {
+    "priority": "manual"
+  }
 }

@@ -5,10 +5,42 @@
 var DEBUG_EXTRA_SPEC = [
   { key: "hov", a: "hoverReason", b: "hoverIdx" },
   { key: "node", a: "hoverNode", b: "hoverType" },
-  { key: "hit", a: "hoverHit", b: "hoverDist" },
-  { key: "dxy", a: "hoverDx", b: "hoverDy" },
   { key: "dep", a: "depTreeRps", b: "depTreeSkipCount" }
 ];
+
+var DEBUG_COORD_SPEC = [
+  { key: "use", a: "use", b: null },
+  { key: "ratio", a: "camR", b: null },
+  { key: "vp", a: "vpX", b: "vpY" },
+  { key: "cl", a: "clX", b: "clY" },
+  { key: "cam", a: "camX", b: "camY" }
+];
+
+function ensureDebugCoordRows() {
+  if (!DOM.debugCoords || DOM.debugCoordCells) return;
+  DOM.debugCoordCells = {};
+  var table = document.createElement("div");
+  table.className = "coord-table";
+  table.setAttribute("aria-label", "debug coordinates");
+  DEBUG_COORD_SPEC.forEach(function (row) {
+    var k = document.createElement("div");
+    k.className = "coord-key";
+    k.textContent = row.key;
+    var a = document.createElement("div");
+    a.className = "coord-val";
+    a.textContent = "--";
+    var b = document.createElement("div");
+    b.className = row.b ? "coord-val" : "coord-empty";
+    b.textContent = "--";
+    table.appendChild(k);
+    table.appendChild(a);
+    table.appendChild(b);
+    DOM.debugCoordCells[row.a] = a;
+    if (row.b) DOM.debugCoordCells[row.b] = b;
+  });
+  DOM.debugCoords.innerHTML = "";
+  DOM.debugCoords.appendChild(table);
+}
 
 function ensureDebugExtraRows() {
   if (!DOM.debugExtra || DOM.debugExtraCells) return;
@@ -37,16 +69,13 @@ function ensureDebugExtraRows() {
 }
 
 function setDebugCoordValues(v) {
+  ensureDebugCoordRows();
   var x = v && typeof v === "object" ? v : {};
-  if (!DOM.debugCoordUse) return;
-  DOM.debugCoordUse.textContent = String(x.use || "--");
-  DOM.debugCoordVpX.textContent = String(x.vpX || "--");
-  DOM.debugCoordVpY.textContent = String(x.vpY || "--");
-  DOM.debugCoordClX.textContent = String(x.clX || "--");
-  DOM.debugCoordClY.textContent = String(x.clY || "--");
-  DOM.debugCoordCamX.textContent = String(x.camX || "--");
-  DOM.debugCoordCamY.textContent = String(x.camY || "--");
-  DOM.debugCoordRatio.textContent = String(x.camR || "--");
+  if (!DOM.debugCoordCells) return;
+  DEBUG_COORD_SPEC.forEach(function (row) {
+    if (DOM.debugCoordCells[row.a]) DOM.debugCoordCells[row.a].textContent = String(x[row.a] || "--");
+    if (row.b && DOM.debugCoordCells[row.b]) DOM.debugCoordCells[row.b].textContent = String(x[row.b] || "--");
+  });
 }
 
 function setDebugExtraValues(v) {
@@ -75,10 +104,6 @@ function clearDebugValueTables() {
     hoverIdx: "--",
     hoverNode: "--",
     hoverType: "--",
-    hoverHit: "--",
-    hoverDist: "--",
-    hoverDx: "--",
-    hoverDy: "--",
     depTreeRps: "--",
     depTreeSkipCount: "--"
   });
@@ -96,13 +121,9 @@ function updateCoordsStatus() {
     syncDebugPanelVisibility();
     return;
   }
-  if (!DOM.statusCoords && !DOM.debugCoords) return;
+  if (!DOM.debugCoords) return;
   syncDebugPanelVisibility();
-  function fnum(v, digits) {
-    return isFiniteNumber(v) ? Number(v).toFixed(digits) : "--";
-  }
   function setOff() {
-    if (DOM.statusCoords) DOM.statusCoords.textContent = "Coords: --, --";
     if (DOM.debugCoords) {
       if (!!STATE.debugEnabled) {
         var hd0 = STATE.hoverDebug || {};
@@ -124,10 +145,6 @@ function updateCoordsStatus() {
           hoverIdx: hIdx0,
           hoverNode: "--",
           hoverType: "--",
-          hoverHit: "--",
-          hoverDist: "--",
-          hoverDx: "--",
-          hoverDy: "--",
           depTreeRps: dep0.depTreeRps,
           depTreeSkipCount: dep0.depTreeSkipCount
         });
@@ -187,12 +204,6 @@ function updateCoordsStatus() {
     setOff();
     return;
   }
-  var sBase = (typeof SPACE_SIZE === "number" && isFinite(SPACE_SIZE) && SPACE_SIZE > 0) ? Number(SPACE_SIZE) : 4096;
-  var nx = (Number(space[0]) / sBase) * 100;
-  var ny = (Number(space[1]) / sBase) * 100;
-  var out = "Coords: " + nx.toFixed(1) + ", " + ny.toFixed(1);
-
-  if (DOM.statusCoords) DOM.statusCoords.textContent = out;
   if (!!STATE.debugEnabled) {
     var vpX = (Array.isArray(spaceViewport) && isFiniteNumber(spaceViewport[0])) ? Number(spaceViewport[0]).toFixed(1) : "--";
     var vpY = (Array.isArray(spaceViewport) && isFiniteNumber(spaceViewport[1])) ? Number(spaceViewport[1]).toFixed(1) : "--";
@@ -215,10 +226,6 @@ function updateCoordsStatus() {
     var hIdx = (hd.idx === null || hd.idx === undefined || !isFiniteNumber(hd.idx)) ? "--" : String(Math.round(Number(hd.idx)));
     var hNode = String(hd.nodeId || "--");
     var hType = String(hd.noteType || "--");
-    var hHit = fnum(hd.hitRadius, 2);
-    var hDist = fnum(hd.dist, 2);
-    var hDx = fnum(hd.dx, 1);
-    var hDy = fnum(hd.dy, 1);
     var dep = depTreeDebugStats(Date.now());
     setDebugCoordValues({
       use: useTag,
@@ -235,10 +242,6 @@ function updateCoordsStatus() {
       hoverIdx: hIdx,
       hoverNode: hNode,
       hoverType: hType,
-      hoverHit: hHit,
-      hoverDist: hDist,
-      hoverDx: hDx,
-      hoverDy: hDy,
       depTreeRps: dep.depTreeRps,
       depTreeSkipCount: dep.depTreeSkipCount
     });
@@ -247,3 +250,58 @@ function updateCoordsStatus() {
   }
 }
 
+function reloadGraphStylesheet() {
+  var links = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"]'));
+  if (!links.length) return;
+  var target = null;
+  for (var i = 0; i < links.length; i += 1) {
+    var href = String(links[i].getAttribute("href") || "");
+    if (href.indexOf("graph.css") >= 0) {
+      target = links[i];
+      break;
+    }
+  }
+  if (!target) target = links[0];
+  var hrefRaw = String(target.getAttribute("href") || "");
+  if (!hrefRaw) return;
+  var stamp = String(Date.now());
+  var next = hrefRaw;
+  if (hrefRaw.indexOf("?") >= 0) {
+    if (/([?&])v=\d+/.test(hrefRaw)) {
+      next = hrefRaw.replace(/([?&])v=\d+/, "$1v=" + stamp);
+    } else {
+      next = hrefRaw + "&v=" + stamp;
+    }
+  } else {
+    next = hrefRaw + "?v=" + stamp;
+  }
+  target.setAttribute("href", next);
+}
+
+function wireDebugDom() {
+  
+  DOM.debugCoords = byId("debug-coords");
+  DOM.debugExtra = byId("debug-extra");
+  DOM.debugCoordCells = null;
+
+  DOM.statusDebugPanel = byId("status-debug-panel");
+
+  DOM.btnDevTools = byId("btn-dev-tools");
+  DOM.btnReloadCss = byId("btn-reload-css");
+
+  if (DOM.btnReloadCss) {
+    DOM.btnReloadCss.addEventListener("click", function () {
+      reloadGraphStylesheet();
+    });
+  }
+  if (DOM.btnDevTools) {
+    DOM.btnDevTools.addEventListener("click", function () {
+      if (window.pycmd) {
+        window.pycmd("devtools");
+      } else {
+        applyGraphData(true);
+      }
+    });
+  }
+
+}

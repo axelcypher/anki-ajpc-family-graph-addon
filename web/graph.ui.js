@@ -4,8 +4,7 @@
 // UI.js Index
 // 1) Tooltip + Hover
 // 2) UI helpers + runtime apply
-// 3) Debug panel (graph.ui.debug.js) + Status panels
-// 4) Dependency tree (graph.ui.deptree.js)
+
 // 5) Search UI
 // 6) Context menu
 // 7) Settings UI renderers
@@ -62,10 +61,6 @@ function setHoverDebug(reason, details) {
     idx: (idx === undefined || idx === null || idx === "" || !isFinite(Number(idx))) ? null : Number(idx),
     nodeId: d.nodeId === undefined || d.nodeId === null ? "" : String(d.nodeId),
     noteType: d.noteType === undefined || d.noteType === null ? "" : String(d.noteType),
-    hitRadius: n(d.hitRadius),
-    dist: n(d.dist),
-    dx: n(d.dx),
-    dy: n(d.dy),
     nodeClientX: n(d.nodeClientX),
     nodeClientY: n(d.nodeClientY),
     pointerX: n(d.pointerX === undefined ? STATE.pointerClientX : d.pointerX),
@@ -248,6 +243,14 @@ function linkSettingHint(kind) {
   return "";
 }
 
+function refreshUiOnly() {
+  if (DOM.toggleUnlinked) DOM.toggleUnlinked.checked = !!STATE.showUnlinked;
+  renderLayerControls();
+  renderNoteTypeControls();
+  renderLinkSettings();
+  renderEngineSettings();
+}
+
 function engineSettingHint(spec) {
   var hinted = String(spec && spec.hint || "");
   var fallback = String(spec && spec.label || "");
@@ -276,30 +279,6 @@ function defaultSolverLinkDistance() {
 }
 
 // === Status panel ============================================================
-function getVisibleGraphCounts() {
-  var nodesTotal = Array.isArray(STATE.activeNodes) ? STATE.activeNodes.length : 0;
-  var edgesTotal = Array.isArray(STATE.activeEdges) ? STATE.activeEdges.length : 0;
-  var nodesVisible = nodesTotal;
-  var edgesVisible = edgesTotal;
-  var i;
-
-  if (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === nodesTotal) {
-    nodesVisible = 0;
-    for (i = 0; i < STATE.runtimeNodeVisibleMask.length; i += 1) {
-      if (STATE.runtimeNodeVisibleMask[i]) nodesVisible += 1;
-    }
-  }
-
-  if (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === edgesTotal) {
-    edgesVisible = 0;
-    for (i = 0; i < STATE.runtimeEdgeVisibleMask.length; i += 1) {
-      if (STATE.runtimeEdgeVisibleMask[i]) edgesVisible += 1;
-    }
-  }
-
-  return { nodes: nodesVisible, edges: edgesVisible };
-}
-
 function selectedNodeForStatus() {
   var idx = NaN;
   if (STATE.graph && typeof STATE.graph.getSelectedIndices === "function") {
@@ -419,9 +398,17 @@ function renderActiveDetails() {
 
 // === Status + Perf ===========================================================
 function updateStatus(extraText) {
-  var counts = getVisibleGraphCounts();
-  var summary = "Nodes: " + counts.nodes + " | Edges: " + counts.edges;
-  //if (DOM.statusExtraText) DOM.statusExtraText.textContent = extraText ? String(extraText) : "";
+  var counts = (STATE && STATE.visibleGraphCounts && typeof STATE.visibleGraphCounts === "object")
+    ? STATE.visibleGraphCounts
+    : { notes: 0, families: 0, edges: 0 };
+  var notes = Number(counts.notes);
+  var families = Number(counts.families);
+  var edges = Number(counts.edges);
+  if (!isFinite(notes) || notes < 0) notes = 0;
+  if (!isFinite(families) || families < 0) families = 0;
+  if (!isFinite(edges) || edges < 0) edges = 0;
+  var summary = "Notes: " + notes + " | Families: " + families + " | Links: " + edges;
+  if (DOM.statusExtraText) DOM.statusExtraText.textContent = extraText ? String(extraText) : "";
 
   if (DOM.statusSummary) DOM.statusSummary.textContent = summary;
   renderActiveDetails();
@@ -440,9 +427,8 @@ function stopPerfMonitor() {
 }
 
 function startPerfMonitor() {
-  if ((!DOM.statusFps && !DOM.statusCoords && !DOM.debugCoords) || STATE.perfRaf) return;
+  if ((!DOM.statusFps && !DOM.debugCoords) || STATE.perfRaf) return;
   if (DOM.statusFps) DOM.statusFps.textContent = "FPS: --";
-  if (DOM.statusCoords) DOM.statusCoords.textContent = "Coords: --, --";
   if (DOM.debugCoords) clearDebugValueTables();
   STATE.perfWindowStart = 0;
   STATE.perfFrameCount = 0;
@@ -1697,6 +1683,15 @@ function updateSettingsVisibility(open) {
   scheduleGraphViewportSync();
 }
 
+function updateEditorVisibility(open) {
+  if (!DOM.editorPanel) return;
+  var isOpen = !!open;
+  DOM.editorPanel.classList.toggle("closed", !isOpen);
+  DOM.statusOverlayTopLeft.classList.toggle("sidepanel", isOpen);
+  DOM.editorPanel.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  scheduleGraphViewportSync();
+}
+
 function scheduleGraphViewportSync() {
   function runSync() {
     if (typeof ensureFlowCanvasSize === "function") {
@@ -1739,33 +1734,7 @@ function switchSettingsTab(tabName) {
   });
 }
 
-function reloadGraphStylesheet() {
-  var links = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"]'));
-  if (!links.length) return;
-  var target = null;
-  for (var i = 0; i < links.length; i += 1) {
-    var href = String(links[i].getAttribute("href") || "");
-    if (href.indexOf("graph.css") >= 0) {
-      target = links[i];
-      break;
-    }
-  }
-  if (!target) target = links[0];
-  var hrefRaw = String(target.getAttribute("href") || "");
-  if (!hrefRaw) return;
-  var stamp = String(Date.now());
-  var next = hrefRaw;
-  if (hrefRaw.indexOf("?") >= 0) {
-    if (/([?&])v=\d+/.test(hrefRaw)) {
-      next = hrefRaw.replace(/([?&])v=\d+/, "$1v=" + stamp);
-    } else {
-      next = hrefRaw + "&v=" + stamp;
-    }
-  } else {
-    next = hrefRaw + "?v=" + stamp;
-  }
-  target.setAttribute("href", next);
-}
+
 // === DOM wiring + event handlers =============================================
 function wireDom() {
   DOM.layerPills = byId("layer-pills");
@@ -1777,31 +1746,27 @@ function wireDom() {
   DOM.statusSummary = byId("status-summary");
   DOM.statusZoom = byId("status-zoom");
   DOM.statusFps = byId("status-fps");
-  DOM.statusCoords = byId("status-coords");
-  DOM.debugCoords = byId("debug-coords");
-  DOM.debugExtra = byId("debug-extra");
-  DOM.debugCoordUse = byId("debug-coord-use");
-  DOM.debugCoordVpX = byId("debug-coord-vp-x");
-  DOM.debugCoordVpY = byId("debug-coord-vp-y");
-  DOM.debugCoordClX = byId("debug-coord-cl-x");
-  DOM.debugCoordClY = byId("debug-coord-cl-y");
-  DOM.debugCoordCamX = byId("debug-coord-cam-x");
-  DOM.debugCoordCamY = byId("debug-coord-cam-y");
-  DOM.debugCoordRatio = byId("debug-coord-ratio");
+  DOM.statusExtraText = byId("status-extra-text");
   DOM.statusActive = byId("status-active");
   DOM.statusActiveDetails = byId("status-active-details");
   DOM.statusActiveDepTree = byId("status-active-deptree");
-  DOM.statusDebugPanel = byId("status-debug-panel");
+
   DOM.statusbar = byId("statusbar");
   DOM.statusOverlayBottomRight = byId("status-overlay-bottom-right");
+  DOM.statusOverlayTopLeft = byId("status-overlay-top-left");
+
+  DOM.editorPanel = byId("editor-panel");
+  DOM.btnEditor = byId("btn-editor");
+  DOM.btnCloseEditor = byId("btn-close-editor");
+
   DOM.settingsPanel = byId("settings-panel");
   DOM.settingsTabs = Array.prototype.slice.call(document.querySelectorAll("#settings-tabs .settings-tab"));
   DOM.settingsPanes = Array.prototype.slice.call(document.querySelectorAll("#settings-panel .tab-pane"));
   DOM.btnSettings = byId("btn-settings");
   DOM.btnCloseSettings = byId("btn-close-settings");
+
   DOM.btnRefresh = byId("btn-refresh");
-  DOM.btnDevTools = byId("btn-dev-tools");
-  DOM.btnReloadCss = byId("btn-reload-css");
+  
   DOM.btnFit = byId("btn-fit");
   DOM.toggleUnlinked = byId("toggle-unlinked");
   DOM.linkLayerList = byId("link-layer-list");
@@ -1817,20 +1782,24 @@ function wireDom() {
   DOM.flowCtx = null;
   DOM.graphEmpty = byId("graph-empty");
   DOM.hoverTip = byId("hover-tip");
+
   syncDebugPanelVisibility();
 
-  if (DOM.btnSettings) {
-    DOM.btnSettings.addEventListener("click", function () {
-      var nowClosed = DOM.settingsPanel.classList.contains("closed");
-      updateSettingsVisibility(nowClosed);
-    });
-  }
-  if (DOM.btnReloadCss) {
-    DOM.btnReloadCss.addEventListener("click", function () {
-      reloadGraphStylesheet();
-    });
-  }
+  
 
+
+  if (DOM.btnEditor) {
+    DOM.btnEditor.addEventListener("click", function () {
+      var nowClosed = DOM.editorPanel.classList.contains("closed");
+      updateEditorVisibility(nowClosed);
+    });
+  }
+  if (DOM.btnCloseEditor) {
+    DOM.btnCloseEditor.addEventListener("click", function () {
+      updateEditorVisibility(false);
+    });
+  }
+  
   if (DOM.graph) {
     DOM.graph.addEventListener("mouseleave", function (evt) {
       var toEl = evt && evt.relatedTarget ? evt.relatedTarget : null;
@@ -1841,7 +1810,6 @@ function wireDom() {
       ensureFlowParticlesLoop();
     });
   }
-
   if (DOM.graphPanel) {
     DOM.graphPanel.addEventListener("mouseenter", function () {
       STATE.pointerInsideGraph = true;
@@ -1899,12 +1867,17 @@ function wireDom() {
     });
   }
 
+  if (DOM.btnSettings) {
+    DOM.btnSettings.addEventListener("click", function () {
+      var nowClosed = DOM.settingsPanel.classList.contains("closed");
+      updateSettingsVisibility(nowClosed);
+    });
+  }
   if (DOM.btnCloseSettings) {
     DOM.btnCloseSettings.addEventListener("click", function () {
       updateSettingsVisibility(false);
     });
   }
-
   if (DOM.settingsTabs && DOM.settingsTabs.length) {
     DOM.settingsTabs.forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1917,16 +1890,6 @@ function wireDom() {
     DOM.btnRefresh.addEventListener("click", function () {
       if (window.pycmd) {
         window.pycmd("refresh");
-      } else {
-        applyGraphData(true);
-      }
-    });
-  }
-
-  if (DOM.btnDevTools) {
-    DOM.btnDevTools.addEventListener("click", function () {
-      if (window.pycmd) {
-        window.pycmd("devtools");
       } else {
         applyGraphData(true);
       }
@@ -2003,6 +1966,7 @@ function wireDom() {
   startPerfMonitor();
   ensureDebugExtraRows();
   switchSettingsTab("notes");
+
   window.addEventListener("resize", scheduleGraphViewportSync);
   window.addEventListener("mousemove", function (evt) {
     STATE.pointerClientX = Number(evt.clientX);
@@ -2027,10 +1991,4 @@ function wireDom() {
   });
 }
 
-function refreshUiOnly() {
-  if (DOM.toggleUnlinked) DOM.toggleUnlinked.checked = !!STATE.showUnlinked;
-  renderLayerControls();
-  renderNoteTypeControls();
-  renderLinkSettings();
-  renderEngineSettings();
-}
+
