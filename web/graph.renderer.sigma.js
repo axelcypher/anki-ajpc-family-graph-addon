@@ -4,6 +4,14 @@ function AjpcGraphRendererSigma(owner) {
   this.owner = owner;
   this.instance = null;
   this.camCb = null;
+  this.useShaderCardDots = false;
+}
+
+function setNoteNodeAAFlag(enabled) {
+  var root = window;
+  if (!root) return;
+  if (!root.AJPCSigmaRuntime || typeof root.AJPCSigmaRuntime !== "object") root.AJPCSigmaRuntime = {};
+  root.AJPCSigmaRuntime.noteNodeAAEnabled = !!enabled;
 }
 
 AjpcGraphRendererSigma.prototype._settings = function () {
@@ -11,15 +19,19 @@ AjpcGraphRendererSigma.prototype._settings = function () {
   var owner = this.owner;
   var p = owner.runtimeRenderer || DEF_RENDERER;
   var d = it(p.sigma_animations_time, DEF_RENDERER.sigma_animations_time, 0, 5000);
+  setNoteNodeAAFlag(!!p.sigma_note_node_aa);
 
   var cp = edgeProgByName("curved");
   var dp = edgeProgByName("dashed") || cp;
   var dotp = edgeProgByName("dotted") || cp;
   var lp = null;
   var npNote = nodeProgByName("note");
+  var npCardDots = nodeProgByName("card_dots");
   var npCircle = null;
+  var npNoteWithCardDots = npNote;
   var edgePrograms = {};
   var nodePrograms = {};
+  var mkNodeCompound = null;
 
   if (SigmaApi && SigmaApi.rendering) {
     if (typeof SigmaApi.rendering.EdgeLineProgram === "function") lp = SigmaApi.rendering.EdgeLineProgram;
@@ -27,9 +39,22 @@ AjpcGraphRendererSigma.prototype._settings = function () {
 
     if (typeof SigmaApi.rendering.NodeCircleProgram === "function") npCircle = SigmaApi.rendering.NodeCircleProgram;
     else if (typeof SigmaApi.rendering.NodePointProgram === "function") npCircle = SigmaApi.rendering.NodePointProgram;
+    if (typeof SigmaApi.rendering.createNodeCompoundProgram === "function") mkNodeCompound = SigmaApi.rendering.createNodeCompoundProgram;
   }
 
-  owner._useCustomNodeTypes = typeof npNote === "function" && typeof npCircle === "function";
+  if (typeof mkNodeCompound === "function" && typeof npNote === "function" && typeof npCardDots === "function") {
+    try {
+      npNoteWithCardDots = mkNodeCompound([npNote, npCardDots]);
+      this.useShaderCardDots = true;
+    } catch (_e0) {
+      npNoteWithCardDots = npNote;
+      this.useShaderCardDots = false;
+    }
+  } else {
+    this.useShaderCardDots = false;
+  }
+
+  owner._useCustomNodeTypes = typeof npNoteWithCardDots === "function" && typeof npCircle === "function";
 
   if (cp) edgePrograms[EDGE_TYPE_CURVED] = cp;
   if (dp) edgePrograms[EDGE_TYPE_DASHED] = dp;
@@ -38,7 +63,7 @@ AjpcGraphRendererSigma.prototype._settings = function () {
 
   if (owner._useCustomNodeTypes) {
     nodePrograms.circle = npCircle;
-    nodePrograms[NODE_TYPE_NOTE] = npNote;
+    nodePrograms[NODE_TYPE_NOTE] = npNoteWithCardDots;
   }
 
   dbg("programs", {
@@ -48,6 +73,9 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     edgeLine: !!lp,
     nodeCircle: !!npCircle,
     nodeNote: !!npNote,
+    nodeCardDots: !!npCardDots,
+    nodeCompound: !!mkNodeCompound,
+    useShaderCardDots: !!this.useShaderCardDots,
     useCustomNodes: !!owner._useCustomNodeTypes
   });
 
@@ -208,18 +236,20 @@ AjpcGraphRendererSigma.prototype._setupOverlayLayers = function () {
     flow = null;
   }
 
-  if (!flow) return;
-
-  flow.style.pointerEvents = "none";
-  DOM.flowCanvas = flow;
-  DOM.flowCtx = flow.getContext("2d");
-  if (typeof ensureFlowCanvasSize === "function") ensureFlowCanvasSize();
+  if (flow) {
+    flow.style.pointerEvents = "none";
+    DOM.flowCanvas = flow;
+    DOM.flowCtx = flow.getContext("2d");
+    if (typeof ensureFlowCanvasSize === "function") ensureFlowCanvasSize();
+  } else {
+    DOM.flowCanvas = null;
+    DOM.flowCtx = null;
+  }
 };
 
 AjpcGraphRendererSigma.prototype._bind = function () {
   if (!this.instance) return;
 
-  var self = this;
   var owner = this.owner;
 
   this.instance.on("clickNode", function (payload) {

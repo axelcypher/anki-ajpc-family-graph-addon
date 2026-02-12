@@ -38,6 +38,7 @@ var DEF_SOLVER = {
 var DEF_RENDERER = {
   sigma_draw_labels: true,
   sigma_draw_hover_nodes: false,
+  sigma_note_node_aa: true,
   sigma_label_threshold: 8,
   sigma_label_zoom_min: 1,
   sigma_hide_edges_on_move: false,
@@ -78,6 +79,7 @@ var SPEC_SOLVER = [
 var SPEC_RENDERER = [
   { key: "sigma_draw_labels", label: "Draw Labels", type: "bool", affectsEngine: true },
   { key: "sigma_draw_hover_nodes", label: "Draw Hover Labels", type: "bool", affectsEngine: true },
+  { key: "sigma_note_node_aa", label: "Node AA", type: "bool", affectsEngine: true },
   { key: "sigma_label_threshold", label: "Label Threshold", type: "number", min: 0, max: 64, step: 1, affectsEngine: true },
   { key: "sigma_label_zoom_min", label: "Label Zoom Min", type: "number", min: 0, max: 64, step: 0.01, affectsEngine: true },
   { key: "sigma_hide_edges_on_move", label: "Hide Edges On Move", type: "bool", affectsEngine: true },
@@ -265,6 +267,7 @@ function trRenderer(raw, prev) {
   return {
     sigma_draw_labels: bol(m.sigma_draw_labels, DEF_RENDERER.sigma_draw_labels),
     sigma_draw_hover_nodes: bol(m.sigma_draw_hover_nodes, DEF_RENDERER.sigma_draw_hover_nodes),
+    sigma_note_node_aa: bol(m.sigma_note_node_aa, DEF_RENDERER.sigma_note_node_aa),
     sigma_label_threshold: num(m.sigma_label_threshold, DEF_RENDERER.sigma_label_threshold, 0, 64),
     sigma_label_zoom_min: num(m.sigma_label_zoom_min, DEF_RENDERER.sigma_label_zoom_min, 0, 64),
     sigma_hide_edges_on_move: bol(m.sigma_hide_edges_on_move, DEF_RENDERER.sigma_hide_edges_on_move),
@@ -396,6 +399,30 @@ function primaryFamilyIdFromNode(node) {
   return keys[0] || "";
 }
 
+function cardStatusBitMasks(node) {
+  var cards = node && Array.isArray(node.cards) ? node.cards : [];
+  var maxSlots = 12;
+  var limit = Math.min(cards.length, maxSlots);
+  var normalMask = 0;
+  var suspendedMask = 0;
+  var buriedMask = 0;
+
+  for (var i = 0; i < limit; i += 1) {
+    var status = String(cards[i] && cards[i].status || "").toLowerCase();
+    var bit = (1 << i);
+    if (status === "suspended") suspendedMask += bit;
+    else if (status === "buried") buriedMask += bit;
+    else normalMask += bit;
+  }
+
+  return {
+    card_count: cards.length,
+    cards_mask_normal: normalMask,
+    cards_mask_suspended: suspendedMask,
+    cards_mask_buried: buriedMask
+  };
+}
+
 function buildNodeLayoutAttrs(node) {
   var n = node && typeof node === "object" ? node : {};
   var layers = nodeLayersList(n);
@@ -408,6 +435,7 @@ function buildNodeLayoutAttrs(node) {
   var familyCluster = primaryFamily
     ? ("family:" + primaryFamily)
     : ("nofamily:" + (noteTypeId || "unknown"));
+  var cardMasks = cardStatusBitMasks(n);
 
   return {
     label: String(n.label || n.id || ""),
@@ -423,7 +451,11 @@ function buildNodeLayoutAttrs(node) {
     grp_has_families: bool01(nodeHasLayer(n, "families")),
     grp_has_examples: bool01(nodeHasLayer(n, "examples")),
     grp_has_kanji: bool01(nodeHasLayer(n, "kanji")),
-    grp_family_prio_count: prioKeys.length
+    grp_family_prio_count: prioKeys.length,
+    card_count: Number(cardMasks.card_count || 0),
+    cards_mask_normal: Number(cardMasks.cards_mask_normal || 0),
+    cards_mask_suspended: Number(cardMasks.cards_mask_suspended || 0),
+    cards_mask_buried: Number(cardMasks.cards_mask_buried || 0)
   };
 }
 
@@ -1103,7 +1135,7 @@ function selectNodeByIndex(index, statusLabel) {
   STATE.focusedIndex = idx;
   if (STATE.graph && typeof STATE.graph.selectPointByIndex === "function") { STATE.graph.selectPointByIndex(idx); }
   applyVisualStyles();
-  //updateStatus(statusLabel || ("Active: " + node.label));
+  updateStatus(statusLabel);
   return true;
 }
 

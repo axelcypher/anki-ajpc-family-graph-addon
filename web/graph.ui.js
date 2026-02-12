@@ -48,6 +48,21 @@ function tooltipHtml(node) {
   return parts.join("");
 }
 
+// === Card Formatting =========================================================
+function normalizeCardStatusLabel(status) {
+  var key = String(status || "").toLowerCase();
+  if (key === "suspended") return "Suspended";
+  if (key === "buried") return "Buried";
+  if (key === "normal") return "Normal";
+  return key ? (key.charAt(0).toUpperCase() + key.slice(1)) : "Unknown";
+}
+
+function formatCardStability(stability) {
+  var v = Number(stability);
+  if (!isFiniteNumber(v)) return "--";
+  return v.toFixed(2);
+}
+
 function setHoverDebug(reason, details) {
   var d = details && typeof details === "object" ? details : {};
   function n(v) {
@@ -248,6 +263,7 @@ function refreshUiOnly() {
   renderLayerControls();
   renderNoteTypeControls();
   renderLinkSettings();
+  renderCardsSettings();
   renderEngineSettings();
 }
 
@@ -278,6 +294,99 @@ function defaultSolverLinkDistance() {
   return Number(value);
 }
 
+// === Card Settings ==============================================================
+
+var AJPC_CARD_SETTINGS_DEFAULTS = {
+  card_dots_enabled: true,
+  card_dot_suspended_color: "#ef4444",
+  card_dot_buried_color: "#f59e0b"
+};
+
+var AJPC_CARD_SETTINGS_SPEC = [
+  {
+    key: "card_dots_enabled",
+    label: "Enable Card Dots",
+    type: "bool",
+    affectsEngine: false,
+    hint: "Persisted UI setting for card-dot visibility."
+  },
+  {
+    key: "card_dot_suspended_color",
+    label: "Suspended Color",
+    type: "color",
+    affectsEngine: false,
+    hint: "Persisted color for suspended-card dots."
+  },
+  {
+    key: "card_dot_buried_color",
+    label: "Buried Color",
+    type: "color",
+    affectsEngine: false,
+    hint: "Persisted color for buried-card dots."
+  }
+];
+
+function getCardSettingsDefaults() {
+  return Object.assign({}, AJPC_CARD_SETTINGS_DEFAULTS);
+}
+
+function cardSettingsSpec() {
+  return AJPC_CARD_SETTINGS_SPEC.slice();
+}
+
+function collectCardSettings(input) {
+  var src = (input && typeof input === "object") ? input : {};
+  var defaults = getCardSettingsDefaults();
+  var out = Object.assign({}, defaults);
+
+  var dotsEnabled = src.card_dots_enabled;
+  if (typeof dotsEnabled === "string") {
+    var raw = dotsEnabled.trim().toLowerCase();
+    if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") dotsEnabled = true;
+    else if (raw === "0" || raw === "false" || raw === "no" || raw === "off") dotsEnabled = false;
+  }
+  out.card_dots_enabled = (dotsEnabled === undefined) ? !!defaults.card_dots_enabled : !!dotsEnabled;
+  out.card_dot_suspended_color = String(src.card_dot_suspended_color || defaults.card_dot_suspended_color || "").trim() || defaults.card_dot_suspended_color;
+  out.card_dot_buried_color = String(src.card_dot_buried_color || defaults.card_dot_buried_color || "").trim() || defaults.card_dot_buried_color;
+  return out;
+}
+
+function cardSettingsFromMeta() {
+  var meta = (STATE && STATE.raw && STATE.raw.meta && typeof STATE.raw.meta === "object")
+    ? STATE.raw.meta
+    : {};
+  var colors = (meta.card_dot_colors && typeof meta.card_dot_colors === "object")
+    ? meta.card_dot_colors
+    : {};
+
+  return {
+    card_dots_enabled: meta.card_dots_enabled,
+    card_dot_suspended_color: meta.card_dot_suspended_color !== undefined ? meta.card_dot_suspended_color : colors.suspended,
+    card_dot_buried_color: meta.card_dot_buried_color !== undefined ? meta.card_dot_buried_color : colors.buried
+  };
+}
+
+function syncCardSettingsFromMeta() {
+  var merged = Object.assign({}, cardSettingsFromMeta(), STATE.cards || {});
+  STATE.cards = collectCardSettings(merged);
+}
+
+function persistCardSetting(key, value) {
+  var k = String(key || "");
+  if (k === "card_dots_enabled") {
+    persistHook("cdotenabled:" + (value ? "1" : "0"));
+    return;
+  }
+  if (k === "card_dot_suspended_color") {
+    persistHook("cdot:suspended:" + encodeURIComponent(String(value || "")));
+    return;
+  }
+  if (k === "card_dot_buried_color") {
+    persistHook("cdot:buried:" + encodeURIComponent(String(value || "")));
+  }
+}
+
+
 // === Status panel ============================================================
 function selectedNodeForStatus() {
   var idx = NaN;
@@ -301,6 +410,51 @@ function selectedNodeForStatus() {
   return { index: idx, node: node };
 }
 
+// === Active Status Cards Panel ===============================================
+// Card details are rendered ahead of the dependency tree for active selection.
+function renderActiveCards(node) {
+  if (!DOM.statusActiveCards) return;
+  var cards = node && Array.isArray(node.cards) ? node.cards : [];
+  if (!cards.length) {
+    DOM.statusActiveCards.innerHTML = ""
+      + '<div class="title"><h3>Cards</h3></div>'
+      + '<div class="active-cards-empty">No cards</div>';
+    return;
+  }
+
+  var byStatus = { normal: 0, suspended: 0, buried: 0, other: 0 };
+  for (var i = 0; i < cards.length; i += 1) {
+    var key = String(cards[i] && cards[i].status || "").toLowerCase();
+    if (key === "normal" || key === "suspended" || key === "buried") byStatus[key] += 1;
+    else byStatus.other += 1;
+  }
+
+  var summary = "Total: " + cards.length
+    + " | N: " + byStatus.normal
+    + " | S: " + byStatus.suspended
+    + " | B: " + byStatus.buried
+    + (byStatus.other ? (" | ?: " + byStatus.other) : "");
+
+  var rows = cards.map(function (card) {
+    var c = card && typeof card === "object" ? card : {};
+    var ord = Number(c.ord);
+    var ordText = isFiniteNumber(ord) ? String(ord + 1) : "--";
+    var statusText = normalizeCardStatusLabel(c.status);
+    var stabilityText = formatCardStability(c.stability);
+    return ""
+      + '<div class="active-card-row">'
+      + '<span class="active-card-ord">#' + escapeHtml(ordText) + "</span>"
+      + '<span class="active-card-status">' + escapeHtml(statusText) + "</span>"
+      + '<span class="active-card-stability">' + escapeHtml(stabilityText) + "</span>"
+      + "</div>";
+  }).join("");
+
+  DOM.statusActiveCards.innerHTML = ""
+    + '<div class="title"><h3>Cards</h3></div>'
+    + '<div class="active-cards-summary">' + escapeHtml(summary) + "</div>"
+    + '<div class="active-cards-list">' + rows + "</div>";
+}
+
 function renderActiveDetails() {
   if (!DOM.statusActiveDetails) return;
   var activePanel = DOM.statusActive;
@@ -317,6 +471,7 @@ function renderActiveDetails() {
       activePanel.__ajpcHideTimer = window.setTimeout(function () {
         if (activePanel.classList.contains("is-open")) return;
         if (DOM.statusActiveDetails) DOM.statusActiveDetails.innerHTML = "";
+        if (DOM.statusActiveCards) DOM.statusActiveCards.innerHTML = "";
         if (DOM.statusActiveDepTree) DOM.statusActiveDepTree.innerHTML = "";
         DOM.statusActiveDepTreeCanvas = null;
         resetDepTreeRenderState();
@@ -324,6 +479,7 @@ function renderActiveDetails() {
       }, closeDelayMs);
     } else {
       DOM.statusActiveDetails.innerHTML = "";
+      if (DOM.statusActiveCards) DOM.statusActiveCards.innerHTML = "";
       if (DOM.statusActiveDepTree) DOM.statusActiveDepTree.innerHTML = "";
       DOM.statusActiveDepTreeCanvas = null;
       resetDepTreeRenderState();
@@ -389,6 +545,7 @@ function renderActiveDetails() {
     activePanel.__ajpcHideTimer = null;
   }
   DOM.statusActiveDetails.innerHTML = line1 + line2 ;
+  renderActiveCards(node);
   renderActiveDepTree(node);
   if (activePanel) {
     activePanel.classList.add("is-open");
@@ -1578,6 +1735,41 @@ function applyEngineSettingsToGraph() {
   }
 }
 
+function ensureCardsSettingsUi() {
+  var tabsHost = byId("settings-tabs");
+  var panel = byId("settings-panel");
+  var scrollHost = panel ? panel.querySelector(".settings-scroll") : null;
+  if (!tabsHost || !scrollHost) return;
+
+  var noteTab = tabsHost.querySelector('[data-tab="notes"]');
+  var cardsTab = tabsHost.querySelector('[data-tab="cards"]');
+  if (!cardsTab) {
+    cardsTab = document.createElement("button");
+    cardsTab.className = "settings-tab";
+    cardsTab.type = "button";
+    cardsTab.setAttribute("data-tab", "cards");
+    cardsTab.textContent = "Cards";
+    if (noteTab && noteTab.nextSibling) tabsHost.insertBefore(cardsTab, noteTab.nextSibling);
+    else tabsHost.appendChild(cardsTab);
+  }
+
+  var cardsPane = byId("tab-cards");
+  if (!cardsPane) {
+    cardsPane = document.createElement("section");
+    cardsPane.id = "tab-cards";
+    cardsPane.className = "tab-pane";
+    cardsPane.innerHTML = ""
+      + '<section class="settings-block">'
+      + "<h3>Cards</h3>"
+      + '<p class="hint">Persisted card settings (UI only for now).</p>'
+      + '<div id="cards-settings" class="stack"></div>'
+      + "</section>";
+    var notesPane = byId("tab-notes");
+    if (notesPane && notesPane.nextSibling) scrollHost.insertBefore(cardsPane, notesPane.nextSibling);
+    else scrollHost.appendChild(cardsPane);
+  }
+}
+
 function renderSettingsList(container, groupKey, specList, defaultsGetter) {
   if (!container) return;
 
@@ -1590,12 +1782,14 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
   else if (groupKey === "solver") STATE.solver = collectSolverSettings(STATE.solver || {});
   else if (groupKey === "renderer") STATE.renderer = collectRendererSettings(STATE.renderer || {});
   else if (groupKey === "node" && typeof collectNodeSettings === "function") STATE.node = collectNodeSettings(STATE.node || {});
+  else if (groupKey === "cards") STATE.cards = collectCardSettings(STATE.cards || {});
 
   var stateValues;
   if (groupKey === "engine") stateValues = STATE.engine || {};
   else if (groupKey === "solver") stateValues = STATE.solver || {};
   else if (groupKey === "renderer") stateValues = STATE.renderer || {};
   else if (groupKey === "node") stateValues = STATE.node || {};
+  else if (groupKey === "cards") stateValues = STATE.cards || {};
   else stateValues = {};
 
   list.forEach(function (spec) {
@@ -1608,6 +1802,11 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
       row.innerHTML = ""
         + "<div" + titleAttr(hint) + ">" + escapeHtml(spec.label) + "</div>"
         + '<label class="line-item"' + titleAttr(hint) + '><input type="checkbox" data-pkey="' + escapeHtml(spec.key) + '" data-pgroup="' + escapeHtml(groupKey) + '" ' + (checked ? "checked" : "") + titleAttr(hint) + '><span' + titleAttr(hint) + ">Enabled</span></label>";
+    } else if (spec.type === "color") {
+      var colorCurrent = normalizeHexColor(String(stateValues[spec.key] || defaults[spec.key] || "#94a3b8"), "#94a3b8");
+      row.innerHTML = ""
+        + "<div" + titleAttr(hint) + ">" + escapeHtml(spec.label) + "</div>"
+        + '<input type="color" data-pkey="' + escapeHtml(spec.key) + '" data-pgroup="' + escapeHtml(groupKey) + '" value="' + escapeHtml(colorCurrent) + '"' + titleAttr(hint) + ">";
     } else {
       var current = Number(stateValues[spec.key]);
       if (!isFinite(current)) current = 0;
@@ -1632,6 +1831,9 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
       var value;
       if (spec.type === "bool") {
         value = !!el.checked;
+      } else if (spec.type === "color") {
+        value = normalizeHexColor(String(el.value || defaults[key] || "#94a3b8"), "#94a3b8");
+        el.value = value;
       } else {
         value = Number(el.value || 0);
         if (!isFinite(value)) {
@@ -1646,6 +1848,9 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
       else if (group === "node") {
         if (!STATE.node || typeof STATE.node !== "object") STATE.node = {};
         STATE.node[key] = value;
+      } else if (group === "cards") {
+        if (!STATE.cards || typeof STATE.cards !== "object") STATE.cards = {};
+        STATE.cards[key] = value;
       }
 
       if (spec.affectsEngine) {
@@ -1660,9 +1865,18 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
         }
       }
 
-      persistHook(group + ":" + key + ":" + (spec.type === "bool" ? (value ? "1" : "0") : value));
+      if (group === "cards") {
+        persistCardSetting(key, value);
+      } else {
+        persistHook(group + ":" + key + ":" + (spec.type === "bool" ? (value ? "1" : "0") : value));
+      }
     });
   });
+}
+
+function renderCardsSettings() {
+  syncCardSettingsFromMeta();
+  renderSettingsList(DOM.cardsSettings, "cards", cardSettingsSpec(), getCardSettingsDefaults);
 }
 
 function renderEngineSettings() {
@@ -1737,6 +1951,8 @@ function switchSettingsTab(tabName) {
 
 // === DOM wiring + event handlers =============================================
 function wireDom() {
+  ensureCardsSettingsUi();
+
   DOM.layerPills = byId("layer-pills");
   DOM.noteTypeList = byId("note-type-list");
   DOM.searchInput = byId("search-input");
@@ -1749,6 +1965,7 @@ function wireDom() {
   DOM.statusExtraText = byId("status-extra-text");
   DOM.statusActive = byId("status-active");
   DOM.statusActiveDetails = byId("status-active-details");
+  DOM.statusActiveCards = byId("status-active-cards");
   DOM.statusActiveDepTree = byId("status-active-deptree");
 
   DOM.statusbar = byId("statusbar");
@@ -1771,6 +1988,7 @@ function wireDom() {
   DOM.toggleUnlinked = byId("toggle-unlinked");
   DOM.linkLayerList = byId("link-layer-list");
   DOM.linkSettings = byId("link-settings");
+  DOM.cardsSettings = byId("cards-settings");
   DOM.engineList = byId("engine-list");
   DOM.nodeSettings = byId("node-settings");
   DOM.solverList = byId("solver-list");

@@ -86,6 +86,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "renderer": {
         "sigma_draw_labels": True,
         "sigma_draw_hover_nodes": False,
+        "sigma_note_node_aa": True,
         "sigma_label_threshold": 8.0,
         "sigma_label_zoom_min": 1.0,
         "sigma_hide_edges_on_move": False,
@@ -148,6 +149,7 @@ _ENGINE_BOOL_KEYS: set[str] = set()
 _RENDERER_BOOL_KEYS = {
     "sigma_draw_labels",
     "sigma_draw_hover_nodes",
+    "sigma_note_node_aa",
     "sigma_hide_edges_on_move",
     "sigma_batch_edges_drawing",
     "sigma_mouse_wheel_enabled",

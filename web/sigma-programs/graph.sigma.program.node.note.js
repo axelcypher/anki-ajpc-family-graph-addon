@@ -23,6 +23,7 @@
     "varying float v_seed;",
     "",
     "uniform float u_correctionRatio;",
+    "uniform float u_aaEnabled;",
     "uniform float u_time;",
     "",
     "float band(float d, float inner, float outer, float aa) {",
@@ -46,10 +47,13 @@
     "  float pulseOuter = pulseInner + (coreRadius * (0.2 + (0.2 * wave)));",
     "",
     "  float aa = coreRadius * 0.02 * u_correctionRatio;",
+    "  float aaOn = step(0.5, u_aaEnabled);",
     "",
-    "  float core = 1.0 - smoothstep(coreRadius - aa, coreRadius + aa, d);",
-    "  float ring = band(d, ringInner, ringOuter, aa);",
-    "  float pulse = band(d, pulseInner, pulseOuter, aa);",
+    "  float core = mix(1.0 - step(coreRadius, d), 1.0 - smoothstep(coreRadius - aa, coreRadius + aa, d), aaOn);",
+    "  float ringHard = step(ringInner, d) * (1.0 - step(ringOuter, d));",
+    "  float pulseHard = step(pulseInner, d) * (1.0 - step(pulseOuter, d));",
+    "  float ring = mix(ringHard, band(d, ringInner, ringOuter, aa), aaOn);",
+    "  float pulse = mix(pulseHard, band(d, pulseInner, pulseOuter, aa), aaOn);",
     "",
     "  #ifdef PICKING_MODE",
     "    gl_FragColor = v_color;",
@@ -58,7 +62,8 @@
     "    float pulseAlpha = v_color.a * (0.3 * pulse);",
     "    float alpha = max(baseAlpha, pulseAlpha);",
     "    if (alpha <= 0.001) discard;",
-    "    if (d > (pulseOuter + aa)) discard;",
+    "    float maxOuter = mix(pulseOuter, pulseOuter + aa, aaOn);",
+    "    if (d > maxOuter) discard;",
     "    gl_FragColor = vec4(v_color.rgb * alpha, alpha);",
     "  #endif",
     "}"
@@ -67,7 +72,7 @@
 
   var UNSIGNED_BYTE = WebGLRenderingContext.UNSIGNED_BYTE;
   var FLOAT = WebGLRenderingContext.FLOAT;
-  var UNIFORMS = ["u_sizeRatio", "u_correctionRatio", "u_time", "u_matrix"];
+  var UNIFORMS = ["u_sizeRatio", "u_correctionRatio", "u_aaEnabled", "u_time", "u_matrix"];
 
   class AJPCNoteNodeProgram extends NodeProgram {
     getDefinition() {
@@ -108,8 +113,11 @@
     setUniforms(params, context) {
       var gl = context.gl;
       var uniformLocations = context.uniformLocations;
+      var runtime = root && root.AJPCSigmaRuntime && typeof root.AJPCSigmaRuntime === "object" ? root.AJPCSigmaRuntime : null;
+      var aaEnabled = runtime && runtime.noteNodeAAEnabled !== undefined ? !!runtime.noteNodeAAEnabled : true;
       gl.uniform1f(uniformLocations.u_sizeRatio, params.sizeRatio);
       gl.uniform1f(uniformLocations.u_correctionRatio, params.correctionRatio);
+      gl.uniform1f(uniformLocations.u_aaEnabled, aaEnabled ? 1 : 0);
       gl.uniform1f(uniformLocations.u_time, performance.now() * 0.001);
       gl.uniformMatrix3fv(uniformLocations.u_matrix, false, params.matrix);
     }
@@ -117,4 +125,3 @@
 
   registry.node.note = AJPCNoteNodeProgram;
 })();
-
