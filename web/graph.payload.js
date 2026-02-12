@@ -253,18 +253,23 @@ function linkSettingsFromMeta() {
 }
 
 function syncLinkSettingsFromMeta() {
-  var merged = Object.assign(
-    {},
-    linkSettingsFromMeta(),
-    {
-      layer_flow_speed: STATE.layerFlowSpeed,
-      layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
-      layer_flow_radius_mul: STATE.layerFlowRadiusMul,
-      trailing_hub_distance: STATE.trailingHubDistance,
-      notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
-    },
-    STATE.linkSettings || {}
-  );
+  var fromMeta = linkSettingsFromMeta();
+  var fromState = {
+    layer_flow_speed: STATE.layerFlowSpeed,
+    layer_flow_spacing_mul: STATE.layerFlowSpacingMul,
+    layer_flow_radius_mul: STATE.layerFlowRadiusMul,
+    trailing_hub_distance: STATE.trailingHubDistance,
+    notes_swatch_color: (STATE.linkColors && STATE.linkColors.notes) ? STATE.linkColors.notes : undefined
+  };
+  var local = STATE.linkSettings || {};
+  var merged;
+  if (STATE && STATE.isFirstRender) {
+    // On initial payload load, persisted backend settings must win over local defaults.
+    merged = Object.assign({}, fromState, local, fromMeta);
+  } else {
+    // During runtime interaction, local UI state may be newer than stale payload meta.
+    merged = Object.assign({}, fromMeta, fromState, local);
+  }
   var collected = collectLinkSettings(merged);
   STATE.linkSettings = collected;
   STATE.layerFlowSpeed = Number(collected.layer_flow_speed);
