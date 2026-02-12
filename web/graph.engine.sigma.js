@@ -603,7 +603,13 @@ function buildNodeLayoutAttrs(node) {
     card_count: Number(cardMasks.card_count || 0),
     cards_mask_normal: Number(cardMasks.cards_mask_normal || 0),
     cards_mask_suspended: Number(cardMasks.cards_mask_suspended || 0),
-    cards_mask_buried: Number(cardMasks.cards_mask_buried || 0)
+    cards_mask_buried: Number(cardMasks.cards_mask_buried || 0),
+    ajpc_ping_start: -1,
+    ajpc_ping_dur: 0,
+    ajpc_ping_mode: 0,
+    ajpc_ping_color: "rgba(96,165,250,1)",
+    ajpc_ring_mode: 0,
+    ajpc_ring_color: "rgba(255,255,255,0)"
   };
 }
 
@@ -664,6 +670,91 @@ SigmaGraphCompat.prototype.setPointIds = function (ids) {
     this.selectedIndices = this.selectedIndices.filter(function (x) { return x >= 0 && x < n; });
   }
   this.dataDirty = true;
+};
+
+SigmaGraphCompat.prototype.setNodeFxStatesBatch = function (patches) {
+  var list = Array.isArray(patches) ? patches : [];
+  if (!this.graph || !list.length) return false;
+  var changed = false;
+
+  for (var i = 0; i < list.length; i += 1) {
+    var patch = list[i];
+    if (!patch || typeof patch !== "object") continue;
+
+    var idx = Number(patch.index);
+    if (!isFinite(idx) || idx < 0 || idx >= this.idByIndex.length) continue;
+    idx = Math.floor(idx);
+    var nodeId = this.idByIndex[idx];
+    if (!nodeId || !this.graph.hasNode(nodeId)) continue;
+
+    var attrs = {};
+    var hasAttr = false;
+
+    if (Object.prototype.hasOwnProperty.call(patch, "ringMode")) {
+      var ringMode = Number(patch.ringMode);
+      if (!fin(ringMode) || ringMode < 0) ringMode = 0;
+      attrs.ajpc_ring_mode = ringMode;
+      hasAttr = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "ringColor")) {
+      if (Array.isArray(patch.ringColor) && patch.ringColor.length >= 4) {
+        attrs.ajpc_ring_color = rgbaParts(
+          cl(Number(patch.ringColor[0]), 0, 1),
+          cl(Number(patch.ringColor[1]), 0, 1),
+          cl(Number(patch.ringColor[2]), 0, 1),
+          cl(Number(patch.ringColor[3]), 0, 1)
+        );
+      } else {
+        attrs.ajpc_ring_color = String(patch.ringColor || "rgba(255,255,255,0)");
+      }
+      hasAttr = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, "pingStart")) {
+      var pingStart = Number(patch.pingStart);
+      if (!fin(pingStart)) pingStart = -1;
+      attrs.ajpc_ping_start = pingStart;
+      hasAttr = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "pingDur")) {
+      var pingDur = Number(patch.pingDur);
+      if (!fin(pingDur) || pingDur < 0) pingDur = 0;
+      attrs.ajpc_ping_dur = pingDur;
+      hasAttr = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "pingMode")) {
+      var pingMode = Number(patch.pingMode);
+      if (!fin(pingMode) || pingMode < 0) pingMode = 0;
+      attrs.ajpc_ping_mode = pingMode;
+      hasAttr = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "pingColor")) {
+      if (Array.isArray(patch.pingColor) && patch.pingColor.length >= 4) {
+        attrs.ajpc_ping_color = rgbaParts(
+          cl(Number(patch.pingColor[0]), 0, 1),
+          cl(Number(patch.pingColor[1]), 0, 1),
+          cl(Number(patch.pingColor[2]), 0, 1),
+          cl(Number(patch.pingColor[3]), 0, 1)
+        );
+      } else {
+        attrs.ajpc_ping_color = String(patch.pingColor || "rgba(96,165,250,1)");
+      }
+      hasAttr = true;
+    }
+
+    if (!hasAttr) continue;
+    this.graph.mergeNodeAttributes(nodeId, attrs);
+    changed = true;
+  }
+
+  if (changed && this.renderer && typeof this.renderer.requestFrame === "function") this.renderer.requestFrame();
+  return changed;
+};
+
+SigmaGraphCompat.prototype.setNodeFxAnimationState = function (persistent, untilMs) {
+  if (!this.renderer || typeof this.renderer.setNodeFxAnimationState !== "function") return false;
+  this.renderer.setNodeFxAnimationState(!!persistent, untilMs);
+  return true;
 };
 
 SigmaGraphCompat.prototype.setPointPositions = function (arr) {
@@ -1791,8 +1882,150 @@ function applySelectionFocusStyles() {
   markStyleDebugMode("full");
 }
 
+function nodeFxBaseColorByIndex(idx, fallbackAlpha) {
+  var i = Number(idx);
+  if (!isFinite(i) || i < 0 || i >= STATE.activeNodes.length) return [0.58, 0.64, 0.72, 1];
+  var flat = STATE.basePointColors;
+  if (!flat || flat.length < ((i * 4) + 4)) return [0.58, 0.64, 0.72, 1];
+  var ni = i * 4;
+  var a = Number(flat[ni + 3]);
+  if (!fin(a)) a = 1;
+  if (fallbackAlpha !== undefined && fallbackAlpha !== null) a = Number(fallbackAlpha);
+  if (!fin(a)) a = 1;
+  return [
+    cl(Number(flat[ni] || 0), 0, 1),
+    cl(Number(flat[ni + 1] || 0), 0, 1),
+    cl(Number(flat[ni + 2] || 0), 0, 1),
+    cl(a, 0, 1)
+  ];
+}
+
+function clearNodeFxPingTimers() {
+  var timers = STATE.nodeFxPingTimers && typeof STATE.nodeFxPingTimers === "object" ? STATE.nodeFxPingTimers : {};
+  Object.keys(timers).forEach(function (k) {
+    try { window.clearTimeout(timers[k]); } catch (_e) {}
+  });
+  STATE.nodeFxPingTimers = {};
+  STATE.nodeFxPingUntilMs = 0;
+}
+
+function syncNodeFxAnimationLoop(selectedIndex, contextIndex) {
+  if (!STATE.graph || typeof STATE.graph.setNodeFxAnimationState !== "function") return;
+  var hasPersistent = (selectedIndex >= 0) || (contextIndex >= 0);
+  var untilMs = Number(STATE.nodeFxPingUntilMs || 0);
+  STATE.graph.setNodeFxAnimationState(hasPersistent, untilMs);
+}
+
+function syncNodeFxRingState(selectedIndex, contextIndex) {
+  if (!STATE.graph || typeof STATE.graph.setNodeFxStatesBatch !== "function") return;
+  var selected = Number(selectedIndex);
+  var context = Number(contextIndex);
+  if (!isFinite(selected)) selected = -1;
+  if (!isFinite(context)) context = -1;
+
+  var prevSelected = Number(STATE.nodeFxRingSelectedIndex);
+  var prevContext = Number(STATE.nodeFxRingContextIndex);
+  if (!isFinite(prevSelected)) prevSelected = -1;
+  if (!isFinite(prevContext)) prevContext = -1;
+
+  var patches = [];
+
+  function pushClear(idx) {
+    if (!isFinite(idx) || idx < 0) return;
+    patches.push({ index: idx, ringMode: 0, ringColor: [1, 1, 1, 0] });
+  }
+  function pushActive(idx) {
+    if (!isFinite(idx) || idx < 0) return;
+    var col = nodeFxBaseColorByIndex(idx, 0.98);
+    patches.push({ index: idx, ringMode: 1, ringColor: col });
+  }
+  function pushContext(idx) {
+    if (!isFinite(idx) || idx < 0) return;
+    patches.push({ index: idx, ringMode: 2, ringColor: [0.95, 0.27, 0.27, 1] });
+  }
+
+  if (prevSelected >= 0 && prevSelected !== selected && prevSelected !== context) pushClear(prevSelected);
+  if (prevContext >= 0 && prevContext !== context && prevContext !== selected) pushClear(prevContext);
+
+  if (selected >= 0 && selected !== context) pushActive(selected);
+  if (context >= 0) pushContext(context);
+
+  if (patches.length) STATE.graph.setNodeFxStatesBatch(patches);
+  STATE.nodeFxRingSelectedIndex = (selected >= 0 && selected !== context) ? selected : -1;
+  STATE.nodeFxRingContextIndex = (context >= 0) ? context : -1;
+}
+
+function syncNodeFxVisualState(selectedIndex, contextIndex) {
+  syncNodeFxRingState(selectedIndex, contextIndex);
+  syncNodeFxAnimationLoop(selectedIndex, contextIndex);
+}
+
+function triggerNodePingByIndex(index, sourceTag) {
+  if (!STATE.graph || typeof STATE.graph.setNodeFxStatesBatch !== "function") return false;
+  var idx = Number(index);
+  if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return false;
+  if (STATE.runtimeNodeVisibleMask && idx < STATE.runtimeNodeVisibleMask.length && !STATE.runtimeNodeVisibleMask[idx]) return false;
+
+  var nowMs = Date.now();
+  var nowSec = nowMs * 0.001;
+  var durationSec = 0.85;
+  var durationMs = Math.round(durationSec * 1000);
+  var color = nodeFxBaseColorByIndex(idx, 0.95);
+
+  STATE.graph.setNodeFxStatesBatch([
+    {
+      index: idx,
+      pingStart: nowSec,
+      pingDur: durationSec,
+      pingMode: 1,
+      pingColor: color
+    }
+  ]);
+
+  if (!STATE.nodeFxPingTimers || typeof STATE.nodeFxPingTimers !== "object") STATE.nodeFxPingTimers = {};
+  var timerKey = String(idx);
+  if (STATE.nodeFxPingTimers[timerKey]) {
+    try { window.clearTimeout(STATE.nodeFxPingTimers[timerKey]); } catch (_e0) {}
+    delete STATE.nodeFxPingTimers[timerKey];
+  }
+
+  STATE.nodeFxPingUntilMs = Math.max(Number(STATE.nodeFxPingUntilMs || 0), nowMs + durationMs);
+  syncNodeFxAnimationLoop(selectedIndexFromState(), contextIndexFromState());
+
+  STATE.nodeFxPingTimers[timerKey] = window.setTimeout(function () {
+    if (!STATE.graph || typeof STATE.graph.setNodeFxStatesBatch !== "function") return;
+    STATE.graph.setNodeFxStatesBatch([{ index: idx, pingMode: 0, pingDur: 0 }]);
+    if (STATE.nodeFxPingTimers && STATE.nodeFxPingTimers[timerKey]) delete STATE.nodeFxPingTimers[timerKey];
+    if (Object.keys(STATE.nodeFxPingTimers || {}).length === 0) STATE.nodeFxPingUntilMs = 0;
+    syncNodeFxAnimationLoop(selectedIndexFromState(), contextIndexFromState());
+  }, durationMs + 100);
+
+  if (STATE.debugEnabled && typeof log === "function") {
+    try { log("nodefx.ping:" + String(sourceTag || "manual") + ":" + String(idx)); } catch (_e1) {}
+  }
+  return true;
+}
+
+function clearNodeFxState() {
+  clearNodeFxPingTimers();
+  if (STATE.graph && typeof STATE.graph.setNodeFxStatesBatch === "function") {
+    var patches = [];
+    if (isFinite(Number(STATE.nodeFxRingSelectedIndex)) && Number(STATE.nodeFxRingSelectedIndex) >= 0) {
+      patches.push({ index: Number(STATE.nodeFxRingSelectedIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
+    }
+    if (isFinite(Number(STATE.nodeFxRingContextIndex)) && Number(STATE.nodeFxRingContextIndex) >= 0) {
+      patches.push({ index: Number(STATE.nodeFxRingContextIndex), ringMode: 0, ringColor: [1, 1, 1, 0] });
+    }
+    if (patches.length) STATE.graph.setNodeFxStatesBatch(patches);
+    if (typeof STATE.graph.setNodeFxAnimationState === "function") STATE.graph.setNodeFxAnimationState(false, 0);
+  }
+  STATE.nodeFxRingSelectedIndex = -1;
+  STATE.nodeFxRingContextIndex = -1;
+}
+
 function applyVisualStyles(renderAlpha) {
   if (!STATE.graph) return;
+  syncNodeFxVisualState(selectedIndexFromState(), contextIndexFromState());
   setFlowShaderRuntime(STATE.layerFlowSpeed);
   if (tryApplyHoverOnlyStylePatch()) {
     cityEnsureFlowParticlesLoop();
@@ -1827,7 +2060,12 @@ function focusNodeById(nodeId, fromSearch) {
     return;
   }
   STATE.graph.zoomToPointByIndex(idx, 220, 3.5, true);
-  selectNodeByIndex(idx, fromSearch ? ("Selected: " + (STATE.activeNodes[idx] ? STATE.activeNodes[idx].label : nodeId)) : null);
+  if (fromSearch) {
+    triggerNodePingByIndex(idx, "search");
+    cityUpdateStatus("Focused: " + (STATE.activeNodes[idx] ? STATE.activeNodes[idx].label : nodeId));
+  } else {
+    selectNodeByIndex(idx, "Selected: " + (STATE.activeNodes[idx] ? STATE.activeNodes[idx].label : nodeId));
+  }
   cityHideSuggest();
 }
 
@@ -1915,6 +2153,10 @@ function ensureGraphInstance() {
 function applyGraphData(fitView) {
   ensureGraphInstance();
   applyPhysicsToGraph();
+  clearNodeFxPingTimers();
+  STATE.nodeFxRingSelectedIndex = -1;
+  STATE.nodeFxRingContextIndex = -1;
+  if (STATE.graph && typeof STATE.graph.setNodeFxAnimationState === "function") STATE.graph.setNodeFxAnimationState(false, 0);
   var source = {
     nodes: Array.isArray(STATE.raw.nodes) ? STATE.raw.nodes : [],
     edges: Array.isArray(STATE.raw.edges) ? STATE.raw.edges : []
@@ -1929,6 +2171,7 @@ function applyGraphData(fitView) {
     STATE.graph.setNodeLayoutAttributes(STATE.activeNodes);
   }
   if (!STATE.activeNodes.length) {
+    clearNodeFxState();
     if (DOM.graphEmpty) {
       DOM.graphEmpty.style.display = "block";
       DOM.graphEmpty.textContent = "No nodes available.";

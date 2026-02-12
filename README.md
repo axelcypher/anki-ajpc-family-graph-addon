@@ -22,7 +22,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - **Layer toggles** (click the label):
   - Family Hubs, Family Gate, Linked Notes, Example Gate, Kanji Gate, Show Unlinked.
 - **Deck selector** (multi-select): filter which decks are included in the graph.
-- **Search**: type to get suggestions, press Enter to jump to the first match, or click a suggestion to zoom to a node.
+- **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
 
@@ -77,6 +77,8 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - Filter by Family ID
   - Connect to selected (Family): adds the selected family to the right-clicked note. If the selected item is a **Family Hub**, the new entry is added with prio 0. If the selected item is a **note**, the new entry is added with prio = (selected note prio + 1).
   - Append link to selected: appends a link into the right-clicked note, pointing to the currently selected note (only if that note type has a Linked Notes field configured)
+- Active selection gets a pulsing ring in node color.
+- Context selection (right-click target) gets a red pulsing ring.
 
 ## Notes
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
@@ -98,14 +100,12 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
 - `web/graph.flow.js` drives the shader flow animation loop and frame requests.
-- Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.
+- Node ping/ring effects are rendered in Sigma node shaders (`web/sigma-programs/graph.sigma.program.extra.nodefx.js`).
 - Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.sigma.program.edge.*.js`).
 - Bidirectional links render two-way shader photons on one collapsed edge (`ajpc_bidir` attribute path).
 - Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
 - Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.sigma.program.node.hub.js`).
-- Pulse and ring are rendered in separate passes (pulse first, ring second) and scale proportionally with node screen radius (zoom-coupled).
-- Node fills are rendered opaque in engine styling to avoid translucency artifacts.
-- Overlay effects can be toggled via `OVERLAY_EFFECTS_ENABLED` in `web/graph.state.js` (currently `false` for perf baseline testing).
+- Ping/ring effects scale with camera ratio in the same render pass as nodes (no canvas drift).
 - Styling source can be maintained in SCSS:
   - Entry file: `web/graph.scss`
   - Partials: `web/scss/_graph.*.scss`

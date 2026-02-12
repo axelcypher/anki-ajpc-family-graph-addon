@@ -5,6 +5,11 @@ function AjpcGraphRendererSigma(owner) {
   this.instance = null;
   this.camCb = null;
   this.useShaderCardDots = false;
+  this.useShaderNodeFx = false;
+  this.nodeFxAnimRaf = null;
+  this.nodeFxAnimUntilMs = 0;
+  this.nodeFxPersistent = false;
+  this._nodeFxTickBound = null;
 }
 
 function setNoteNodeAAFlag(enabled) {
@@ -33,8 +38,10 @@ AjpcGraphRendererSigma.prototype._settings = function () {
   var lp = null;
   var npNote = nodeProgByName("note");
   var npCardDots = nodeProgByName("card_dots");
+  var npNodeFx = nodeProgByName("node_fx");
   var npCircle = nodeProgByName("hub");
   var npNoteWithCardDots = npNote;
+  var npCircleWithFx = npCircle;
   var edgePrograms = {};
   var nodePrograms = {};
   var mkNodeCompound = null;
@@ -50,19 +57,40 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     if (typeof SigmaApi.rendering.createNodeCompoundProgram === "function") mkNodeCompound = SigmaApi.rendering.createNodeCompoundProgram;
   }
 
-  if (typeof mkNodeCompound === "function" && typeof npNote === "function" && typeof npCardDots === "function") {
-    try {
-      npNoteWithCardDots = mkNodeCompound([npNote, npCardDots]);
-      this.useShaderCardDots = true;
-    } catch (_e0) {
-      npNoteWithCardDots = npNote;
-      this.useShaderCardDots = false;
+  this.useShaderCardDots = false;
+  this.useShaderNodeFx = false;
+  if (typeof mkNodeCompound === "function") {
+    if (typeof npNote === "function") {
+      var noteParts = [npNote];
+      if (typeof npCardDots === "function") {
+        noteParts.push(npCardDots);
+        this.useShaderCardDots = true;
+      }
+      if (typeof npNodeFx === "function") {
+        noteParts.push(npNodeFx);
+        this.useShaderNodeFx = true;
+      }
+      if (noteParts.length > 1) {
+        try {
+          npNoteWithCardDots = mkNodeCompound(noteParts);
+        } catch (_e0) {
+          npNoteWithCardDots = npNote;
+          this.useShaderCardDots = false;
+          this.useShaderNodeFx = false;
+        }
+      }
     }
-  } else {
-    this.useShaderCardDots = false;
+    if (typeof npCircle === "function" && typeof npNodeFx === "function") {
+      try {
+        npCircleWithFx = mkNodeCompound([npCircle, npNodeFx]);
+        this.useShaderNodeFx = true;
+      } catch (_e1) {
+        npCircleWithFx = npCircle;
+      }
+    }
   }
 
-  owner._useCustomNodeTypes = typeof npNoteWithCardDots === "function" && typeof npCircle === "function";
+  owner._useCustomNodeTypes = typeof npNoteWithCardDots === "function" && typeof npCircleWithFx === "function";
 
   if (cp) edgePrograms[EDGE_TYPE_CURVED] = cp;
   if (dp) edgePrograms[EDGE_TYPE_DASHED] = dp;
@@ -70,7 +98,7 @@ AjpcGraphRendererSigma.prototype._settings = function () {
   if (lp) edgePrograms.line = lp;
 
   if (owner._useCustomNodeTypes) {
-    nodePrograms.circle = npCircle;
+    nodePrograms.circle = npCircleWithFx;
     nodePrograms[NODE_TYPE_NOTE] = npNoteWithCardDots;
   }
 
@@ -82,8 +110,10 @@ AjpcGraphRendererSigma.prototype._settings = function () {
     nodeCircle: !!npCircle,
     nodeNote: !!npNote,
     nodeCardDots: !!npCardDots,
+    nodeFx: !!npNodeFx,
     nodeCompound: !!mkNodeCompound,
     useShaderCardDots: !!this.useShaderCardDots,
+    useShaderNodeFx: !!this.useShaderNodeFx,
     useCustomNodes: !!owner._useCustomNodeTypes
   });
 
@@ -352,6 +382,50 @@ AjpcGraphRendererSigma.prototype.requestFrame = function () {
   else this.instance.refresh();
 };
 
+AjpcGraphRendererSigma.prototype._stopNodeFxLoop = function () {
+  if (this.nodeFxAnimRaf) {
+    window.cancelAnimationFrame(this.nodeFxAnimRaf);
+    this.nodeFxAnimRaf = null;
+  }
+};
+
+AjpcGraphRendererSigma.prototype._startNodeFxLoop = function () {
+  if (this.nodeFxAnimRaf || !this.instance) return;
+  var self = this;
+  if (!this._nodeFxTickBound) {
+    this._nodeFxTickBound = function () {
+      if (!self.instance) {
+        self._stopNodeFxLoop();
+        return;
+      }
+      self.requestFrame();
+      var now = performance.now();
+      if (self.nodeFxPersistent || now < self.nodeFxAnimUntilMs) {
+        self.nodeFxAnimRaf = window.requestAnimationFrame(self._nodeFxTickBound);
+        return;
+      }
+      self._stopNodeFxLoop();
+    };
+  }
+  this.nodeFxAnimRaf = window.requestAnimationFrame(this._nodeFxTickBound);
+};
+
+AjpcGraphRendererSigma.prototype.setNodeFxAnimationState = function (persistent, untilMs) {
+  this.nodeFxPersistent = !!persistent;
+  var until = Number(untilMs);
+  if (isFinite(until)) {
+    if (until <= 0) this.nodeFxAnimUntilMs = 0;
+    else if (until > this.nodeFxAnimUntilMs) this.nodeFxAnimUntilMs = until;
+  }
+  var now = performance.now();
+  if (!this.nodeFxPersistent && this.nodeFxAnimUntilMs <= now) {
+    this.nodeFxAnimUntilMs = 0;
+    this._stopNodeFxLoop();
+    return;
+  }
+  this._startNodeFxLoop();
+};
+
 AjpcGraphRendererSigma.prototype.resize = function () {
   if (!this.instance) return;
   try {
@@ -565,6 +639,9 @@ AjpcGraphRendererSigma.prototype.getPointScreenRadiusByIndex = function (idx) {
 
 AjpcGraphRendererSigma.prototype.kill = function () {
   if (!this.instance) return;
+  this._stopNodeFxLoop();
+  this.nodeFxPersistent = false;
+  this.nodeFxAnimUntilMs = 0;
 
   var cam = this._cam();
   if (cam && this.camCb && typeof cam.off === "function") {
