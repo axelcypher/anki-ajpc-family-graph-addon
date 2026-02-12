@@ -2,8 +2,7 @@
 
 /* Hover Tooltip */
 #hover-tip {
-  @include mixins.overlay-panel(
-    $position: fixed,
+  @include mixins.overlay-panel($position: fixed,
     $padding: 8px 10px,
   );
   pointer-events: none;
@@ -29,8 +28,7 @@
 
 /* Conteext Menu */
 #ctx-menu {
-  @include mixins.overlay-panel(
-    $position: fixed,
+  @include mixins.overlay-panel($position: fixed,
     $padding: 6px,
   );
   display: none;
@@ -79,6 +77,7 @@
     background: var(--ok);
   }
 }
+
 #ctx-picker {
   position: fixed;
   inset: 0;
@@ -163,8 +162,8 @@
   transition: transform 180ms ease;
 
   &.sidepanel {
-      transform: translateX(calc(min(390px, 42vw)));
-      pointer-events: none;
+    transform: translateX(calc(min(390px, 42vw)));
+    pointer-events: none;
   }
 
 
@@ -183,31 +182,29 @@
 
     background: var(--bg-panel);
     border-bottom-right-radius: 10px;
-    
+
     color: var(--text-soft);
     font-size: 12px;
-    
+
     &::after {
       content: "";
       position: absolute;
-      right: calc(var(--radius-small) * -1); 
-      
+      right: calc(var(--radius-small) * -1);
+
       box-sizing: border-box;
       width: var(--radius-small);
       height: var(--radius-small);
 
       background: var(--bg-panel);
       pointer-events: none;
-      mask: radial-gradient(
-        circle at 100% 100%, 
-        transparent calc(var(--radius-small) - 0px), 
-        #000 var(--radius-small)
-      );
+      mask: radial-gradient(circle at 100% 100%,
+          transparent calc(var(--radius-small) - 0px),
+          #000 var(--radius-small));
     }
 
   }
 
-  
+
 
   #status-active {
     @include mixins.overlay-panel();
@@ -223,6 +220,17 @@
     }
   }
 
+  .title {
+    h2 {
+      margin-bottom: 2px;
+    }
+
+    h3 {
+      margin-bottom: 0;
+    }
+
+  }
+
   #status-active-details {
     display: block;
     white-space: normal;
@@ -230,22 +238,21 @@
     color: var(--text-main);
     font-size: 12px;
 
-    .title {
-      h2 {
-        margin-bottom: 2px;
-      }
-      h3 {
-        margin-bottom: 0;
-      }
 
-    }
+  }
+
+  #status-active-cards {
+
   }
 
   #status-active-deptree {
     display: block;
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px solid color-mix(in srgb, var(--line), transparent 42%);
+
+    margin: 18px 0;
+
+    border-top: 1px solid color-mix(in srgb, var(--border-100), transparent 42%);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 42%);
+    
     white-space: normal;
     line-height: 1.35;
     color: var(--text-soft);
@@ -263,23 +270,23 @@
 /* Bottom Right Status Overlay */
 /* Zoom */
 #status-overlay-bottom-right {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    
-    z-index: 250;
+  position: absolute;
+  bottom: 0;
+  right: 0;
 
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-right: 10px;
-    padding-bottom: 10px;
+  z-index: 250;
 
-    transition: transform 180ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+
+  transition: transform 180ms ease;
 
   &.sidepanel {
-      transform: translateX(calc(min(390px, 42vw) * -1));
-      pointer-events: none;
+    transform: translateX(calc(min(390px, 42vw) * -1));
+    pointer-events: none;
   }
 
   #status-zoom-pill {
@@ -289,7 +296,7 @@
     bottom: 0;
   }
 
-  
+
 
   #status-debug-panel {
     @include mixins.overlay-panel();
@@ -308,18 +315,19 @@
       display: none;
     }
 
-    .title{
+    .title {
       margin-bottom: 10px;
     }
 
-    .coord-table{
+    .coord-table {
       width: 100%;
       display: grid;
       grid-template-columns: 52px 1fr 1fr;
       font-size: 11px;
       gap: 0;
 
-      .coord-key, .coord-val {
+      .coord-key,
+      .coord-val {
         padding: 2px 4px;
         border-top: var(--border-100);
       }

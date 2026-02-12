@@ -68,7 +68,7 @@
     "mass_links": false
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 0.01,
+  "layer_flow_speed": 1.0,
   "note_type_linked_fields": {
     "1768669148068": "LinkedNotes",
     "1768654427037": "LinkedNotes",
@@ -135,7 +135,7 @@
     "mass_linker": 0.5,
     "priority": 0.5,
     "families": 0.5,
-    "note_links": 0.4,
+    "note_links": 0.3,
     "examples": 0.1,
     "mass_links": 0.5
   },
@@ -171,7 +171,7 @@
     "mass_links": 45.0
   },
   "neighbor_scaling": {
-    "mode": "common_neighbors",
+    "mode": "ccm",
     "directed": "out",
     "weights": {
       "priority": 1.4,
@@ -214,6 +214,7 @@
   "renderer": {
     "sigma_draw_labels": true,
     "sigma_draw_hover_nodes": false,
+    "sigma_note_node_aa": true,
     "sigma_label_threshold": 0.0,
     "sigma_label_zoom_min": 1.0,
     "sigma_hide_edges_on_move": false,
@@ -236,10 +237,18 @@
     "note_links": "#f59e0b",
     "examples": "#60a5fa",
     "mass_links": "#f97316",
-    "kanji": "#f87171"
+    "kanji": "#f87171",
+    "notes": "#6e54ff"
   },
-  "link_weights": {},
+  "link_weights": {
+    "families": 1.0,
+    "priority": 0.5,
+    "note_links": 0.5
+  },
   "link_weight_modes": {
-    "priority": "manual"
-  }
+    "priority": "metric"
+  },
+  "layer_flow_spacing_mul": 80.0,
+  "layer_flow_radius_mul": 6.0,
+  "trailing_hub_distance": 20.0
 }
