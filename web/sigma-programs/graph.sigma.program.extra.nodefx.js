@@ -141,6 +141,9 @@
     "  float aa = clamp(v_node_radius * 0.03 * u_correctionRatio, 0.35, 2.5);",
     // Keep all animated geometry comfortably inside the triangle inradius to avoid clipping artifacts.
     "  float safeMaxRadius = max((v_node_radius * u_maxCoverageMul) - (aa * 3.0), aa * 2.0);",
+    // Hard circular clip guard: never render outside this radius even if branch math goes wrong.
+    "  float coverageClip = 1.0 - smoothstep(safeMaxRadius - (aa * 1.5), safeMaxRadius + (aa * 1.5), dist);",
+    "  if (!(coverageClip > 0.001)) discard;",
     "  vec3 rgb = vec3(0.0);",
     "  float alpha = 0.0;",
     "  float activeOuter = -1.0;",
@@ -181,6 +184,7 @@
     "  float dimRgb = mix(1.0, u_dim_rgb_mul, dimNode);",
     "  float dimAlpha = mix(1.0, u_dim_alpha_mul, dimNode);",
     "  alpha *= dimAlpha;",
+    "  alpha *= coverageClip;",
     "  if (!(alpha > 0.001)) discard;",
     "  rgb *= (dimRgb * dimAlpha);",
     "",
