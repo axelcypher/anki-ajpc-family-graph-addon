@@ -73,6 +73,7 @@ var STATE = {
   baseLinkColors: new Float32Array(0),
   runtimeNodeVisibleMask: new Uint8Array(0),
   runtimeEdgeVisibleMask: new Uint8Array(0),
+  runtimeEdgeFlowMask: new Uint8Array(0),
   runtimeFlowEdgeMask: new Uint8Array(0),
   focusNodeMask: new Uint8Array(0),
   focusEdgeMask: new Uint8Array(0),

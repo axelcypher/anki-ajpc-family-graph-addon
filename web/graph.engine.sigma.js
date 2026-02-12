@@ -207,7 +207,7 @@ function cityCollectRendererSettings(input) {
 function cityBuildGraphArrays(source) {
   var res = adapterCallCity("buildGraphArrays", source);
   if (res !== undefined) return res;
-  return { nodes: [], edges: [], indexById: new Map(), idsByIndex: [] };
+  return { nodes: [], edges: [], indexById: new Map(), idsByIndex: [], linkFlowMask: new Uint8Array(0) };
 }
 
 function cityApplyRuntimeUiSettings(reheatLayout) {
@@ -420,6 +420,7 @@ function SigmaGraphCompat(container, config) {
   this.linkStrength = new Float32Array(0);
   this.linkDistance = new Float32Array(0);
   this.linkStyleCodes = new Uint8Array(0);
+  this.linkFlowMask = new Uint8Array(0);
   this.linkArrows = new Float32Array(0);
 
   this.idByIndex = [];
@@ -485,6 +486,16 @@ function setFocusDimRuntime(active) {
   runtime.focusDimActive = !!active;
   runtime.focusDimRgbMul = 0.58;
   runtime.focusDimAlphaMul = 0.16;
+}
+
+function setFlowShaderRuntime(speed) {
+  var runtime = ensureSigmaRuntimeState();
+  if (!runtime) return;
+  var s = Number(speed);
+  if (!fin(s)) s = 0;
+  s = cl(s, 0, 3);
+  runtime.flowAnimSpeed = s;
+  runtime.flowAnimEnabled = s > 0.001;
 }
 
 function nodeLayersList(node) {
@@ -666,6 +677,7 @@ SigmaGraphCompat.prototype.setLinks = function (arr) { this.linksFlat = (arr && 
 SigmaGraphCompat.prototype.setLinkStrength = function (arr) { this.linkStrength = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkDistance = function (arr) { this.linkDistance = (arr && arr.length) ? arr : new Float32Array(0); };
 SigmaGraphCompat.prototype.setLinkStyleCodes = function (arr) { this.linkStyleCodes = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
+SigmaGraphCompat.prototype.setLinkFlowMask = function (arr) { this.linkFlowMask = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointColors = function (arr) { this.pointColors = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointSizes = function (arr) { this.pointSizes = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setPointTypeCodes = function (arr) { this.pointTypeCodes = (arr && arr.length) ? arr : new Uint8Array(0); this.styleDirty = true; };
@@ -793,10 +805,17 @@ SigmaGraphCompat.prototype.patchLinkStylesBatch = function (patches, syncArrays)
       focus = Number(curEdgeFocus);
     }
     if (!fin(focus)) focus = 0;
+    var flow = Number(patch.flow);
+    if (!fin(flow)) {
+      var curFlow = this.graph.getEdgeAttribute(edgeId, "ajpc_flow");
+      flow = Number(curFlow);
+    }
+    if (!fin(flow)) flow = 0;
     this.graph.mergeEdgeAttributes(edgeId, {
       color: rgbaParts(r, g, b, a),
       hidden: hidden,
-      ajpc_focus: focus > 0 ? 1 : 0
+      ajpc_focus: focus > 0 ? 1 : 0,
+      ajpc_flow: flow > 0 ? 1 : 0
     });
     changed = true;
   }
@@ -1321,10 +1340,11 @@ function computeNodeStyleForIndex(idx, ctx) {
   return { index: i, size: outSize, color: [outR, outG, outB, outA], focus: (ctx.focusHas && inFocusMask) ? 1 : 0 };
 }
 
-function createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, focusEdgeMask, focusHas, shaderDim) {
+function createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, runtimeEdgeFlowMask, focusEdgeMask, focusHas, shaderDim) {
   return {
     baseEdgeColors: baseEdgeColors,
     runtimeEdgeMask: runtimeEdgeMask,
+    runtimeEdgeFlowMask: runtimeEdgeFlowMask,
     focusEdgeMask: focusEdgeMask,
     focusHas: !!focusHas,
     shaderDim: !!shaderDim
@@ -1344,7 +1364,9 @@ function computeEdgeStyleForIndex(edgeIndex, ctx) {
   var eg = Number(ctx.baseEdgeColors[ei + 1] || 0);
   var eb = Number(ctx.baseEdgeColors[ei + 2] || 0);
   var ea = Number(ctx.baseEdgeColors[ei + 3] || 1);
-  var flow = ctx.runtimeEdgeMask ? (ctx.runtimeEdgeMask[e] ? 1 : 0) : (ea > 0.01 ? 1 : 0);
+  var visible = ctx.runtimeEdgeMask ? (ctx.runtimeEdgeMask[e] ? 1 : 0) : (ea > 0.01 ? 1 : 0);
+  var baseFlow = ctx.runtimeEdgeFlowMask ? (ctx.runtimeEdgeFlowMask[e] ? 1 : 0) : visible;
+  var flow = (visible && baseFlow) ? 1 : 0;
 
   if (ctx.runtimeEdgeMask && !ctx.runtimeEdgeMask[e]) {
     return { index: e, color: [er, eg, eb, 0], hidden: true, flow: 0, focus: 0 };
@@ -1353,7 +1375,7 @@ function computeEdgeStyleForIndex(edgeIndex, ctx) {
   var inFocusMask = !!(ctx.focusEdgeMask && ctx.focusEdgeMask[e]);
   if (ctx.focusHas && ctx.focusEdgeMask && ctx.focusEdgeMask[e]) {
     var fa = cl(Math.max(ea, 0.45), 0, 1);
-    return { index: e, color: [er, eg, eb, fa], hidden: fa <= 0.001, flow: flow, focus: 1 };
+    return { index: e, color: [er, eg, eb, fa], hidden: fa <= 0.001, flow: 1, focus: 1 };
   }
 
   if (ctx.focusHas && !ctx.shaderDim) {
@@ -1543,6 +1565,7 @@ function applySelectionFocusStyles() {
   var baseEdgeColors = (STATE.baseLinkColors && STATE.baseLinkColors.length) ? STATE.baseLinkColors : null;
   if (!baseNodeColors || !baseEdgeColors || !baseNodeSizes) {
     setFocusDimRuntime(false);
+    setFlowShaderRuntime(0);
     setGraphPanelFocusClass(false);
     STATE.lastStyleHasFocus = false;
     STATE.hoverPatchedPointIndex = null;
@@ -1552,6 +1575,9 @@ function applySelectionFocusStyles() {
 
   var runtimeNodeMask = (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === baseNodeSizes.length) ? STATE.runtimeNodeVisibleMask : null;
   var runtimeEdgeMask = (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === Math.floor(baseEdgeColors.length / 4)) ? STATE.runtimeEdgeVisibleMask : null;
+  var runtimeEdgeFlowMask = (STATE.runtimeEdgeFlowMask && STATE.runtimeEdgeFlowMask.length === Math.floor(baseEdgeColors.length / 4))
+    ? STATE.runtimeEdgeFlowMask
+    : runtimeEdgeMask;
 
   var selectedIndex = selectedIndexFromState();
   var contextIndex = contextIndexFromState();
@@ -1563,6 +1589,7 @@ function applySelectionFocusStyles() {
   STATE.focusNodeMask = focus.nodeMask;
   STATE.focusEdgeMask = focus.edgeMask;
   setFocusDimRuntime(focus.hasFocus);
+  setFlowShaderRuntime(STATE.layerFlowSpeed);
 
   var nodeCtx = createNodeStyleContext(
     baseNodeColors,
@@ -1575,7 +1602,7 @@ function applySelectionFocusStyles() {
     hoverIndex,
     true
   );
-  var edgeCtx = createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, focus.edgeMask, focus.hasFocus, true);
+  var edgeCtx = createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, runtimeEdgeFlowMask, focus.edgeMask, focus.hasFocus, true);
 
   if (tryApplyFocusStylePatch(nodeCtx, edgeCtx, focus, selectedIndex, contextIndex, hoverIndex)) return;
 
@@ -1585,6 +1612,7 @@ function applySelectionFocusStyles() {
     STATE.graph.setPointColors(resetNodeColors);
     applyPointSizesAnimated(baseNodeSizes, 170);
     STATE.graph.setLinkColors(new Float32Array(baseEdgeColors));
+    if (typeof STATE.graph.setLinkFlowMask === "function" && runtimeEdgeFlowMask) STATE.graph.setLinkFlowMask(new Uint8Array(runtimeEdgeFlowMask));
     STATE.pointStyleColors = resetNodeColors;
     STATE.lastStyleHasFocus = false;
     STATE.hoverPatchedPointIndex = null;
@@ -1596,6 +1624,7 @@ function applySelectionFocusStyles() {
   var outNodeColors = new Float32Array(baseNodeColors.length);
   var outNodeSizes = new Float32Array(baseNodeSizes.length);
   var outEdgeColors = new Float32Array(baseEdgeColors.length);
+  var outEdgeFlowMask = new Uint8Array(Math.floor(baseEdgeColors.length / 4));
   outNodeColors.set(baseNodeColors);
   outNodeSizes.set(baseNodeSizes);
   outEdgeColors.set(baseEdgeColors);
@@ -1620,6 +1649,7 @@ function applySelectionFocusStyles() {
     outEdgeColors[ei + 1] = Number(edgeStyle.color[1] || 0);
     outEdgeColors[ei + 2] = Number(edgeStyle.color[2] || 0);
     outEdgeColors[ei + 3] = Number(edgeStyle.color[3] || 0);
+    outEdgeFlowMask[e] = edgeStyle.flow ? 1 : 0;
   }
 
   setGraphPanelFocusClass(focus.hasFocus || hoverIndex >= 0);
@@ -1627,6 +1657,7 @@ function applySelectionFocusStyles() {
   STATE.graph.setPointColors(outNodeColors);
   applyPointSizesAnimated(outNodeSizes, 170);
   STATE.graph.setLinkColors(outEdgeColors);
+  if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(outEdgeFlowMask);
   STATE.pointStyleColors = outNodeColors;
   STATE.lastStyleHasFocus = !!focus.hasFocus;
   if (focus.hasFocus) {
@@ -1641,6 +1672,7 @@ function applySelectionFocusStyles() {
 
 function applyVisualStyles(renderAlpha) {
   if (!STATE.graph) return;
+  setFlowShaderRuntime(STATE.layerFlowSpeed);
   if (tryApplyHoverOnlyStylePatch()) {
     cityEnsureFlowParticlesLoop();
     return;
@@ -1771,8 +1803,10 @@ function applyGraphData(fitView) {
       DOM.graphEmpty.textContent = "No nodes available.";
     }
     setFocusDimRuntime(false);
+    setFlowShaderRuntime(0);
     STATE.runtimeNodeVisibleMask = new Uint8Array(0);
     STATE.runtimeEdgeVisibleMask = new Uint8Array(0);
+    STATE.runtimeEdgeFlowMask = new Uint8Array(0);
     STATE.runtimeFlowEdgeMask = new Uint8Array(0);
     stopPointSizeAnimation();
     STATE.pointStyleSizes = new Float32Array(0);
@@ -1791,6 +1825,8 @@ function applyGraphData(fitView) {
   STATE.basePointSizes = arrays.pointSizes ? new Float32Array(arrays.pointSizes) : new Float32Array(0);
   STATE.baseLinkColors = arrays.linkColors ? new Float32Array(arrays.linkColors) : new Float32Array(0);
   setFocusDimRuntime(false);
+  STATE.runtimeEdgeFlowMask = arrays.linkFlowMask ? new Uint8Array(arrays.linkFlowMask) : new Uint8Array(STATE.activeEdges.length);
+  setFlowShaderRuntime(STATE.layerFlowSpeed);
   STATE.pointStyleColors = new Float32Array(STATE.basePointColors);
   stopPointSizeAnimation();
   STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
@@ -1804,6 +1840,7 @@ function applyGraphData(fitView) {
   STATE.graph.setLinkStrength(arrays.linkStrength);
   STATE.graph.setLinkDistance(arrays.linkDistance);
   STATE.graph.setLinkStyleCodes(arrays.linkStyleCodes);
+  if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(STATE.runtimeEdgeFlowMask);
   STATE.graph.setPointColors(STATE.pointStyleColors);
   STATE.graph.setPointSizes(STATE.pointStyleSizes);
   if (typeof STATE.graph.setPointTypeCodes === "function") STATE.graph.setPointTypeCodes(arrays.pointTypeCodes);

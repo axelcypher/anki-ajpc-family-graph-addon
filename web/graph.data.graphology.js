@@ -289,6 +289,7 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
 
     var edgeAlpha = Number(owner.linkColors[(e * 4) + 3] || 0);
     var hiddenEdge = !fin(width) || width <= 0 || !fin(edgeAlpha) || edgeAlpha <= 0.001;
+    var flow = (owner.linkFlowMask && owner.linkFlowMask.length > e && owner.linkFlowMask[e]) ? 1 : 0;
 
     if (hiddenEdge) hiddenEdgeCount += 1;
     edgeTypeCounts[edgeType] = (edgeTypeCounts[edgeType] || 0) + 1;
@@ -302,6 +303,7 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
         curvature: curvature,
         label: null,
         hidden: hiddenEdge,
+        ajpc_flow: flow,
         forceLabel: false,
         zIndex: e
       });
@@ -361,6 +363,7 @@ AjpcGraphDataGraphology.prototype.styleGraph = function () {
 
     var edgeAlpha = Number(owner.linkColors[(e * 4) + 3] || 0);
     var hidden = !fin(width) || width <= 0 || !fin(edgeAlpha) || edgeAlpha <= 0.001;
+    var flow = (owner.linkFlowMask && owner.linkFlowMask.length > e && owner.linkFlowMask[e]) ? 1 : 0;
 
     graph.mergeEdgeAttributes(edgeId, {
       size: width,
@@ -368,7 +371,8 @@ AjpcGraphDataGraphology.prototype.styleGraph = function () {
       color: rgbaM(owner.linkColors, e, DEC, alphaMultiplier),
       type: edgeType,
       curvature: curvature,
-      hidden: hidden
+      hidden: hidden,
+      ajpc_flow: flow
     });
   }
 };

@@ -1319,6 +1319,7 @@ function buildGraphArrays(active) {
   var linkWidths = [];
   var linkStrengthFlat = [];
   var linkStyleCodes = [];
+  var linkFlowMask = [];
   var edgeRecords = [];
   var visibleEdges = [];
 
@@ -1336,11 +1337,13 @@ function buildGraphArrays(active) {
       strength = 0;
       col[3] = 0;
     }
+    var hasFlow = (!suppressed && edgeHasFlow(edge)) ? 1 : 0;
     flatLinks.push(s, t);
     linkColorsFlat.push(col[0], col[1], col[2], col[3]);
     linkWidths.push(width);
     linkStrengthFlat.push(strength);
     linkStyleCodes.push(linkStyleCode(edge));
+    linkFlowMask.push(hasFlow);
     edgeRecords.push({ edge: edge, sourceIndex: s, targetIndex: t });
     visibleEdges.push(edge);
   });
@@ -1366,7 +1369,8 @@ function buildGraphArrays(active) {
     linkWidths: new Float32Array(linkWidths),
     linkStrength: algoScalars.linkStrength,
     linkDistance: algoScalars.linkDistance,
-    linkStyleCodes: new Uint8Array(linkStyleCodes)
+    linkStyleCodes: new Uint8Array(linkStyleCodes),
+    linkFlowMask: new Uint8Array(linkFlowMask)
   };
 }
 
@@ -1473,6 +1477,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   var linkWidths = new Float32Array(edges.length);
   var linkStrengthBase = new Float32Array(edges.length);
   var linkStyleCodes = new Uint8Array(edges.length);
+  var edgeFlowMask = new Uint8Array(edges.length);
   var edgeRecords = new Array(edges.length);
   for (i = 0; i < edges.length; i += 1) {
     var edge = edges[i];
@@ -1489,6 +1494,7 @@ function applyRuntimeUiSettings(reheatLayout) {
       lcol[3] = 0;
     } else {
       edgeRendered[i] = 1;
+      if (edgeHasFlow(edge)) edgeFlowMask[i] = 1;
     }
     linkStyleCodes[i] = lstyle;
     linkColorsFlat.push(lcol[0], lcol[1], lcol[2], lcol[3]);
@@ -1521,6 +1527,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   STATE.baseLinkColors = baseLinkColors;
   STATE.runtimeNodeVisibleMask = nodeVisible;
   STATE.runtimeEdgeVisibleMask = edgeRendered;
+  STATE.runtimeEdgeFlowMask = edgeFlowMask;
   STATE.runtimeFlowEdgeMask = new Uint8Array(edgeRendered);
   STATE.pointStyleColors = stylePointColors;
   STATE.pointStyleSizes = stylePointSizes;
@@ -1550,6 +1557,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   if (typeof STATE.graph.setLinkWidths === "function") STATE.graph.setLinkWidths(linkWidths);
   if (typeof STATE.graph.setLinkStrength === "function") STATE.graph.setLinkStrength(linkStrength);
   if (typeof STATE.graph.setLinkStyleCodes === "function") STATE.graph.setLinkStyleCodes(linkStyleCodes);
+  if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(edgeFlowMask);
   if (typeof STATE.graph.setLinkDistance === "function") STATE.graph.setLinkDistance(linkDistance);
 
   var adapter = window && window.GraphAdapter;
