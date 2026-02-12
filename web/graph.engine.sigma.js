@@ -1581,10 +1581,11 @@ function applySelectionFocusStyles() {
 
   if (!focus.hasFocus && hoverIndex < 0) {
     setGraphPanelFocusClass(false);
-    STATE.graph.setPointColors(baseNodeColors);
+    var resetNodeColors = new Float32Array(baseNodeColors);
+    STATE.graph.setPointColors(resetNodeColors);
     applyPointSizesAnimated(baseNodeSizes, 170);
-    STATE.graph.setLinkColors(baseEdgeColors);
-    STATE.pointStyleColors = baseNodeColors;
+    STATE.graph.setLinkColors(new Float32Array(baseEdgeColors));
+    STATE.pointStyleColors = resetNodeColors;
     STATE.lastStyleHasFocus = false;
     STATE.hoverPatchedPointIndex = null;
     clearAppliedFocusPatchState();
@@ -1790,7 +1791,7 @@ function applyGraphData(fitView) {
   STATE.basePointSizes = arrays.pointSizes ? new Float32Array(arrays.pointSizes) : new Float32Array(0);
   STATE.baseLinkColors = arrays.linkColors ? new Float32Array(arrays.linkColors) : new Float32Array(0);
   setFocusDimRuntime(false);
-  STATE.pointStyleColors = STATE.basePointColors;
+  STATE.pointStyleColors = new Float32Array(STATE.basePointColors);
   stopPointSizeAnimation();
   STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
   STATE.lastStyleHasFocus = false;
@@ -1803,10 +1804,10 @@ function applyGraphData(fitView) {
   STATE.graph.setLinkStrength(arrays.linkStrength);
   STATE.graph.setLinkDistance(arrays.linkDistance);
   STATE.graph.setLinkStyleCodes(arrays.linkStyleCodes);
-  STATE.graph.setPointColors(STATE.basePointColors);
+  STATE.graph.setPointColors(STATE.pointStyleColors);
   STATE.graph.setPointSizes(STATE.pointStyleSizes);
   if (typeof STATE.graph.setPointTypeCodes === "function") STATE.graph.setPointTypeCodes(arrays.pointTypeCodes);
-  STATE.graph.setLinkColors(STATE.baseLinkColors);
+  STATE.graph.setLinkColors(new Float32Array(STATE.baseLinkColors));
   STATE.graph.setLinkWidths(arrays.linkWidths);
 
   var shouldFit = !!fitView;

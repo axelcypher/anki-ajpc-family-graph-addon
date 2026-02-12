@@ -1507,19 +1507,23 @@ function applyRuntimeUiSettings(reheatLayout) {
   }
 
   var basePointColors = new Float32Array(pointColorsFlat);
+  var basePointSizes = new Float32Array(pointSizes);
   var baseLinkColors = new Float32Array(linkColorsFlat);
+  var stylePointColors = new Float32Array(basePointColors);
+  var stylePointSizes = new Float32Array(basePointSizes);
+  var styleLinkColors = new Float32Array(baseLinkColors);
   var algoScalars = buildLinkScalarArrays(edgeRecords, linkStrengthBase);
   var linkDistance = algoScalars.linkDistance;
   var linkStrength = algoScalars.linkStrength;
 
   STATE.basePointColors = basePointColors;
-  STATE.basePointSizes = pointSizes;
+  STATE.basePointSizes = basePointSizes;
   STATE.baseLinkColors = baseLinkColors;
   STATE.runtimeNodeVisibleMask = nodeVisible;
   STATE.runtimeEdgeVisibleMask = edgeRendered;
   STATE.runtimeFlowEdgeMask = new Uint8Array(edgeRendered);
-  STATE.pointStyleColors = basePointColors;
-  STATE.pointStyleSizes = pointSizes;
+  STATE.pointStyleColors = stylePointColors;
+  STATE.pointStyleSizes = stylePointSizes;
 
   var visibleNodeCount = 0;
   var visibleNoteCount = 0;
@@ -1540,9 +1544,9 @@ function applyRuntimeUiSettings(reheatLayout) {
     edges: visibleEdgeCount
   };
 
-  if (typeof STATE.graph.setPointColors === "function") STATE.graph.setPointColors(basePointColors);
-  if (typeof STATE.graph.setPointSizes === "function") STATE.graph.setPointSizes(pointSizes);
-  if (typeof STATE.graph.setLinkColors === "function") STATE.graph.setLinkColors(baseLinkColors);
+  if (typeof STATE.graph.setPointColors === "function") STATE.graph.setPointColors(stylePointColors);
+  if (typeof STATE.graph.setPointSizes === "function") STATE.graph.setPointSizes(stylePointSizes);
+  if (typeof STATE.graph.setLinkColors === "function") STATE.graph.setLinkColors(styleLinkColors);
   if (typeof STATE.graph.setLinkWidths === "function") STATE.graph.setLinkWidths(linkWidths);
   if (typeof STATE.graph.setLinkStrength === "function") STATE.graph.setLinkStrength(linkStrength);
   if (typeof STATE.graph.setLinkStyleCodes === "function") STATE.graph.setLinkStyleCodes(linkStyleCodes);
