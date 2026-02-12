@@ -53,7 +53,7 @@
     if (!fs || fs.indexOf("gl_FragColor") < 0) return fs;
     if (fs.indexOf("AJPC_SOLID_PATTERN") >= 0) return fs;
     if (!/varying\s+float\s+v_focus\s*;/.test(fs)) {
-      fs = fs.replace(/(precision\s+(?:lowp|mediump|highp|)\s*float\s*;)/, "$1\nvarying float v_focus;\nvarying float v_flow;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;");
+      fs = fs.replace(/(precision\s+(?:lowp|mediump|highp|)\s*float\s*;)/, "$1\nvarying float v_focus;\nvarying float v_flow;\nuniform float u_focus_active;\nuniform float u_dim_rgb_mul;\nuniform float u_dim_alpha_mul;\nuniform float u_time;\nuniform float u_flow_speed;\nuniform float u_flow_spacing_mul;");
     }
     var injection = [
       "#ifndef PICKING_MODE",
@@ -75,7 +75,7 @@
       "    float ajpcAlphaMul = mix(1.0, u_dim_alpha_mul, ajpcDim);",
       "    float ajpcFlowGate = step(0.5, v_flow) * step(0.001, u_flow_speed);",
       "    float ajpcSpeed = 28.0 * (0.35 + u_flow_speed);",
-      "    float ajpcSpacing = ajpcHalfThickness * 18.0;",
+      "    float ajpcSpacing = ajpcHalfThickness * max(u_flow_spacing_mul, 0.00001);",
       "    float ajpcRadius = ajpcHalfThickness * 3.6;",
       "    float ajpcTravel = u_time * ajpcSpeed;",
       "    float ajpcLocal = mod(ajpcAlongWorld - ajpcTravel, ajpcSpacing) - (ajpcSpacing * 0.5);",
@@ -116,6 +116,7 @@
       if (uniforms.indexOf("u_dim_alpha_mul") < 0) uniforms.push("u_dim_alpha_mul");
       if (uniforms.indexOf("u_time") < 0) uniforms.push("u_time");
       if (uniforms.indexOf("u_flow_speed") < 0) uniforms.push("u_flow_speed");
+      if (uniforms.indexOf("u_flow_spacing_mul") < 0) uniforms.push("u_flow_spacing_mul");
       def.UNIFORMS = uniforms;
       if (def.VERTEX_SHADER_SOURCE) def.VERTEX_SHADER_SOURCE = patchFocusVertexShader(def.VERTEX_SHADER_SOURCE);
       if (def.FRAGMENT_SHADER_SOURCE) def.FRAGMENT_SHADER_SOURCE = patchSolidFragmentShader(def.FRAGMENT_SHADER_SOURCE);
@@ -151,11 +152,15 @@
       if (!isFinite(flowSpeed)) flowSpeed = 0;
       if (flowSpeed < 0) flowSpeed = 0;
       if (flowSpeed > 3) flowSpeed = 3;
+      var flowSpacingMul = Number(runtime && runtime.flowSpacingMul);
+      if (!isFinite(flowSpacingMul)) flowSpacingMul = 18.0;
+      if (flowSpacingMul < 0.1) flowSpacingMul = 0.1;
       if (uniformLocations.u_focus_active !== undefined && uniformLocations.u_focus_active !== null) gl.uniform1f(uniformLocations.u_focus_active, focusActive ? 1 : 0);
       if (uniformLocations.u_dim_rgb_mul !== undefined && uniformLocations.u_dim_rgb_mul !== null) gl.uniform1f(uniformLocations.u_dim_rgb_mul, dimRgbMul);
       if (uniformLocations.u_dim_alpha_mul !== undefined && uniformLocations.u_dim_alpha_mul !== null) gl.uniform1f(uniformLocations.u_dim_alpha_mul, dimAlphaMul);
       if (uniformLocations.u_time !== undefined && uniformLocations.u_time !== null) gl.uniform1f(uniformLocations.u_time, performance.now() * 0.001);
       if (uniformLocations.u_flow_speed !== undefined && uniformLocations.u_flow_speed !== null) gl.uniform1f(uniformLocations.u_flow_speed, flowSpeed);
+      if (uniformLocations.u_flow_spacing_mul !== undefined && uniformLocations.u_flow_spacing_mul !== null) gl.uniform1f(uniformLocations.u_flow_spacing_mul, flowSpacingMul);
     }
   }
 
