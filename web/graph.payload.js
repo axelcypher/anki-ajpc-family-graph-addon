@@ -1337,7 +1337,7 @@ function buildGraphArrays(active) {
       strength = 0;
       col[3] = 0;
     }
-    var hasFlow = (!suppressed && edgeHasFlow(edge)) ? 1 : 0;
+    var hasFlow = (!suppressed) ? 1 : 0;
     flatLinks.push(s, t);
     linkColorsFlat.push(col[0], col[1], col[2], col[3]);
     linkWidths.push(width);
@@ -1494,7 +1494,7 @@ function applyRuntimeUiSettings(reheatLayout) {
       lcol[3] = 0;
     } else {
       edgeRendered[i] = 1;
-      if (edgeHasFlow(edge)) edgeFlowMask[i] = 1;
+      edgeFlowMask[i] = 1;
     }
     linkStyleCodes[i] = lstyle;
     linkColorsFlat.push(lcol[0], lcol[1], lcol[2], lcol[3]);
