@@ -346,16 +346,17 @@ function renderActiveCards(node) {
     
     var c = card && typeof card === "object" ? card : {};
     var ord = Number(c.ord);
-    var ordText = isFiniteNumber(ord) ? String(ord + 1) : "--";
+    var cardName = String(c.name || c.card_name || c.template || "").trim();
+    if (!cardName) cardName = isFiniteNumber(ord) ? ("Card " + String(ord + 1)) : "Card";
     var statusText = normalizeCardStatusLabel(c.status);
     var stabilityText = formatCardStability(c.stability);
     return renderHtmlTemplate(
       `<div class="active-card-row">
-        <span class="active-card-ord">#{{ord}}</span>
+        <span class="active-card-ord">{{name}}</span>
         <span class="active-card-status">{{status}}</span>
         <span class="active-card-stability">{{stability}}</span>
       </div>`,
-      { ord: ordText, status: statusText, stability: stabilityText }
+      { name: cardName, status: statusText, stability: stabilityText }
     );
   }).join("");
 

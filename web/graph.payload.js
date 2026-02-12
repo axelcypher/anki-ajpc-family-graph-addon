@@ -443,6 +443,23 @@ function normalizeLayerMap(map, context) {
   return out;
 }
 
+function normalizeCards(cards) {
+  if (!Array.isArray(cards)) return [];
+  return cards.map(function (card) {
+    var c = card && typeof card === "object" ? card : {};
+    var id = Number(c.id);
+    var ord = Number(c.ord);
+    var stability = (c.stability === undefined || c.stability === null) ? null : Number(c.stability);
+    return {
+      id: isFinite(id) ? id : 0,
+      ord: isFinite(ord) ? ord : 0,
+      name: String(c.name || c.card_name || c.template || ""),
+      status: String(c.status || ""),
+      stability: isFinite(stability) ? stability : null
+    };
+  });
+}
+
 function normalizeNode(node) {
   var n = node && typeof node === "object" ? node : {};
   var id = String(n.id !== undefined && n.id !== null ? n.id : "");
@@ -456,7 +473,7 @@ function normalizeNode(node) {
     layers: layers,
     family_prios: n.family_prios && typeof n.family_prios === "object" ? n.family_prios : {},
     extra: Array.isArray(n.extra) ? n.extra : [],
-    cards: Array.isArray(n.cards) ? n.cards : []
+    cards: normalizeCards(n.cards)
   };
 }
 
@@ -1121,11 +1138,15 @@ function resolveBaseLinkDistance(edge) {
   return solverLinkDistanceFallback();
 }
 
-function resolveBaseLinkStrength(edge) {
+function resolveBaseLinkWeight(edge) {
   var layer = edgeLayerKey(edge);
-  var base = Number(STATE.linkWeights[layer]);
-  if (!isFinite(base) || base < 0) base = 1;
-  return clamp(base, 0.01, 50);
+  var weight = Number(STATE.linkWeights[layer]);
+  if (!isFinite(weight) || weight < 0) weight = 1;
+  return clamp(weight, 0, 50);
+}
+
+function resolveBaseLinkStrength(edge) {
+  return 1;
 }
 
 function resolveTrailingHubDistance() {
@@ -1428,14 +1449,15 @@ function buildAlgorithmicLinkScalars(edgeRecords, nodeCount, baseStrengths) {
     var rec = edgeRecords[i];
     if (!rec || !rec.edge) continue;
     var baseDistance = resolveBaseLinkDistance(rec.edge);
-    var weight = (baseStrengths && baseStrengths.length > i)
+    var lengthWeight = resolveBaseLinkWeight(rec.edge);
+    var activeStrength = (baseStrengths && baseStrengths.length > i)
       ? Number(baseStrengths[i] || 0)
       : resolveBaseLinkStrength(rec.edge);
-    if (!isFinite(weight) || weight < 0) weight = 0;
+    if (!isFinite(activeStrength) || activeStrength < 0) activeStrength = 0;
     var metric = Number(metrics[i] || 0);
     var metricScale = strengthScaleFromMetric(metric);
-    distances[i] = clamp(baseDistance * distanceScaleFromMetric(metric), 1, 5000);
-    strengths[i] = clamp(weight * metricScale, 0, 50);
+    distances[i] = clamp(baseDistance * lengthWeight * distanceScaleFromMetric(metric), 1, 5000);
+    strengths[i] = clamp((activeStrength > 0 ? metricScale : 0), 0, 50);
   }
 
   applyTrailingHubDistances(edgeRecords, distances, baseStrengths);
@@ -1478,15 +1500,16 @@ function buildLinkScalarArrays(edgeRecords, baseStrengths) {
     if (!rec || !rec.edge) continue;
 
     var baseDistance = resolveBaseLinkDistance(rec.edge);
-    var weight = (baseStrengths && baseStrengths.length > i)
+    var lengthWeight = resolveBaseLinkWeight(rec.edge);
+    var activeStrength = (baseStrengths && baseStrengths.length > i)
       ? Number(baseStrengths[i] || 0)
       : resolveBaseLinkStrength(rec.edge);
-    if (!isFinite(weight) || weight < 0) weight = 0;
+    if (!isFinite(activeStrength) || activeStrength < 0) activeStrength = 0;
     var metric = Number(metrics[i] || 0);
     var metricScale = strengthScaleFromMetric(metric);
 
-    distances[i] = clamp(baseDistance * distanceScaleFromMetric(metric) * LINK_SCALAR_DISTANCE_SCALE, 1, 5000);
-    strengths[i] = clamp(weight * metricScale * LINK_SCALAR_STRENGTH_SCALE, 0, 50);
+    distances[i] = clamp(baseDistance * lengthWeight * distanceScaleFromMetric(metric) * LINK_SCALAR_DISTANCE_SCALE, 1, 5000);
+    strengths[i] = clamp((activeStrength > 0 ? metricScale : 0) * LINK_SCALAR_STRENGTH_SCALE, 0, 50);
   }
 
   applyTrailingHubDistances(edgeRecords, distances, baseStrengths);

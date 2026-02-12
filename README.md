@@ -36,7 +36,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - Link metric mode + direction (None, Jaccard, Overlap, Common Neighbors, Clustering Coeff, 2-Hop)
 - Per layer:
   - Line Strength (visual link width)
-  - Weight Factor (multiplier applied with link-metric strength for layout force)
+  - Weight Factor (multiplier applied to layout link distance)
 - Chain family levels (hub -> prio chain)
 - Per layer: color, line style, flow on/off
 - Same-priority links toggle + opacity

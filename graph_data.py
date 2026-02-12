@@ -340,10 +340,34 @@ def _extract_stability(value: Any, memory_state: Any) -> float | None:
     return None
 
 
+def _card_template_name_map(col: Collection, mid: int) -> dict[int, str]:
+    out: dict[int, str] = {}
+    try:
+        model = col.models.get(int(mid))
+    except Exception:
+        model = None
+    if not isinstance(model, dict):
+        return out
+    tmpls = model.get("tmpls") or []
+    for idx, tmpl in enumerate(tmpls):
+        if not isinstance(tmpl, dict):
+            continue
+        name = str(tmpl.get("name", "")).strip()
+        if not name:
+            continue
+        try:
+            ord_val = int(tmpl.get("ord", idx))
+        except Exception:
+            ord_val = idx
+        out[ord_val] = name
+    return out
+
+
 def _build_card_map(col: Collection, nids: list[int]) -> dict[int, list[dict[str, Any]]]:
     out: dict[int, list[dict[str, Any]]] = {}
     if not nids:
         return out
+    template_cache: dict[int, dict[int, str]] = {}
     cols = _card_columns(col)
     select_cols = ["id", "nid", "ord", "queue"]
     if "stability" in cols:
@@ -356,6 +380,19 @@ def _build_card_map(col: Collection, nids: list[int]) -> dict[int, list[dict[str
         if not chunk:
             continue
         placeholders = ",".join(["?"] * len(chunk))
+        note_mid_by_nid: dict[int, int] = {}
+        try:
+            note_rows = col.db.all(
+                f"select id, mid from notes where id in ({placeholders})",
+                *chunk,
+            )
+        except Exception:
+            note_rows = []
+        for note_row in note_rows or []:
+            try:
+                note_mid_by_nid[int(note_row[0])] = int(note_row[1])
+            except Exception:
+                continue
         try:
             rows = col.db.all(
                 f"select {','.join(select_cols)} from cards where nid in ({placeholders})",
@@ -384,6 +421,14 @@ def _build_card_map(col: Collection, nids: list[int]) -> dict[int, list[dict[str
                 queue_int = int(queue)
             except Exception:
                 queue_int = 0
+            card_name = ""
+            mid_int = note_mid_by_nid.get(nid_int)
+            if mid_int is not None:
+                by_ord = template_cache.get(mid_int)
+                if by_ord is None:
+                    by_ord = _card_template_name_map(col, mid_int)
+                    template_cache[mid_int] = by_ord
+                card_name = str(by_ord.get(ord_int, "")).strip()
             stability = None
             if "stability" in idx_map:
                 stability = _extract_stability(row[idx_map["stability"]], None)
@@ -412,6 +457,7 @@ def _build_card_map(col: Collection, nids: list[int]) -> dict[int, list[dict[str
                 {
                     "id": int(cid),
                     "ord": ord_int,
+                    "name": card_name,
                     "status": _card_status(queue_int),
                     "stability": stability,
                 }
