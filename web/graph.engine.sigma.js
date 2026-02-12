@@ -235,6 +235,13 @@ function rgbaM(flat, i, fallback, mul) {
   return "rgba(" + Math.round(r * 255) + "," + Math.round(g * 255) + "," + Math.round(b * 255) + "," + a.toFixed(3) + ")";
 }
 
+function rgbaParts(r, g, b, a) {
+  return "rgba(" + Math.round(cl(Number(r || 0), 0, 1) * 255)
+    + "," + Math.round(cl(Number(g || 0), 0, 1) * 255)
+    + "," + Math.round(cl(Number(b || 0), 0, 1) * 255)
+    + "," + cl(Number(a === undefined ? 1 : a), 0, 1).toFixed(3) + ")";
+}
+
 function nid(payload) { if (!payload) return null; return payload.node === undefined || payload.node === null ? null : String(payload.node); }
 function eid(payload) { if (!payload) return null; return payload.edge === undefined || payload.edge === null ? null : String(payload.edge); }
 
@@ -438,6 +445,33 @@ function SigmaGraphCompat(container, config) {
 
 function bool01(v) { return v ? 1 : 0; }
 
+function ensureStyleDebugState() {
+  if (!STATE || typeof STATE !== "object") return null;
+  var cur = STATE.styleDebug;
+  if (!cur || typeof cur !== "object") {
+    cur = {
+      lastMode: "--",
+      fullCount: 0,
+      hoverPatchCount: 0,
+      focusPatchCount: 0,
+      ts: 0
+    };
+    STATE.styleDebug = cur;
+  }
+  return cur;
+}
+
+function markStyleDebugMode(mode) {
+  var s = ensureStyleDebugState();
+  if (!s) return;
+  var m = String(mode || "");
+  if (m === "full") s.fullCount = Number(s.fullCount || 0) + 1;
+  else if (m === "hover-patch") s.hoverPatchCount = Number(s.hoverPatchCount || 0) + 1;
+  else if (m === "focus-patch") s.focusPatchCount = Number(s.focusPatchCount || 0) + 1;
+  s.lastMode = m || "--";
+  s.ts = Date.now();
+}
+
 function nodeLayersList(node) {
   var layers = node && Array.isArray(node.layers) ? node.layers : [];
   return layers.map(function (x) { return String(x || "").trim(); }).filter(Boolean);
@@ -623,6 +657,118 @@ SigmaGraphCompat.prototype.setPointTypeCodes = function (arr) { this.pointTypeCo
 SigmaGraphCompat.prototype.setLinkColors = function (arr) { this.linkColors = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkWidths = function (arr) { this.linkWidths = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkArrows = function (arr) { this.linkArrows = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
+SigmaGraphCompat.prototype.patchPointStylesBatch = function (patches, syncArrays) {
+  var list = Array.isArray(patches) ? patches : [];
+  if (!this.graph || !list.length) return false;
+  var sync = !!syncArrays;
+
+  var changed = false;
+  for (var i = 0; i < list.length; i += 1) {
+    var patch = list[i];
+    if (!patch || typeof patch !== "object") continue;
+
+    var idx = Number(patch.index);
+    if (!isFinite(idx) || idx < 0 || idx >= this.idByIndex.length) continue;
+    idx = Math.floor(idx);
+
+    var nodeId = this.idByIndex[idx];
+    if (!nodeId || !this.graph.hasNode(nodeId)) continue;
+
+    var ni = idx * 4;
+    var color = patch.color;
+    var r = (this.pointColors && this.pointColors.length >= (ni + 1)) ? Number(this.pointColors[ni] || 0) : 0;
+    var g = (this.pointColors && this.pointColors.length >= (ni + 2)) ? Number(this.pointColors[ni + 1] || 0) : 0;
+    var b = (this.pointColors && this.pointColors.length >= (ni + 3)) ? Number(this.pointColors[ni + 2] || 0) : 0;
+    var a = (this.pointColors && this.pointColors.length >= (ni + 4)) ? Number(this.pointColors[ni + 3] || 1) : 1;
+    if (Array.isArray(color) && color.length >= 4) {
+      r = Number(color[0]);
+      g = Number(color[1]);
+      b = Number(color[2]);
+      a = Number(color[3]);
+    }
+    r = cl(r, 0, 1);
+    g = cl(g, 0, 1);
+    b = cl(b, 0, 1);
+    a = cl(a, 0, 1);
+    if (sync && this.pointColors && this.pointColors.length >= (ni + 4)) {
+      this.pointColors[ni] = r;
+      this.pointColors[ni + 1] = g;
+      this.pointColors[ni + 2] = b;
+      this.pointColors[ni + 3] = a;
+    }
+
+    var size = Number(patch.size);
+    if (!fin(size) && this.pointSizes && this.pointSizes.length > idx) size = Number(this.pointSizes[idx] || 0);
+    if (!fin(size)) size = DNS;
+    if (sync && this.pointSizes && this.pointSizes.length > idx) this.pointSizes[idx] = size;
+    var hidden = !fin(size) || size <= 0 || !fin(a) || a <= 0.001;
+    var drawSize = size;
+    if (!fin(drawSize) || drawSize <= 0) drawSize = DNS;
+
+    this.graph.mergeNodeAttributes(nodeId, {
+      size: drawSize,
+      color: rgbaParts(r, g, b, a),
+      hidden: hidden
+    });
+    changed = true;
+  }
+
+  if (changed && this.renderer) this.renderer.requestFrame();
+  return changed;
+};
+
+SigmaGraphCompat.prototype.patchLinkStylesBatch = function (patches, syncArrays) {
+  var list = Array.isArray(patches) ? patches : [];
+  if (!this.graph || !list.length) return false;
+  var sync = !!syncArrays;
+
+  var changed = false;
+  for (var i = 0; i < list.length; i += 1) {
+    var patch = list[i];
+    if (!patch || typeof patch !== "object") continue;
+
+    var idx = Number(patch.index);
+    if (!isFinite(idx) || idx < 0 || idx >= this.edgeIdByIndex.length) continue;
+    idx = Math.floor(idx);
+
+    var edgeId = this.edgeIdByIndex[idx];
+    if (!edgeId || !this.graph.hasEdge(edgeId)) continue;
+
+    var ei = idx * 4;
+    var color = patch.color;
+    var r = (this.linkColors && this.linkColors.length >= (ei + 1)) ? Number(this.linkColors[ei] || 0) : 0;
+    var g = (this.linkColors && this.linkColors.length >= (ei + 2)) ? Number(this.linkColors[ei + 1] || 0) : 0;
+    var b = (this.linkColors && this.linkColors.length >= (ei + 3)) ? Number(this.linkColors[ei + 2] || 0) : 0;
+    var a = (this.linkColors && this.linkColors.length >= (ei + 4)) ? Number(this.linkColors[ei + 3] || 1) : 1;
+    if (Array.isArray(color) && color.length >= 4) {
+      r = Number(color[0]);
+      g = Number(color[1]);
+      b = Number(color[2]);
+      a = Number(color[3]);
+    }
+    r = cl(r, 0, 1);
+    g = cl(g, 0, 1);
+    b = cl(b, 0, 1);
+    a = cl(a, 0, 1);
+
+    if (sync && this.linkColors && this.linkColors.length >= (ei + 4)) {
+      this.linkColors[ei] = r;
+      this.linkColors[ei + 1] = g;
+      this.linkColors[ei + 2] = b;
+      this.linkColors[ei + 3] = a;
+    }
+
+    var hidden = !!patch.hidden;
+    this.graph.mergeEdgeAttributes(edgeId, {
+      color: rgbaParts(r, g, b, a),
+      hidden: hidden
+    });
+    changed = true;
+  }
+
+  if (changed && this.renderer) this.renderer.requestFrame();
+  return changed;
+};
 
 SigmaGraphCompat.prototype.getPointPositions = function () {
   var out = this.pointPositions.slice();
@@ -969,6 +1115,8 @@ function buildSelectionFocusMasks(selectedIndices) {
   var familyFidByEdge = cache.familyFidByEdge || [];
   var nodeMask = new Uint8Array(nodes.length);
   var edgeMask = new Uint8Array(edges.length);
+  var focusedNodeIndices = [];
+  var focusedEdgeIndices = [];
   var focusedNodeCount = 0, focusedEdgeCount = 0;
   var seeds = Array.isArray(selectedIndices) ? selectedIndices.slice() : [selectedIndices];
   var uniqueSeeds = [];
@@ -981,10 +1129,22 @@ function buildSelectionFocusMasks(selectedIndices) {
     seenSeed[key] = true;
     uniqueSeeds.push(seed);
   }
-  if (!uniqueSeeds.length) return { nodeMask: nodeMask, edgeMask: edgeMask, hasFocus: false };
+  if (!uniqueSeeds.length) return { nodeMask: nodeMask, edgeMask: edgeMask, hasFocus: false, focusedNodeIndices: focusedNodeIndices, focusedEdgeIndices: focusedEdgeIndices };
 
-  function markNode(i) { if (i < 0 || i >= nodes.length) return; if (nodeMask[i]) return; nodeMask[i] = 1; focusedNodeCount += 1; }
-  function markEdge(i) { if (i < 0 || i >= edges.length) return; if (edgeMask[i]) return; edgeMask[i] = 1; focusedEdgeCount += 1; }
+  function markNode(i) {
+    if (i < 0 || i >= nodes.length) return;
+    if (nodeMask[i]) return;
+    nodeMask[i] = 1;
+    focusedNodeIndices.push(i);
+    focusedNodeCount += 1;
+  }
+  function markEdge(i) {
+    if (i < 0 || i >= edges.length) return;
+    if (edgeMask[i]) return;
+    edgeMask[i] = 1;
+    focusedEdgeIndices.push(i);
+    focusedEdgeCount += 1;
+  }
   function edgeFamilyMatches(edgeIndex, selectedPrioKeys) {
     if (edgeIndex < 0 || edgeIndex >= edges.length) return false;
     var edge = edges[edgeIndex];
@@ -1054,8 +1214,296 @@ function buildSelectionFocusMasks(selectedIndices) {
   return {
     nodeMask: nodeMask,
     edgeMask: edgeMask,
-    hasFocus: focusedNodeCount > 0
+    hasFocus: focusedNodeCount > 0,
+    focusedNodeIndices: focusedNodeIndices,
+    focusedEdgeIndices: focusedEdgeIndices
   };
+}
+
+function createNodeStyleContext(baseNodeColors, baseNodeSizes, runtimeNodeMask, focusNodeMask, focusHas, selectedIndex, contextIndex, hoverIndex) {
+  return {
+    baseNodeColors: baseNodeColors,
+    baseNodeSizes: baseNodeSizes,
+    runtimeNodeMask: runtimeNodeMask,
+    focusNodeMask: focusNodeMask,
+    focusHas: !!focusHas,
+    selectedIndex: Number(selectedIndex),
+    contextIndex: Number(contextIndex),
+    hoverIndex: Number(hoverIndex)
+  };
+}
+
+// Shared node style solver for hover + selected + context focus paths.
+function computeNodeStyleForIndex(idx, ctx) {
+  var i = Number(idx);
+  if (!isFinite(i) || i < 0 || i >= STATE.activeNodes.length) return null;
+  if (!ctx || !ctx.baseNodeColors || !ctx.baseNodeSizes) return null;
+
+  var ni = i * 4;
+  if (ctx.baseNodeColors.length < (ni + 4) || ctx.baseNodeSizes.length <= i) return null;
+
+  var nr = Number(ctx.baseNodeColors[ni] || 0);
+  var ng = Number(ctx.baseNodeColors[ni + 1] || 0);
+  var nb = Number(ctx.baseNodeColors[ni + 2] || 0);
+  var na = Number(ctx.baseNodeColors[ni + 3] || 1);
+  var size = Number(ctx.baseNodeSizes[i] || 1);
+  if (!fin(size) || size <= 0) size = 1;
+
+  if (ctx.runtimeNodeMask && !ctx.runtimeNodeMask[i]) {
+    return { index: i, size: 0, color: [nr, ng, nb, 0] };
+  }
+
+  var inFocusMask = !!(ctx.focusNodeMask && ctx.focusNodeMask[i]);
+  var isHovered = (i === ctx.hoverIndex);
+  var outR = nr, outG = ng, outB = nb, outA = na, outSize = size;
+
+  if (inFocusMask || (!ctx.focusHas && isHovered)) {
+    outSize = size * 1.2;
+    if (i === ctx.selectedIndex) {
+      outR = cl(nr * 1.08, 0, 1);
+      outG = cl(ng * 1.08, 0, 1);
+      outB = cl(nb * 1.08, 0, 1);
+    } else if (i === ctx.contextIndex) {
+      outR = cl(nr * 1.04, 0, 1);
+      outG = cl(ng * 1.04, 0, 1);
+      outB = cl(nb * 1.04, 0, 1);
+    } else if (isHovered) {
+      outR = cl(nr * 1.06, 0, 1);
+      outG = cl(ng * 1.06, 0, 1);
+      outB = cl(nb * 1.06, 0, 1);
+    }
+    outA = cl(Math.max(na, 0.96), 0, 1);
+  } else if (ctx.focusHas) {
+    var grey = (luma(nr, ng, nb) * 0.58) + 0.07;
+    outR = cl(grey, 0, 1);
+    outG = cl(grey, 0, 1);
+    outB = cl(grey, 0, 1);
+    outA = cl(na * 0.16, 0.05, 0.24);
+    outSize = size * 0.94;
+  }
+
+  return { index: i, size: outSize, color: [outR, outG, outB, outA] };
+}
+
+function createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, focusEdgeMask, focusHas) {
+  return {
+    baseEdgeColors: baseEdgeColors,
+    runtimeEdgeMask: runtimeEdgeMask,
+    focusEdgeMask: focusEdgeMask,
+    focusHas: !!focusHas
+  };
+}
+
+// Shared edge style solver for focus and dim states.
+function computeEdgeStyleForIndex(edgeIndex, ctx) {
+  var e = Number(edgeIndex);
+  if (!isFinite(e) || e < 0) return null;
+  if (!ctx || !ctx.baseEdgeColors) return null;
+  var edgeCount = Math.floor(ctx.baseEdgeColors.length / 4);
+  if (e >= edgeCount) return null;
+
+  var ei = e * 4;
+  var er = Number(ctx.baseEdgeColors[ei] || 0);
+  var eg = Number(ctx.baseEdgeColors[ei + 1] || 0);
+  var eb = Number(ctx.baseEdgeColors[ei + 2] || 0);
+  var ea = Number(ctx.baseEdgeColors[ei + 3] || 1);
+  var flow = ctx.runtimeEdgeMask ? (ctx.runtimeEdgeMask[e] ? 1 : 0) : (ea > 0.01 ? 1 : 0);
+
+  if (ctx.runtimeEdgeMask && !ctx.runtimeEdgeMask[e]) {
+    return { index: e, color: [er, eg, eb, 0], hidden: true, flow: 0 };
+  }
+
+  if (ctx.focusHas && ctx.focusEdgeMask && ctx.focusEdgeMask[e]) {
+    var fa = cl(Math.max(ea, 0.45), 0, 1);
+    return { index: e, color: [er, eg, eb, fa], hidden: fa <= 0.001, flow: flow };
+  }
+
+  if (ctx.focusHas) {
+    var g = luma(er, eg, eb) * 0.45;
+    var da = cl(ea * 0.08, 0.01, 0.08);
+    return { index: e, color: [cl(g, 0, 1), cl(g, 0, 1), cl(g, 0, 1), da], hidden: da <= 0.001, flow: 0 };
+  }
+
+  return { index: e, color: [er, eg, eb, ea], hidden: ea <= 0.001, flow: flow };
+}
+
+function baseNodeStylePatchByIndex(idx) {
+  var baseNodeColors = (STATE.basePointColors && STATE.basePointColors.length) ? STATE.basePointColors : null;
+  var baseNodeSizes = (STATE.basePointSizes && STATE.basePointSizes.length) ? STATE.basePointSizes : null;
+  if (!baseNodeColors || !baseNodeSizes) return null;
+  var runtimeNodeMask = (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === baseNodeSizes.length) ? STATE.runtimeNodeVisibleMask : null;
+  var ctx = createNodeStyleContext(baseNodeColors, baseNodeSizes, runtimeNodeMask, null, false, -1, -1, -1);
+  return computeNodeStyleForIndex(idx, ctx);
+}
+
+function hoverNodeStylePatchByIndex(idx) {
+  var baseNodeColors = (STATE.basePointColors && STATE.basePointColors.length) ? STATE.basePointColors : null;
+  var baseNodeSizes = (STATE.basePointSizes && STATE.basePointSizes.length) ? STATE.basePointSizes : null;
+  if (!baseNodeColors || !baseNodeSizes) return null;
+  var runtimeNodeMask = (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === baseNodeSizes.length) ? STATE.runtimeNodeVisibleMask : null;
+  var i = Number(idx);
+  var ctx = createNodeStyleContext(baseNodeColors, baseNodeSizes, runtimeNodeMask, null, false, -1, -1, i);
+  return computeNodeStyleForIndex(i, ctx);
+}
+
+function clearAppliedFocusPatchState() {
+  STATE.appliedFocusNodeMask = new Uint8Array(0);
+  STATE.appliedFocusEdgeMask = new Uint8Array(0);
+  STATE.appliedFocusNodeIndices = [];
+  STATE.appliedFocusEdgeIndices = [];
+  STATE.appliedSelectedIndex = -1;
+  STATE.appliedContextIndex = -1;
+  STATE.appliedHoverIndex = -1;
+}
+
+function storeAppliedFocusPatchState(focus, selectedIndex, contextIndex, hoverIndex) {
+  STATE.appliedFocusNodeMask = focus && focus.nodeMask ? new Uint8Array(focus.nodeMask) : new Uint8Array(0);
+  STATE.appliedFocusEdgeMask = focus && focus.edgeMask ? new Uint8Array(focus.edgeMask) : new Uint8Array(0);
+  STATE.appliedFocusNodeIndices = focus && Array.isArray(focus.focusedNodeIndices) ? focus.focusedNodeIndices.slice() : [];
+  STATE.appliedFocusEdgeIndices = focus && Array.isArray(focus.focusedEdgeIndices) ? focus.focusedEdgeIndices.slice() : [];
+  STATE.appliedSelectedIndex = Number(isFinite(selectedIndex) ? selectedIndex : -1);
+  STATE.appliedContextIndex = Number(isFinite(contextIndex) ? contextIndex : -1);
+  STATE.appliedHoverIndex = Number(isFinite(hoverIndex) ? hoverIndex : -1);
+}
+
+function markIndex(setObj, list, idx, max) {
+  var i = Number(idx);
+  if (!isFinite(i) || i < 0 || i >= max) return;
+  var key = String(i);
+  if (setObj[key]) return;
+  setObj[key] = 1;
+  list.push(i);
+}
+
+// Delta patch path: only update nodes/edges that changed between two focus states.
+function tryApplyFocusStylePatch(nodeCtx, edgeCtx, focus, selectedIndex, contextIndex, hoverIndex) {
+  if (!focus || !focus.hasFocus) return false;
+  if (!STATE.lastStyleHasFocus) return false;
+  if (!STATE.graph) return false;
+  if (typeof STATE.graph.patchPointStylesBatch !== "function") return false;
+  if (typeof STATE.graph.patchLinkStylesBatch !== "function") return false;
+
+  var prevNodeMask = STATE.appliedFocusNodeMask;
+  var prevEdgeMask = STATE.appliedFocusEdgeMask;
+  if (!(prevNodeMask && prevNodeMask.length === STATE.activeNodes.length)) return false;
+  if (!(prevEdgeMask && prevEdgeMask.length === STATE.activeEdges.length)) return false;
+
+  var prevFocusNodes = Array.isArray(STATE.appliedFocusNodeIndices) ? STATE.appliedFocusNodeIndices : [];
+  var prevFocusEdges = Array.isArray(STATE.appliedFocusEdgeIndices) ? STATE.appliedFocusEdgeIndices : [];
+  var curFocusNodes = Array.isArray(focus.focusedNodeIndices) ? focus.focusedNodeIndices : [];
+  var curFocusEdges = Array.isArray(focus.focusedEdgeIndices) ? focus.focusedEdgeIndices : [];
+
+  var nodeSet = Object.create(null);
+  var edgeSet = Object.create(null);
+  var nodeIndices = [];
+  var edgeIndices = [];
+  var ni, ei;
+
+  for (ni = 0; ni < prevFocusNodes.length; ni += 1) {
+    var pn = Number(prevFocusNodes[ni]);
+    if (!isFinite(pn) || pn < 0 || pn >= STATE.activeNodes.length) continue;
+    if (!focus.nodeMask[pn]) markIndex(nodeSet, nodeIndices, pn, STATE.activeNodes.length);
+  }
+  for (ni = 0; ni < curFocusNodes.length; ni += 1) {
+    var cn = Number(curFocusNodes[ni]);
+    if (!isFinite(cn) || cn < 0 || cn >= STATE.activeNodes.length) continue;
+    if (!prevNodeMask[cn]) markIndex(nodeSet, nodeIndices, cn, STATE.activeNodes.length);
+  }
+
+  markIndex(nodeSet, nodeIndices, STATE.appliedSelectedIndex, STATE.activeNodes.length);
+  markIndex(nodeSet, nodeIndices, STATE.appliedContextIndex, STATE.activeNodes.length);
+  markIndex(nodeSet, nodeIndices, STATE.appliedHoverIndex, STATE.activeNodes.length);
+  markIndex(nodeSet, nodeIndices, selectedIndex, STATE.activeNodes.length);
+  markIndex(nodeSet, nodeIndices, contextIndex, STATE.activeNodes.length);
+  markIndex(nodeSet, nodeIndices, hoverIndex, STATE.activeNodes.length);
+
+  for (ei = 0; ei < prevFocusEdges.length; ei += 1) {
+    var pe = Number(prevFocusEdges[ei]);
+    if (!isFinite(pe) || pe < 0 || pe >= STATE.activeEdges.length) continue;
+    if (!focus.edgeMask[pe]) markIndex(edgeSet, edgeIndices, pe, STATE.activeEdges.length);
+  }
+  for (ei = 0; ei < curFocusEdges.length; ei += 1) {
+    var ce = Number(curFocusEdges[ei]);
+    if (!isFinite(ce) || ce < 0 || ce >= STATE.activeEdges.length) continue;
+    if (!prevEdgeMask[ce]) markIndex(edgeSet, edgeIndices, ce, STATE.activeEdges.length);
+  }
+
+  var nodePatches = [];
+  var edgePatches = [];
+
+  for (ni = 0; ni < nodeIndices.length; ni += 1) {
+    var np = computeNodeStyleForIndex(nodeIndices[ni], nodeCtx);
+    if (np) nodePatches.push(np);
+  }
+  for (ei = 0; ei < edgeIndices.length; ei += 1) {
+    var ep = computeEdgeStyleForIndex(edgeIndices[ei], edgeCtx);
+    if (ep) edgePatches.push(ep);
+  }
+
+  stopPointSizeAnimation();
+  if (nodePatches.length && !STATE.graph.patchPointStylesBatch(nodePatches, true)) return false;
+  if (edgePatches.length && !STATE.graph.patchLinkStylesBatch(edgePatches, true)) return false;
+
+  if (!STATE.runtimeFlowEdgeMask || STATE.runtimeFlowEdgeMask.length !== STATE.activeEdges.length) {
+    STATE.runtimeFlowEdgeMask = new Uint8Array(STATE.activeEdges.length);
+  }
+  for (ei = 0; ei < edgePatches.length; ei += 1) {
+    var flowPatch = edgePatches[ei];
+    var fe = Number(flowPatch.index);
+    if (!isFinite(fe) || fe < 0 || fe >= STATE.runtimeFlowEdgeMask.length) continue;
+    STATE.runtimeFlowEdgeMask[fe] = flowPatch.flow ? 1 : 0;
+  }
+
+  if (STATE.graph.pointColors) STATE.pointStyleColors = STATE.graph.pointColors;
+  if (STATE.graph.pointSizes) STATE.pointStyleSizes = STATE.graph.pointSizes;
+
+  setGraphPanelFocusClass(true);
+  STATE.lastStyleHasFocus = true;
+  STATE.hoverPatchedPointIndex = null;
+  storeAppliedFocusPatchState(focus, selectedIndex, contextIndex, hoverIndex);
+  markStyleDebugMode("focus-patch");
+  return true;
+}
+
+function patchedHoverIndexFromState() {
+  var raw = STATE.hoverPatchedPointIndex;
+  if (raw === null || raw === undefined || raw === "") return -1;
+  var idx = Number(raw);
+  if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return -1;
+  return idx;
+}
+
+function tryApplyHoverOnlyStylePatch() {
+  if (!STATE.graph || typeof STATE.graph.patchPointStylesBatch !== "function") return false;
+
+  var selectedIndex = selectedIndexFromState();
+  var contextIndex = contextIndexFromState();
+  if (selectedIndex >= 0 || contextIndex >= 0 || !!STATE.lastStyleHasFocus) {
+    STATE.hoverPatchedPointIndex = null;
+    return false;
+  }
+
+  var hoverIndex = hoveredIndexFromState();
+  var prevHoverIndex = patchedHoverIndexFromState();
+  var patches = [];
+
+  if (prevHoverIndex >= 0 && prevHoverIndex !== hoverIndex) {
+    var prevPatch = baseNodeStylePatchByIndex(prevHoverIndex);
+    if (prevPatch) patches.push(prevPatch);
+  }
+  if (hoverIndex >= 0) {
+    var hoverPatch = hoverNodeStylePatchByIndex(hoverIndex);
+    if (hoverPatch) patches.push(hoverPatch);
+  }
+
+  if (!patches.length) return false;
+  if (!STATE.graph.patchPointStylesBatch(patches)) return false;
+
+  STATE.hoverPatchedPointIndex = hoverIndex >= 0 ? hoverIndex : null;
+  STATE.lastStyleHasFocus = false;
+  setGraphPanelFocusClass(hoverIndex >= 0);
+  markStyleDebugMode("hover-patch");
+  return true;
 }
 
 function applySelectionFocusStyles() {
@@ -1065,8 +1513,12 @@ function applySelectionFocusStyles() {
   var baseEdgeColors = (STATE.baseLinkColors && STATE.baseLinkColors.length) ? STATE.baseLinkColors : null;
   if (!baseNodeColors || !baseEdgeColors || !baseNodeSizes) {
     setGraphPanelFocusClass(false);
+    STATE.lastStyleHasFocus = false;
+    STATE.hoverPatchedPointIndex = null;
+    clearAppliedFocusPatchState();
     return;
   }
+
   var runtimeNodeMask = (STATE.runtimeNodeVisibleMask && STATE.runtimeNodeVisibleMask.length === baseNodeSizes.length) ? STATE.runtimeNodeVisibleMask : null;
   var runtimeEdgeMask = (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === Math.floor(baseEdgeColors.length / 4)) ? STATE.runtimeEdgeVisibleMask : null;
   var edgeCountAll = Math.floor(baseEdgeColors.length / 4);
@@ -1097,8 +1549,26 @@ function applySelectionFocusStyles() {
     STATE.graph.setLinkColors(baseEdgeColors);
     STATE.pointStyleColors = baseNodeColors;
     STATE.runtimeFlowEdgeMask = flowMask;
+    STATE.lastStyleHasFocus = false;
+    STATE.hoverPatchedPointIndex = null;
+    clearAppliedFocusPatchState();
+    markStyleDebugMode("full");
     return;
   }
+
+  var nodeCtx = createNodeStyleContext(
+    baseNodeColors,
+    baseNodeSizes,
+    runtimeNodeMask,
+    focus.nodeMask,
+    focus.hasFocus,
+    selectedIndex,
+    contextIndex,
+    hoverIndex
+  );
+  var edgeCtx = createEdgeStyleContext(baseEdgeColors, runtimeEdgeMask, focus.edgeMask, focus.hasFocus);
+
+  if (tryApplyFocusStylePatch(nodeCtx, edgeCtx, focus, selectedIndex, contextIndex, hoverIndex)) return;
 
   var outNodeColors = new Float32Array(baseNodeColors.length);
   var outNodeSizes = new Float32Array(baseNodeSizes.length);
@@ -1108,82 +1578,28 @@ function applySelectionFocusStyles() {
   outEdgeColors.set(baseEdgeColors);
 
   for (var i = 0; i < outNodeSizes.length; i += 1) {
-    if (runtimeNodeMask && !runtimeNodeMask[i]) {
-      outNodeSizes[i] = 0;
-      outNodeColors[(i * 4) + 3] = 0;
-      continue;
-    }
+    var nodeStyle = computeNodeStyleForIndex(i, nodeCtx);
+    if (!nodeStyle) continue;
     var ni = i * 4;
-    var nr = Number(baseNodeColors[ni] || 0), ng = Number(baseNodeColors[ni + 1] || 0), nb = Number(baseNodeColors[ni + 2] || 0), na = Number(baseNodeColors[ni + 3] || 1);
-    var inFocusMask = !!focus.nodeMask[i];
-    var isHovered = (i === hoverIndex);
-    if (inFocusMask || (!focus.hasFocus && isHovered)) {
-      var baseSize = Number(baseNodeSizes[i] || 1);
-      outNodeSizes[i] = baseSize * 1.2;
-      if (i === selectedIndex) {
-        outNodeColors[ni] = cl(nr * 1.08, 0, 1);
-        outNodeColors[ni + 1] = cl(ng * 1.08, 0, 1);
-        outNodeColors[ni + 2] = cl(nb * 1.08, 0, 1);
-      } else if (i === contextIndex) {
-        outNodeColors[ni] = cl(nr * 1.04, 0, 1);
-        outNodeColors[ni + 1] = cl(ng * 1.04, 0, 1);
-        outNodeColors[ni + 2] = cl(nb * 1.04, 0, 1);
-      } else if (isHovered) {
-        outNodeColors[ni] = cl(nr * 1.06, 0, 1);
-        outNodeColors[ni + 1] = cl(ng * 1.06, 0, 1);
-        outNodeColors[ni + 2] = cl(nb * 1.06, 0, 1);
-      }
-      outNodeColors[ni + 3] = cl(Math.max(na, 0.96), 0, 1);
-    } else {
-      if (!focus.hasFocus) {
-        // Hover-only mode: keep all non-hover nodes unchanged (no global dimming).
-        outNodeColors[ni] = nr;
-        outNodeColors[ni + 1] = ng;
-        outNodeColors[ni + 2] = nb;
-        outNodeColors[ni + 3] = na;
-        outNodeSizes[i] = Number(baseNodeSizes[i] || 1);
-      } else {
-        var g = luma(nr, ng, nb);
-        var dim = (g * 0.58) + 0.07;
-        outNodeColors[ni] = cl(dim, 0, 1);
-        outNodeColors[ni + 1] = cl(dim, 0, 1);
-        outNodeColors[ni + 2] = cl(dim, 0, 1);
-        outNodeColors[ni + 3] = cl(na * 0.16, 0.05, 0.24);
-        outNodeSizes[i] = Number(baseNodeSizes[i] || 1) * 0.94;
-      }
-    }
+    outNodeSizes[i] = Number(nodeStyle.size || 0);
+    outNodeColors[ni] = Number(nodeStyle.color[0] || 0);
+    outNodeColors[ni + 1] = Number(nodeStyle.color[1] || 0);
+    outNodeColors[ni + 2] = Number(nodeStyle.color[2] || 0);
+    outNodeColors[ni + 3] = Number(nodeStyle.color[3] || 0);
   }
 
   var edgeCount = Math.floor(outEdgeColors.length / 4);
   for (var e = 0; e < edgeCount; e += 1) {
-    if (runtimeEdgeMask && !runtimeEdgeMask[e]) {
-      outEdgeColors[(e * 4) + 3] = 0;
-      flowMask[e] = 0;
-      continue;
-    }
+    var edgeStyle = computeEdgeStyleForIndex(e, edgeCtx);
+    if (!edgeStyle) continue;
     var ei = e * 4;
-    var er = Number(baseEdgeColors[ei] || 0), eg = Number(baseEdgeColors[ei + 1] || 0), eb = Number(baseEdgeColors[ei + 2] || 0), ea = Number(baseEdgeColors[ei + 3] || 1);
-    if (focus.hasFocus && focus.edgeMask[e]) {
-      outEdgeColors[ei] = er;
-      outEdgeColors[ei + 1] = eg;
-      outEdgeColors[ei + 2] = eb;
-      outEdgeColors[ei + 3] = cl(Math.max(ea, 0.45), 0, 1);
-    } else {
-      if (!focus.hasFocus) {
-        outEdgeColors[ei] = er;
-        outEdgeColors[ei + 1] = eg;
-        outEdgeColors[ei + 2] = eb;
-        outEdgeColors[ei + 3] = ea;
-        continue;
-      }
-      var egrey = luma(er, eg, eb) * 0.45;
-      outEdgeColors[ei] = cl(egrey, 0, 1);
-      outEdgeColors[ei + 1] = cl(egrey, 0, 1);
-      outEdgeColors[ei + 2] = cl(egrey, 0, 1);
-      outEdgeColors[ei + 3] = cl(ea * 0.08, 0.01, 0.08);
-      flowMask[e] = 0;
-    }
+    outEdgeColors[ei] = Number(edgeStyle.color[0] || 0);
+    outEdgeColors[ei + 1] = Number(edgeStyle.color[1] || 0);
+    outEdgeColors[ei + 2] = Number(edgeStyle.color[2] || 0);
+    outEdgeColors[ei + 3] = Number(edgeStyle.color[3] || 0);
+    flowMask[e] = edgeStyle.flow ? 1 : 0;
   }
+
   setGraphPanelFocusClass(focus.hasFocus || hoverIndex >= 0);
 
   STATE.graph.setPointColors(outNodeColors);
@@ -1191,10 +1607,23 @@ function applySelectionFocusStyles() {
   STATE.graph.setLinkColors(outEdgeColors);
   STATE.pointStyleColors = outNodeColors;
   STATE.runtimeFlowEdgeMask = flowMask;
+  STATE.lastStyleHasFocus = !!focus.hasFocus;
+  if (focus.hasFocus) {
+    STATE.hoverPatchedPointIndex = null;
+    storeAppliedFocusPatchState(focus, selectedIndex, contextIndex, hoverIndex);
+  } else {
+    STATE.hoverPatchedPointIndex = (hoverIndex >= 0) ? hoverIndex : null;
+    clearAppliedFocusPatchState();
+  }
+  markStyleDebugMode("full");
 }
 
 function applyVisualStyles(renderAlpha) {
   if (!STATE.graph) return;
+  if (tryApplyHoverOnlyStylePatch()) {
+    cityEnsureFlowParticlesLoop();
+    return;
+  }
   applySelectionFocusStyles();
   if (renderAlpha === undefined || renderAlpha === null) STATE.graph.render(); else STATE.graph.render(renderAlpha);
   
@@ -1326,6 +1755,9 @@ function applyGraphData(fitView) {
     stopPointSizeAnimation();
     STATE.pointStyleSizes = new Float32Array(0);
     STATE.visibleGraphCounts = { notes: 0, families: 0, edges: 0 };
+    STATE.lastStyleHasFocus = false;
+    STATE.hoverPatchedPointIndex = null;
+    clearAppliedFocusPatchState();
     STATE.contextNodeId = null;
     STATE.contextPointIndex = null;
     cityBuildSearchEntries();
@@ -1339,6 +1771,9 @@ function applyGraphData(fitView) {
   STATE.pointStyleColors = STATE.basePointColors;
   stopPointSizeAnimation();
   STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
+  STATE.lastStyleHasFocus = false;
+  STATE.hoverPatchedPointIndex = null;
+  clearAppliedFocusPatchState();
 
   if (typeof STATE.graph.setPointIds === "function") STATE.graph.setPointIds(arrays.idsByIndex);
   STATE.graph.setPointPositions(arrays.pointPositions);

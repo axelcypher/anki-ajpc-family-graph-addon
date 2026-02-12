@@ -57,6 +57,15 @@ var STATE = {
   pointerInsideGraph: false,
   pointStyleColors: new Float32Array(0),
   pointStyleSizes: new Float32Array(0),
+  hoverPatchedPointIndex: null,
+  lastStyleHasFocus: false,
+  appliedFocusNodeMask: new Uint8Array(0),
+  appliedFocusEdgeMask: new Uint8Array(0),
+  appliedFocusNodeIndices: [],
+  appliedFocusEdgeIndices: [],
+  appliedSelectedIndex: -1,
+  appliedContextIndex: -1,
+  appliedHoverIndex: -1,
   pointSizeAnimRaf: null,
   pointSizeAnimTarget: null,
   basePointColors: new Float32Array(0),
@@ -86,6 +95,13 @@ var STATE = {
     skipTotal: 0,
     rps: 0,
     sps: 0
+  },
+  styleDebug: {
+    lastMode: "--",
+    fullCount: 0,
+    hoverPatchCount: 0,
+    focusPatchCount: 0,
+    ts: 0
   },
   hoverDebug: {
     reason: "init",

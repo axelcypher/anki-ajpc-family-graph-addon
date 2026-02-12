@@ -5,6 +5,7 @@
 var DEBUG_EXTRA_SPEC = [
   { key: "hov", a: "hoverReason", b: "hoverIdx" },
   { key: "node", a: "hoverNode", b: "hoverType" },
+  { key: "sty", a: "styleMode", b: "styleCount" },
   { key: "dep", a: "depTreeRps", b: "depTreeSkipCount" }
 ];
 
@@ -110,9 +111,26 @@ function clearDebugValueTables() {
     hoverIdx: "--",
     hoverNode: "--",
     hoverType: "--",
+    styleMode: "--",
+    styleCount: "--",
     depTreeRps: "--",
     depTreeSkipCount: "--"
   });
+}
+
+function styleDebugSummary() {
+  var s = STATE && STATE.styleDebug && typeof STATE.styleDebug === "object" ? STATE.styleDebug : {};
+  var mode = String(s.lastMode || "--");
+  var h = Number(s.hoverPatchCount || 0);
+  var f = Number(s.focusPatchCount || 0);
+  var a = Number(s.fullCount || 0);
+  if (!isFiniteNumber(h) || h < 0) h = 0;
+  if (!isFiniteNumber(f) || f < 0) f = 0;
+  if (!isFiniteNumber(a) || a < 0) a = 0;
+  return {
+    mode: mode,
+    count: "h" + h + "|f" + f + "|a" + a
+  };
 }
 
 function syncDebugPanelVisibility() {
@@ -135,6 +153,7 @@ function updateCoordsStatus() {
         var hd0 = STATE.hoverDebug || {};
         var hReason0 = String(hd0.reason || "--");
         var hIdx0 = (hd0.idx === null || hd0.idx === undefined || !isFiniteNumber(hd0.idx)) ? "--" : String(Math.round(Number(hd0.idx)));
+        var sty0 = styleDebugSummary();
         var dep0 = depTreeDebugStats(Date.now());
         setDebugCoordValues({
           use: "--",
@@ -151,6 +170,8 @@ function updateCoordsStatus() {
           hoverIdx: hIdx0,
           hoverNode: "--",
           hoverType: "--",
+          styleMode: sty0.mode,
+          styleCount: sty0.count,
           depTreeRps: dep0.depTreeRps,
           depTreeSkipCount: dep0.depTreeSkipCount
         });
@@ -232,6 +253,7 @@ function updateCoordsStatus() {
     var hIdx = (hd.idx === null || hd.idx === undefined || !isFiniteNumber(hd.idx)) ? "--" : String(Math.round(Number(hd.idx)));
     var hNode = String(hd.nodeId || "--");
     var hType = String(hd.noteType || "--");
+    var sty = styleDebugSummary();
     var dep = depTreeDebugStats(Date.now());
     setDebugCoordValues({
       use: useTag,
@@ -248,6 +270,8 @@ function updateCoordsStatus() {
       hoverIdx: hIdx,
       hoverNode: hNode,
       hoverType: hType,
+      styleMode: sty.mode,
+      styleCount: sty.count,
       depTreeRps: dep.depTreeRps,
       depTreeSkipCount: dep.depTreeSkipCount
     });
