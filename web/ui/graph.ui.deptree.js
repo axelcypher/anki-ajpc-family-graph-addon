@@ -2,6 +2,12 @@
 
 // Dep-tree UI module (extracted from graph.ui.js)
 
+function depTreeCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
 function depTreeCacheMap() {
   if (!(STATE.depTreeCache instanceof Map)) STATE.depTreeCache = new Map();
   return STATE.depTreeCache;
@@ -40,7 +46,16 @@ function normalizeDepTreePayload(payload) {
 function formatDepTreeFallbackHtml(payload, extra) {
   var p = normalizeDepTreePayload(payload);
   var tail = extra ? " " + String(extra) : "";
-  return "<div><h3>Dependency Tree:</h3> " + escapeHtml(String(p.nodes.length)) + " nodes | " + escapeHtml(String(p.edges.length)) + " edges" + escapeHtml(tail) + "</div>";
+  return renderHtmlTemplate(
+    `<div>
+      <h3>Dependency Tree:</h3> {{nodes}} nodes | {{edges}} edges{{tail}}
+    </div>`,
+    {
+      nodes: String(p.nodes.length),
+      edges: String(p.edges.length),
+      tail: tail
+    }
+  );
 }
 
 function requestDepTreeForNid(nid) {
@@ -212,7 +227,7 @@ function ensureDepTreeCanvas(payload) {
         }
       }
       if (!hit) return;
-      if (typeof focusNodeById === "function") focusNodeById(String(hit.id || ""), true);
+      depTreeCallEngine("focusNodeById", String(hit.id || ""), true);
     });
     canvas.addEventListener("dblclick", function (evt) {
       var c = evt.currentTarget;
@@ -1154,7 +1169,12 @@ function renderActiveDepTree(node) {
     return;
   }
   if (Number(STATE.depTreeLoadingNid || 0) !== nid || !DOM.statusActiveDepTreeCanvas) {
-    DOM.statusActiveDepTree.innerHTML = "<div><h3>Dependency Tree:</h3> loading...</div>";
+    DOM.statusActiveDepTree.innerHTML = renderHtmlTemplate(
+      `<div>
+        <h3>Dependency Tree:</h3> {{status}}
+      </div>`,
+      { status: "loading..." }
+    );
     DOM.statusActiveDepTreeCanvas = null;
   }
   STATE.depTreeLoadingNid = nid;

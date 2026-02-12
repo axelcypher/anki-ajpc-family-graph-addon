@@ -85,11 +85,11 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
   - `graph.solver.d3.js`, `graph.renderer.sigma.js`, `graph.ui.js`, `graph.main.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
-- Engine runtime is now `sigma.js` via local asset `web/sigma.min.js`.
+- Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
 - Engine runtime implementation is in `web/graph.engine.sigma.js`.
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
-- Active layout solver is `d3-force` (`web/d3-force.min.js`) via `web/graph.solver.d3.js`.
+- Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
 - Flow overlay in `web/graph.flow.js` samples conic curves in graph-space and projects to screen.
 - Node pulse/ring effects are rendered on `#node-fx-canvas` under the graph layer.
@@ -109,7 +109,7 @@ Icon: Knowledge Graph (CC0) - source: https://www.svgrepo.com/svg/451006/knowled
 ---
 
 ## Third-Party Licenses
-- `web/sigma.min.js` — see `third_party/sigma/LICENSE`
+- `web/libs/sigma.min.js` — see `third_party/sigma/LICENSE`
 - Sigma project: `sigma.js` (MIT)
 - Legacy bundled asset (currently not active runtime): `web/cosmos-graph.min.js` — see `third_party/cosmos/LICENSE`
 See `THIRD_PARTY_NOTICES.md` for a summary.

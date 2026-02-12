@@ -61,6 +61,36 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
+function readTemplatePath(data, path) {
+  var key = String(path || "").trim();
+  if (!key) return "";
+  if (key === ".") return data;
+  var cur = data;
+  var parts = key.split(".");
+  var i;
+  for (i = 0; i < parts.length; i += 1) {
+    var part = String(parts[i] || "").trim();
+    if (!part) continue;
+    if (cur === null || cur === undefined) return "";
+    if (!Object.prototype.hasOwnProperty.call(Object(cur), part)) return "";
+    cur = cur[part];
+  }
+  return cur;
+}
+
+function renderHtmlTemplate(template, data) {
+  var src = String(template || "");
+  var ctx = (data && typeof data === "object") ? data : {};
+  return src.replace(/\{\{\{\s*([a-zA-Z0-9_.$]+)\s*\}\}\}|\{\{\s*([a-zA-Z0-9_.$]+)\s*\}\}/g, function (_m, rawKey, escKey) {
+    var isRaw = !!rawKey;
+    var lookup = isRaw ? rawKey : escKey;
+    var value = readTemplatePath(ctx, lookup);
+    if (value === null || value === undefined) value = "";
+    var text = String(value);
+    return isRaw ? text : escapeHtml(text);
+  });
+}
+
 function humanizeLayer(layer) {
   var raw = String(layer || "").replace(/_/g, " ").trim();
   if (!raw) return "unknown";
@@ -180,3 +210,9 @@ function seededPos(id) {
   var y = cy + (Math.sin(angle) * radius);
   return [x, y];
 }
+
+(function registerUtilsAdapterPorts() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+  adapter.registerCityPort("seededPos", seededPos);
+})();

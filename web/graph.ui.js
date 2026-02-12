@@ -12,41 +12,6 @@
 // ============================================================
 
 // === Tooltip + Hover =========================================================
-function tooltipHtml(node) {
-  var parts = [];
-  parts.push('<div class="tip-title">' + escapeHtml(node.label || node.id) + "</div>");
-
-  if (node.note_type) {
-    parts.push('<div class="tip-muted">' + escapeHtml(node.note_type) + "</div>");
-  } else if (node.kind) {
-    parts.push('<div class="tip-muted">' + escapeHtml(node.kind) + "</div>");
-  }
-
-  if (Array.isArray(node.layers) && node.layers.length) {
-    parts.push("<div>Layers: " + escapeHtml(node.layers.join(", ")) + "</div>");
-  }
-
-  if (Array.isArray(node.extra) && node.extra.length) {
-    var ntid = String(node.note_type_id || "");
-    var nt = STATE.noteTypes[ntid];
-    var allowed = nt && Array.isArray(nt.tooltipFields) && nt.tooltipFields.length
-      ? new Set(nt.tooltipFields)
-      : null;
-    var filtered = allowed
-      ? node.extra.filter(function (entry) { return allowed.has(String(entry.name || "")); })
-      : node.extra;
-    var maxRows = 4;
-    var rows = filtered.slice(0, maxRows).map(function (entry) {
-      return "<div><strong>" + escapeHtml(entry.name || "") + ":</strong> " + escapeHtml(entry.value || "") + "</div>";
-    });
-    parts.push(rows.join(""));
-    if (filtered.length > maxRows) {
-      parts.push('<div class="tip-muted">+ ' + (filtered.length - maxRows) + " more fields</div>");
-    }
-  }
-
-  return parts.join("");
-}
 
 // === Card Formatting =========================================================
 function normalizeCardStatusLabel(status) {
@@ -84,64 +49,65 @@ function setHoverDebug(reason, details) {
   };
 }
 
-function showTooltip(node, event) {
-  if (!DOM.hoverTip || !node) return;
-  var nodeId = String(node.id || "");
-  if (String(DOM.hoverTip.__nodeId || "") !== nodeId) {
-    DOM.hoverTip.innerHTML = tooltipHtml(node);
-    DOM.hoverTip.__nodeId = nodeId;
-  }
-  DOM.hoverTip.classList.add("is-visible");
-
-  var cx = event && typeof event.clientX === "number" ? Number(event.clientX) : NaN;
-  var cy = event && typeof event.clientY === "number" ? Number(event.clientY) : NaN;
-  if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) {
-    cx = Number(STATE.pointerClientX);
-    cy = Number(STATE.pointerClientY);
-  }
-  if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) {
-    var panelRect = DOM.graphPanel ? DOM.graphPanel.getBoundingClientRect() : null;
-    if (panelRect) {
-      cx = panelRect.left + (panelRect.width * 0.5);
-      cy = panelRect.top + (panelRect.height * 0.5);
-    }
-  }
-  if (isFiniteNumber(cx) && isFiniteNumber(cy)) {
-    DOM.hoverTip.style.left = (cx + 14) + "px";
-    DOM.hoverTip.style.top = (cy + 14) + "px";
-  }
-  setHoverDebug("tooltip-show", {
-    nodeId: node.id,
-    noteType: node.note_type || node.kind || "",
-    pointerX: cx,
-    pointerY: cy
-  });
-}
-
-function moveTooltip(clientX, clientY) {
-  if (!DOM.hoverTip) return;
-  if (!DOM.hoverTip.classList.contains("is-visible")) return;
-  var cx = Number(clientX);
-  var cy = Number(clientY);
-  if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) return;
-  DOM.hoverTip.style.left = (cx + 14) + "px";
-  DOM.hoverTip.style.top = (cy + 14) + "px";
-}
-
-function hideTooltip() {
-  if (!DOM.hoverTip) return;
-  DOM.hoverTip.classList.remove("is-visible");
-  DOM.hoverTip.__nodeId = "";
-}
-
 function clearHoverNodeState(reason, details) {
   var idx = STATE.hoveredPointIndex;
   setHoverDebug(reason || "hover-clear", Object.assign({ idx: idx }, details || {}));
   STATE.hoveredPointIndex = null;
-  if (idx !== null && idx !== undefined && typeof applyVisualStyles === "function") {
-    applyVisualStyles(0.08);
+  if (idx !== null && idx !== undefined) {
+    callEngineApplyVisualStyles(0.08);
   }
   hideTooltip();
+}
+
+function adapterCallCity(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callCity !== "function") return undefined;
+  return adapter.callCity.apply(adapter, arguments);
+}
+
+function adapterCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
+function callEngineApplyVisualStyles(renderAlpha) {
+  return adapterCallEngine("applyVisualStyles", renderAlpha);
+}
+
+function callEngineApplyGraphData(fitView) {
+  return adapterCallEngine("applyGraphData", fitView);
+}
+
+function callEngineFocusNodeById(nodeId, fromSearch) {
+  return adapterCallEngine("focusNodeById", nodeId, fromSearch);
+}
+
+function callCityApplyRuntimeUiSettings(reheatLayout) {
+  return adapterCallCity("applyRuntimeUiSettings", reheatLayout);
+}
+
+function callCityApplyRuntimeLinkDistances(reheat) {
+  return adapterCallCity("applyRuntimeLinkDistances", reheat);
+}
+
+function callCityGetCardSettingsDefaults() {
+  var out = adapterCallCity("getCardSettingsDefaults");
+  return (out && typeof out === "object") ? out : {};
+}
+
+function callCityGetCardSettingsSpec() {
+  var out = adapterCallCity("getCardSettingsSpec");
+  return Array.isArray(out) ? out : [];
+}
+
+function callCityCollectCardSettings(input) {
+  var out = adapterCallCity("collectCardSettings", input);
+  return (out && typeof out === "object") ? out : {};
+}
+
+function callCitySyncCardSettingsFromMeta() {
+  return adapterCallCity("syncCardSettingsFromMeta");
 }
 
 // === Hover hit testing =======================================================
@@ -230,11 +196,11 @@ function findHoverCandidateAtPointer() {
 
 // === UI helpers ==============================================================
 function applyUiSettingsNoRebuild(reheatLayout) {
-  if (typeof applyRuntimeUiSettings === "function") {
-    return !!applyRuntimeUiSettings(reheatLayout);
+  var runtimeApplied = callCityApplyRuntimeUiSettings(reheatLayout);
+  if (runtimeApplied !== undefined) {
+    return !!runtimeApplied;
   }
-  if (typeof applyGraphData === "function") {
-    applyGraphData(false);
+  if (callEngineApplyGraphData(false) !== undefined) {
     return true;
   }
   return false;
@@ -296,81 +262,6 @@ function defaultSolverLinkDistance() {
 
 // === Card Settings ==============================================================
 
-var AJPC_CARD_SETTINGS_DEFAULTS = {
-  card_dots_enabled: true,
-  card_dot_suspended_color: "#ef4444",
-  card_dot_buried_color: "#f59e0b"
-};
-
-var AJPC_CARD_SETTINGS_SPEC = [
-  {
-    key: "card_dots_enabled",
-    label: "Enable Card Dots",
-    type: "bool",
-    affectsEngine: false,
-    hint: "Persisted UI setting for card-dot visibility."
-  },
-  {
-    key: "card_dot_suspended_color",
-    label: "Suspended Color",
-    type: "color",
-    affectsEngine: false,
-    hint: "Persisted color for suspended-card dots."
-  },
-  {
-    key: "card_dot_buried_color",
-    label: "Buried Color",
-    type: "color",
-    affectsEngine: false,
-    hint: "Persisted color for buried-card dots."
-  }
-];
-
-function getCardSettingsDefaults() {
-  return Object.assign({}, AJPC_CARD_SETTINGS_DEFAULTS);
-}
-
-function cardSettingsSpec() {
-  return AJPC_CARD_SETTINGS_SPEC.slice();
-}
-
-function collectCardSettings(input) {
-  var src = (input && typeof input === "object") ? input : {};
-  var defaults = getCardSettingsDefaults();
-  var out = Object.assign({}, defaults);
-
-  var dotsEnabled = src.card_dots_enabled;
-  if (typeof dotsEnabled === "string") {
-    var raw = dotsEnabled.trim().toLowerCase();
-    if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") dotsEnabled = true;
-    else if (raw === "0" || raw === "false" || raw === "no" || raw === "off") dotsEnabled = false;
-  }
-  out.card_dots_enabled = (dotsEnabled === undefined) ? !!defaults.card_dots_enabled : !!dotsEnabled;
-  out.card_dot_suspended_color = String(src.card_dot_suspended_color || defaults.card_dot_suspended_color || "").trim() || defaults.card_dot_suspended_color;
-  out.card_dot_buried_color = String(src.card_dot_buried_color || defaults.card_dot_buried_color || "").trim() || defaults.card_dot_buried_color;
-  return out;
-}
-
-function cardSettingsFromMeta() {
-  var meta = (STATE && STATE.raw && STATE.raw.meta && typeof STATE.raw.meta === "object")
-    ? STATE.raw.meta
-    : {};
-  var colors = (meta.card_dot_colors && typeof meta.card_dot_colors === "object")
-    ? meta.card_dot_colors
-    : {};
-
-  return {
-    card_dots_enabled: meta.card_dots_enabled,
-    card_dot_suspended_color: meta.card_dot_suspended_color !== undefined ? meta.card_dot_suspended_color : colors.suspended,
-    card_dot_buried_color: meta.card_dot_buried_color !== undefined ? meta.card_dot_buried_color : colors.buried
-  };
-}
-
-function syncCardSettingsFromMeta() {
-  var merged = Object.assign({}, cardSettingsFromMeta(), STATE.cards || {});
-  STATE.cards = collectCardSettings(merged);
-}
-
 function persistCardSetting(key, value) {
   var k = String(key || "");
   if (k === "card_dots_enabled") {
@@ -416,9 +307,11 @@ function renderActiveCards(node) {
   if (!DOM.statusActiveCards) return;
   var cards = node && Array.isArray(node.cards) ? node.cards : [];
   if (!cards.length) {
-    DOM.statusActiveCards.innerHTML = ""
-      + '<div class="title"><h3>Cards</h3></div>'
-      + '<div class="active-cards-empty">No cards</div>';
+    DOM.statusActiveCards.innerHTML = renderHtmlTemplate(
+      `<div class="title"><h3>{{title}}</h3></div>
+      <div class="active-cards-empty">{{message}}</div>`,
+      { title: "Cards", message: "No cards" }
+    );
     return;
   }
 
@@ -441,18 +334,22 @@ function renderActiveCards(node) {
     var ordText = isFiniteNumber(ord) ? String(ord + 1) : "--";
     var statusText = normalizeCardStatusLabel(c.status);
     var stabilityText = formatCardStability(c.stability);
-    return ""
-      + '<div class="active-card-row">'
-      + '<span class="active-card-ord">#' + escapeHtml(ordText) + "</span>"
-      + '<span class="active-card-status">' + escapeHtml(statusText) + "</span>"
-      + '<span class="active-card-stability">' + escapeHtml(stabilityText) + "</span>"
-      + "</div>";
+    return renderHtmlTemplate(
+      `<div class="active-card-row">
+        <span class="active-card-ord">#{{ord}}</span>
+        <span class="active-card-status">{{status}}</span>
+        <span class="active-card-stability">{{stability}}</span>
+      </div>`,
+      { ord: ordText, status: statusText, stability: stabilityText }
+    );
   }).join("");
 
-  DOM.statusActiveCards.innerHTML = ""
-    + '<div class="title"><h3>Cards</h3></div>'
-    + '<div class="active-cards-summary">' + escapeHtml(summary) + "</div>"
-    + '<div class="active-cards-list">' + rows + "</div>";
+  DOM.statusActiveCards.innerHTML = renderHtmlTemplate(
+    `<div class="title"><h3>{{title}}</h3></div>
+    <div class="active-cards-summary">{{summary}}</div>
+    <div class="active-cards-list">{{{rows}}}</div>`,
+    { title: "Cards", summary: summary, rows: rows }
+  );
 }
 
 function renderActiveDetails() {
@@ -538,13 +435,28 @@ function renderActiveDetails() {
   });
   if (links.length > linkListLimit) linkList.push("... +" + String(links.length - linkListLimit));
 
-  var line1 = "<div class='title'><h2>" + escapeHtml(label) + "</h2></div><div class='notetype'>" + (noteType ? noteType : "") + "</div>";
-  var line2 = "<div class='title'><h3>Families: </h3></div><div class='active-family'>" + (families.length ? families.join("</div><div class='active-family'> ") : "none") + "</div>";
+  var familiesHtml = families.length
+    ? families.map(function (family) {
+      return renderHtmlTemplate(
+        `<div class="active-family">{{name}}</div>`,
+        { name: family }
+      );
+    }).join("")
+    : renderHtmlTemplate(
+      `<div class="active-family">{{name}}</div>`,
+      { name: "none" }
+    );
   if (activePanel && activePanel.__ajpcHideTimer) {
     window.clearTimeout(activePanel.__ajpcHideTimer);
     activePanel.__ajpcHideTimer = null;
   }
-  DOM.statusActiveDetails.innerHTML = line1 + line2 ;
+  DOM.statusActiveDetails.innerHTML = renderHtmlTemplate(
+    `<div class="title"><h2>{{label}}</h2></div>
+    <div class="notetype">{{noteType}}</div>
+    <div class="title"><h3>Families: </h3></div>
+    {{{familiesHtml}}}`,
+    { label: label, noteType: (noteType ? noteType : ""), familiesHtml: familiesHtml }
+  );
   renderActiveCards(node);
   renderActiveDepTree(node);
   if (activePanel) {
@@ -736,11 +648,18 @@ function renderSuggestions(query) {
   }
 
   DOM.searchSuggest.innerHTML = matches.map(function (entry, idx) {
-    return ""
-      + '<div class="suggest-item" data-idx="' + idx + '" data-id="' + escapeHtml(entry.id) + '">'
-      + escapeHtml(entry.label)
-      + '<span class="suggest-meta">' + escapeHtml(entry.metaLine || entry.noteType || "") + "</span>"
-      + "</div>";
+    return renderHtmlTemplate(
+      `<div class="suggest-item" data-idx="{{idx}}" data-id="{{id}}">
+        {{label}}
+        <span class="suggest-meta">{{meta}}</span>
+      </div>`,
+      {
+        idx: idx,
+        id: entry.id,
+        label: entry.label,
+        meta: (entry.metaLine || entry.noteType || "")
+      }
+    );
   }).join("");
 
   DOM.searchSuggest.classList.add("is-visible");
@@ -752,581 +671,12 @@ function renderSuggestions(query) {
     });
     item.addEventListener("click", function () {
       var id = item.getAttribute("data-id") || "";
-      focusNodeById(id, true);
+      callEngineFocusNodeById(id, true);
     });
   });
 }
 
-// === Context menu ============================================================
-function getNodeFamilyMapForCtx(node) {
-  if (!node) return null;
-  return (node.family_prios && typeof node.family_prios === "object") ? node.family_prios : null;
-}
-
-function getNodeFamiliesForCtx(node) {
-  if (!node) return [];
-  if (Array.isArray(node.families) && node.families.length) return node.families.slice(0);
-  var map = getNodeFamilyMapForCtx(node);
-  return map ? Object.keys(map) : [];
-}
-
-function hasPositiveFamilyPrioForCtx(node) {
-  var map = getNodeFamilyMapForCtx(node);
-  if (!map) return false;
-  return Object.keys(map).some(function (k) {
-    var v = map[k];
-    return typeof v === "number" && isFinite(v) && v > 0;
-  });
-}
-
-function edgeIdsForCtx(edge) {
-  var s = edge && edge.source && typeof edge.source === "object" ? edge.source.id : (edge ? edge.source : "");
-  var t = edge && edge.target && typeof edge.target === "object" ? edge.target.id : (edge ? edge.target : "");
-  return { s: String(s), t: String(t) };
-}
-
-function contextNodeColor(node) {
-  if (!node) return "";
-  if (String(node.kind || "") === "family") return fallbackLayerColor("families");
-  var ntid = String(node.note_type_id || "");
-  if (ntid && STATE.noteTypes && STATE.noteTypes[ntid] && STATE.noteTypes[ntid].color) {
-    return normalizeHexColor(STATE.noteTypes[ntid].color, fallbackLayerColor("notes"));
-  }
-  return fallbackLayerColor("notes");
-}
-
-function isNodePinnedForCtx(node) {
-  if (!node) return false;
-  return node.fx != null || node.fy != null;
-}
-
-function buildNoteTypeLinkedFieldMapForCtx() {
-  var out = {};
-  var src = STATE.noteTypes && typeof STATE.noteTypes === "object" ? STATE.noteTypes : {};
-  Object.keys(src).forEach(function (id) {
-    out[String(id)] = String(src[id] && src[id].linkedField || "");
-  });
-  return out;
-}
-
-function showCtxMessage(text) {
-  updateStatus(String(text || ""));
-}
-
-function showFamilyPickerForCtx(title, families, onApply) {
-  if (!families || !families.length) return;
-  var overlay = byId("ctx-picker");
-  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-
-  overlay = document.createElement("div");
-  overlay.id = "ctx-picker";
-  var dialog = document.createElement("div");
-  dialog.className = "dialog";
-  var heading = document.createElement("div");
-  heading.className = "title";
-  heading.textContent = String(title || "Select families");
-  var list = document.createElement("div");
-  list.className = "list";
-
-  families.forEach(function (fid) {
-    var row = document.createElement("label");
-    row.className = "row";
-    var cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.value = String(fid);
-    var span = document.createElement("span");
-    span.textContent = String(fid);
-    row.appendChild(cb);
-    row.appendChild(span);
-    list.appendChild(row);
-  });
-
-  var btnRow = document.createElement("div");
-  btnRow.className = "btn-row";
-  var cancelBtn = document.createElement("button");
-  cancelBtn.className = "btn";
-  cancelBtn.type = "button";
-  cancelBtn.textContent = "Cancel";
-  var okBtn = document.createElement("button");
-  okBtn.className = "btn primary";
-  okBtn.type = "button";
-  okBtn.textContent = "Apply";
-  btnRow.appendChild(cancelBtn);
-  btnRow.appendChild(okBtn);
-
-  dialog.appendChild(heading);
-  dialog.appendChild(list);
-  dialog.appendChild(btnRow);
-  overlay.appendChild(dialog);
-  document.body.appendChild(overlay);
-
-  function close() {
-    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-  }
-
-  cancelBtn.addEventListener("click", function () {
-    close();
-  });
-
-  okBtn.addEventListener("click", function () {
-    var selected = [];
-    list.querySelectorAll("input[type=checkbox]:checked").forEach(function (el) {
-      selected.push(String(el.value || ""));
-    });
-    close();
-    if (typeof onApply === "function") onApply(selected);
-  });
-
-  overlay.addEventListener("click", function (evt) {
-    if (evt.target === overlay) close();
-  });
-}
-
-function manualLinkInfoForCtx(aId, bId) {
-  var info = { ab: false, ba: false };
-  var edges = Array.isArray(STATE.activeEdges) ? STATE.activeEdges : [];
-  edges.forEach(function (edge) {
-    if (!edge) return;
-    var layer = String(edge.layer || "");
-    if (layer !== "note_links" && layer !== "reference") return;
-    var meta = edge.meta && typeof edge.meta === "object" ? edge.meta : {};
-    if (!meta.manual) return;
-    var ids = edgeIdsForCtx(edge);
-    if (ids.s === aId && ids.t === bId) info.ab = true;
-    if (ids.s === bId && ids.t === aId) info.ba = true;
-    if (meta.bidirectional && ((ids.s === aId && ids.t === bId) || (ids.s === bId && ids.t === aId))) {
-      info.ab = true;
-      info.ba = true;
-    }
-  });
-  return info;
-}
-
-function buildContextMenuGroupsForCtx(ctx) {
-  ctx = ctx || {};
-  var node = ctx.node;
-  if (!node) return [];
-  var selectedNode = ctx.selectedNode || null;
-  var selectedKind = ctx.selectedKind || (selectedNode ? (selectedNode.kind || "") : "");
-  var menuSelectedId = ctx.menuSelectedId || (selectedNode ? String(selectedNode.id) : "");
-  var noteTypeLinkedField = ctx.noteTypeLinkedField || {};
-  var showToast = ctx.showToast || function () {};
-  var pycmd = ctx.pycmd || null;
-  var showFamilyPicker = ctx.showFamilyPicker || null;
-  function openEditorViaApi(nodeId) {
-    if (!pycmd) return;
-    pycmd("ctx:editapi:" + String(nodeId));
-  }
-
-  function getPrimaryFamily(n) {
-    if (!n) return "";
-    if (n.kind === "family") return n.label || String(n.id || "").replace("family:", "");
-    var fams = getNodeFamiliesForCtx(n);
-    return fams.length ? String(fams[0]) : "";
-  }
-
-  function getSharedFamilies(a, b) {
-    if (!a || !b) return [];
-    var famA = getNodeFamiliesForCtx(a);
-    var famB = getNodeFamiliesForCtx(b);
-    if (!famA.length || !famB.length) return [];
-    var set = Object.create(null);
-    famA.forEach(function (f) { set[String(f)] = true; });
-    var out = [];
-    famB.forEach(function (f) { if (set[String(f)]) out.push(String(f)); });
-    return out;
-  }
-
-  var groups = [];
-  var openGroup = [];
-  var isNodeNoteTypeHub = node && node.kind === "note_type_hub";
-  if (node.kind === "note") {
-    openGroup.push({
-      label: "Open Preview",
-      cb: function () { showToast("Open preview"); if (pycmd) pycmd("ctx:preview:" + node.id); }
-    });
-    openGroup.push({
-      label: "Open Editor",
-      cb: function () { showToast("Open editor"); openEditorViaApi(node.id); }
-    });
-    openGroup.push({
-      label: "Open Browser",
-      cb: function () { showToast("Open browser"); if (pycmd) pycmd("ctx:browser:" + node.id); }
-    });
-  } else if (isNodeNoteTypeHub) {
-    openGroup.push({
-      label: "Open Browser by Mass Linker Tag",
-      cb: function () {
-        var tag = "";
-        var rawId = String(node.id || "");
-        if (rawId.indexOf("autolink:") === 0) tag = rawId.slice("autolink:".length);
-        tag = String(tag || "").trim();
-        if (!tag) { showToast("Missing Mass Linker tag"); return; }
-        showToast("Open browser");
-        if (pycmd) pycmd("ctx:browsertag:" + encodeURIComponent(tag));
-      }
-    });
-  }
-  groups.push(openGroup);
-
-  var isSelectedNote = selectedNode && selectedKind === "note";
-  var isSelectedFamily = selectedNode && selectedKind === "family";
-  var isNodeNote = node && node.kind === "note";
-  var isNodeFamily = node && node.kind === "family";
-  var isDifferent = selectedNode && String(node.id) !== String(menuSelectedId);
-  var isSame = selectedNode && String(node.id) === String(menuSelectedId);
-
-  var connectGroup = [];
-  if (selectedNode && isDifferent && isNodeNote) {
-    var canConnect = selectedKind === "family" || (selectedKind === "note" && getNodeFamiliesForCtx(selectedNode).length);
-    if (selectedKind === "kanji" || selectedKind === "kanji_hub") canConnect = false;
-    if (canConnect) {
-      function doConnectWithMode(title, mode) {
-        return function () {
-          function doConnect(families) {
-            if (Array.isArray(families) && families.length === 0) { showToast("Select at least one family"); return; }
-            showToast("Connect family");
-            var payload = {
-              source: String(menuSelectedId),
-              target: String(node.id),
-              source_kind: selectedKind,
-              source_label: selectedNode.label || "",
-              prio_mode: mode || ""
-            };
-            if (families) payload.families = families;
-            if (pycmd) pycmd("ctx:connect:" + encodeURIComponent(JSON.stringify(payload)));
-          }
-          var selectedFamilies = getNodeFamiliesForCtx(selectedNode);
-          if (selectedKind === "note" && selectedFamilies.length > 1) {
-            if (showFamilyPicker) showFamilyPicker(title, selectedFamilies, doConnect);
-            else doConnect(selectedFamilies || []);
-          } else if (selectedKind === "family") {
-            var fid = selectedNode.label || String(selectedNode.id).replace("family:", "");
-            doConnect([fid]);
-          } else if (selectedKind === "note") {
-            doConnect(selectedFamilies || []);
-          } else {
-            doConnect([]);
-          }
-        };
-      }
-      if (selectedKind === "family") {
-        connectGroup.push({ label: "Connect selected to Family", cb: doConnectWithMode("Select hub families", "hub_zero") });
-      } else if (selectedKind === "note") {
-        connectGroup.push({ label: "Connect selected: to active Family@+1", cb: doConnectWithMode("Select families to connect", "") });
-        connectGroup.push({ label: "Connect selected to: active Family", cb: doConnectWithMode("Select families to connect", "same") });
-        if (hasPositiveFamilyPrioForCtx(selectedNode)) {
-          connectGroup.push({ label: "Connect selected: to active Family@-1", cb: doConnectWithMode("Select families to connect", "minus1") });
-        }
-        connectGroup.push({
-          label: "Connect active to: selected Family",
-          cb: function () {
-            var families = getNodeFamiliesForCtx(node);
-            if (!families.length) { showToast("No family on selected"); return; }
-            function doConnectFromSelected(fams) {
-              if (Array.isArray(fams) && fams.length === 0) { showToast("Select at least one family"); return; }
-              showToast("Connect family");
-              var payload = {
-                source: String(node.id),
-                target: String(menuSelectedId),
-                source_kind: "note",
-                source_label: node.label || "",
-                prio_mode: "hub_zero"
-              };
-              if (Array.isArray(fams)) payload.families = fams;
-              if (pycmd) pycmd("ctx:connect:" + encodeURIComponent(JSON.stringify(payload)));
-            }
-            if (families.length > 1 && showFamilyPicker) showFamilyPicker("Select families to connect", families, doConnectFromSelected);
-            else doConnectFromSelected(families);
-          }
-        });
-      }
-    }
-  }
-  groups.push(connectGroup);
-
-  var linkInfo = { ab: false, ba: false };
-  if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
-    linkInfo = manualLinkInfoForCtx(String(menuSelectedId), String(node.id));
-  }
-
-  var disconnectGroup = [];
-  if (
-    selectedNode &&
-    (isDifferent || isSame) &&
-    (isSelectedNote || isSelectedFamily) &&
-    (isNodeNote || isNodeFamily) &&
-    !(isSelectedFamily && isNodeFamily)
-  ) {
-    var activeFamily = getPrimaryFamily(selectedNode);
-    var sharedFamilies = [];
-    if (isSelectedFamily) {
-      sharedFamilies = activeFamily ? [activeFamily] : [];
-    } else if (isNodeFamily) {
-      var hubFid = node.label || String(node.id).replace("family:", "");
-      var activeFamilies2 = getNodeFamiliesForCtx(selectedNode).map(function (f) { return String(f); });
-      if (hubFid && activeFamilies2.indexOf(String(hubFid)) >= 0) sharedFamilies = [hubFid];
-    } else {
-      sharedFamilies = isSame ? getNodeFamiliesForCtx(node).slice(0) : getSharedFamilies(selectedNode, node);
-    }
-    if (sharedFamilies.length) {
-      disconnectGroup.push({
-        label: isSame
-          ? "Disconnect from Family"
-          : (isNodeFamily && isSelectedNote)
-            ? "Disconnect from Family"
-            : isSelectedFamily
-              ? "Disconnect selected from Family"
-              : "Disconnect selected: from active Family",
-        cb: function () {
-          function doDisconnect(families) {
-            showToast("Disconnect family");
-            var payload = {
-              source: String(menuSelectedId),
-              target: String(node.id),
-              source_kind: selectedKind,
-              source_label: selectedNode.label || ""
-            };
-            if (isNodeFamily && isSelectedNote) {
-              var hubFid3 = node.label || String(node.id).replace("family:", "");
-              payload.source = String(node.id);
-              payload.target = String(menuSelectedId);
-              payload.source_kind = "family";
-              payload.source_label = hubFid3;
-            }
-            if (families && families.length) payload.families = families;
-            if (pycmd) pycmd("ctx:disconnect:" + encodeURIComponent(JSON.stringify(payload)));
-          }
-          if (sharedFamilies.length > 1 && isSelectedNote) {
-            if (showFamilyPicker) showFamilyPicker("Select families to disconnect", sharedFamilies, doDisconnect);
-            else doDisconnect(sharedFamilies);
-          } else {
-            doDisconnect(sharedFamilies);
-          }
-        }
-      });
-    }
-  }
-
-  var appendItems = [];
-  if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
-    var targetNt = node.note_type_id ? String(node.note_type_id) : "";
-    var targetLinked = targetNt ? noteTypeLinkedField[targetNt] : "";
-    var activeNt = selectedNode.note_type_id ? String(selectedNode.note_type_id) : "";
-    var activeLinked = activeNt ? noteTypeLinkedField[activeNt] : "";
-    if (targetLinked && !linkInfo.ba) {
-      appendItems.push({
-        label: "Append Link on selected: to active",
-        cb: function () {
-          showToast("Append link");
-          var payload = { source: String(menuSelectedId), target: String(node.id), label: selectedNode.label || "" };
-          if (pycmd) pycmd("ctx:link:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-    if (activeLinked && !linkInfo.ab) {
-      appendItems.push({
-        label: "Append Link on active: to selected",
-        cb: function () {
-          showToast("Append link");
-          var payload = { source: String(node.id), target: String(menuSelectedId), label: node.label || "" };
-          if (pycmd) pycmd("ctx:link_active:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-    if (targetLinked && activeLinked && !linkInfo.ab && !linkInfo.ba) {
-      appendItems.push({
-        label: "Append Link on both: to each other",
-        cb: function () {
-          showToast("Append links");
-          var payload = {
-            source: String(menuSelectedId),
-            target: String(node.id),
-            source_label: selectedNode.label || "",
-            target_label: node.label || ""
-          };
-          if (pycmd) pycmd("ctx:link_both:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-  }
-
-  var removeGroup = [];
-  if (selectedNode && isDifferent && isNodeNote && isSelectedNote) {
-    var nodeNt = node.note_type_id ? String(node.note_type_id) : "";
-    var nodeLinked = nodeNt ? noteTypeLinkedField[nodeNt] : "";
-    var selNt = selectedNode.note_type_id ? String(selectedNode.note_type_id) : "";
-    var selLinked = selNt ? noteTypeLinkedField[selNt] : "";
-    if (linkInfo.ba && nodeLinked) {
-      removeGroup.push({
-        label: "Remove Link on selected: to active",
-        cb: function () {
-          showToast("Remove link");
-          var payload = { source: String(menuSelectedId), target: String(node.id) };
-          if (pycmd) pycmd("ctx:unlink:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-    if (linkInfo.ab && selLinked) {
-      removeGroup.push({
-        label: "Remove Link on active: to selected",
-        cb: function () {
-          showToast("Remove link");
-          var payload = { source: String(node.id), target: String(menuSelectedId) };
-          if (pycmd) pycmd("ctx:unlink_active:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-    if (linkInfo.ab && linkInfo.ba && nodeLinked && selLinked) {
-      removeGroup.push({
-        label: "Remove Link on both: to each other",
-        cb: function () {
-          showToast("Remove links");
-          var payload = { source: String(menuSelectedId), target: String(node.id) };
-          if (pycmd) pycmd("ctx:unlink_both:" + encodeURIComponent(JSON.stringify(payload)));
-        }
-      });
-    }
-  }
-
-  var filterGroup = [];
-  var families = [];
-  if (isNodeFamily) families = [node.label || String(node.id).replace("family:", "")];
-  else families = getNodeFamiliesForCtx(node).slice(0, 20);
-  families.forEach(function (fid) {
-    filterGroup.push({
-      label: "Filter Family: " + fid,
-      cb: function () {
-        showToast("Filter family");
-        if (pycmd) pycmd("ctx:filter:" + encodeURIComponent(fid));
-      }
-    });
-  });
-
-  groups.push(disconnectGroup);
-  groups.push(appendItems);
-  groups.push(removeGroup);
-  groups.push(filterGroup);
-
-  return groups;
-}
-
-function hideContextMenu() {
-  if (!DOM.ctxMenu) return;
-  DOM.ctxMenu.classList.remove("is-visible");
-  DOM.ctxMenu.setAttribute("aria-hidden", "true");
-}
-
-function showContextMenu(node, evt) {
-  var menu = DOM.ctxMenu;
-  if (!menu || !node) return;
-
-  var menuSelectedId = STATE.selectedNodeId ? String(STATE.selectedNodeId) : "";
-  var selectedNode = null;
-  if (menuSelectedId && STATE.activeIndexById && STATE.activeIndexById.has(menuSelectedId)) {
-    var si = Number(STATE.activeIndexById.get(menuSelectedId));
-    if (isFinite(si) && si >= 0 && si < STATE.activeNodes.length) selectedNode = STATE.activeNodes[si];
-  }
-  if (!selectedNode && node.kind === "note") {
-    selectedNode = node;
-    menuSelectedId = String(node.id || "");
-  }
-  var selectedKind = selectedNode ? String(selectedNode.kind || "") : "";
-  var activeColor = contextNodeColor(node);
-  var noteTypeLinkedField = buildNoteTypeLinkedFieldMapForCtx();
-
-  var groups = buildContextMenuGroupsForCtx({
-    node: node,
-    selectedNode: selectedNode,
-    selectedKind: selectedKind,
-    menuSelectedId: menuSelectedId,
-    noteTypeLinkedField: noteTypeLinkedField,
-    showToast: showCtxMessage,
-    pycmd: window.pycmd,
-    showFamilyPicker: showFamilyPickerForCtx
-  });
-
-  function addItem(label, cb) {
-    var div = document.createElement("div");
-    div.className = "item";
-    var tokens = String(label || "").split(/(selected|active)/g);
-    tokens.forEach(function (tok) {
-      if (!tok) return;
-      if (tok === "selected") {
-        div.appendChild(document.createTextNode("selected"));
-        var dot = document.createElement("span");
-        dot.className = "ctx-selected-dot";
-        div.appendChild(dot);
-        return;
-      }
-      if (tok === "active") {
-        div.appendChild(document.createTextNode("active"));
-        var ad = document.createElement("span");
-        ad.className = "ctx-active-dot";
-        if (activeColor) ad.style.background = activeColor;
-        div.appendChild(ad);
-        return;
-      }
-      div.appendChild(document.createTextNode(tok));
-    });
-    div.addEventListener("click", function () {
-      try {
-        cb();
-      } finally {
-        hideContextMenu();
-      }
-    });
-    menu.appendChild(div);
-  }
-
-  function addDivider() {
-    if (!menu.lastElementChild) return;
-    if (menu.lastElementChild.className === "divider") return;
-    var div = document.createElement("div");
-    div.className = "divider";
-    menu.appendChild(div);
-  }
-
-  function appendGroup(items) {
-    if (!Array.isArray(items) || !items.length) return;
-    if (menu.childElementCount) addDivider();
-    items.forEach(function (entry) {
-      if (!entry || typeof entry.cb !== "function") return;
-      addItem(entry.label, entry.cb);
-    });
-  }
-
-  menu.innerHTML = "";
-  groups.forEach(appendGroup);
-  if (isNodePinnedForCtx(node)) {
-    if (menu.childElementCount) {
-      var d = document.createElement("div");
-      d.className = "divider";
-      menu.appendChild(d);
-    }
-    addItem("Unpin Node", function () {
-      node.fx = null;
-      node.fy = null;
-      if (STATE.graph && typeof STATE.graph.start === "function") STATE.graph.start();
-      showCtxMessage("Node unpinned");
-    });
-  }
-
-  var e = evt || window.event;
-  var x = e && isFiniteNumber(Number(e.clientX)) ? Number(e.clientX) : 0;
-  var y = e && isFiniteNumber(Number(e.clientY)) ? Number(e.clientY) : 0;
-  menu.classList.add("is-visible");
-  menu.setAttribute("aria-hidden", "false");
-  var vw = window.innerWidth || 1;
-  var vh = window.innerHeight || 1;
-  var mw = menu.offsetWidth || 220;
-  var mh = menu.offsetHeight || 120;
-  menu.style.left = Math.max(8, Math.min(vw - mw - 8, x)) + "px";
-  menu.style.top = Math.max(8, Math.min(vh - mh - 8, y)) + "px";
-}
-
-window.hideContextMenu = hideContextMenu;
-
+// === Context menu ============================================================`r`n`r`n
 // === Settings UI =============================================================
 function renderLayerControls() {
   if (!DOM.layerPills) return;
@@ -1340,10 +690,18 @@ function renderLayerControls() {
     var hint = layerToggleHint(layer);
     var pill = document.createElement("label");
     pill.className = "layer-pill";
-    pill.innerHTML = ""
-      + '<input type="checkbox" ' + (enabled ? "checked" : "") + ' data-layer="' + escapeHtml(layer) + '"' + titleAttr(hint) + ">"
-      + '<span class="swatch" style="background:' + escapeHtml(color) + ';"></span>'
-      + "<span" + titleAttr(hint) + ">" + escapeHtml(humanizeLayer(layer)) + "</span>";
+    pill.innerHTML = renderHtmlTemplate(
+      `<input type="checkbox"{{{checkedAttr}}} data-layer="{{layer}}"{{{hintAttr}}}>
+      <span class="swatch" style="background:{{color}};"></span>
+      <span{{{hintAttr}}}>{{label}}</span>`,
+      {
+        checkedAttr: enabled ? " checked" : "",
+        layer: layer,
+        hintAttr: titleAttr(hint),
+        color: color,
+        label: humanizeLayer(layer)
+      }
+    );
     pill.title = hint;
 
     function bindToggle(el) {
@@ -1364,7 +722,14 @@ function renderLayerControls() {
 }
 
 function mkOption(value, label, selected) {
-  return '<option value="' + escapeHtml(value) + '"' + (selected ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
+  return renderHtmlTemplate(
+    `<option value="{{value}}"{{{selectedAttr}}}>{{label}}</option>`,
+    {
+      value: value,
+      selectedAttr: selected ? " selected" : "",
+      label: label
+    }
+  );
 }
 
 function renderNoteTypeControls() {
@@ -1402,17 +767,79 @@ function renderNoteTypeControls() {
       return mkOption(field, field, selected);
     }).join("");
 
-    card.innerHTML = ""
-      + '<div class="note-type-head">'
-      + '<div class="note-type-name">' + escapeHtml(nt.name) + "</div>"
-      + '<label class="line-item"' + titleAttr(noteTypeSettingHint("visible")) + '><input type="checkbox" class="nt-visible" data-ntid="' + escapeHtml(id) + '" ' + (nt.visible ? "checked" : "") + titleAttr(noteTypeSettingHint("visible")) + '><span' + titleAttr(noteTypeSettingHint("visible")) + '>Visible</span></label>'
-      + "</div>"
-      + '<div class="note-type-body"><div class="note-type-body-inner"><div class="field-grid note-field-grid">'
-      + '<div class="note-fields-left"><label' + titleAttr(noteTypeSettingHint("color")) + '>Node Color<div class="color-picker"><input type="color" class="nt-color" data-ntid="' + escapeHtml(id) + '" value="' + escapeHtml(normalizeHexColor(nt.color, "#93c5fd")) + '"' + titleAttr(noteTypeSettingHint("color")) + "></div></label></div>"
-      + '<div class="note-fields-right"><label' + titleAttr(noteTypeSettingHint("label")) + '>Label Field<div class="select"><select class="nt-label" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("label")) + ">" + labelOptions + '</select><span class="focus"></span></div></label>'
-      + '<label' + titleAttr(noteTypeSettingHint("linked")) + '>Linked Field<div class="select"><select class="nt-linked" data-ntid="' + escapeHtml(id) + '"' + titleAttr(noteTypeSettingHint("linked")) + ">" + linkedOptions + '</select><span class="focus"></span></div></label></div>'
-      + '<div class="note-fields-bottom"><label' + titleAttr(noteTypeSettingHint("tooltip")) + '>Tooltip Fields<div class="select select--multiple"><select class="nt-tooltip" data-ntid="' + escapeHtml(id) + '" multiple' + titleAttr(noteTypeSettingHint("tooltip")) + ">" + tooltipOptions + '</select><span class="focus"></span></div></label></div>'
-      + "</div></div></div>";
+    card.innerHTML = renderHtmlTemplate(
+      `<div class="note-type-head">
+        <div class="note-type-name">{{name}}</div>
+        <label class="line-item"{{{visibleHintAttr}}}>
+          <input type="checkbox" class="nt-visible" data-ntid="{{id}}"{{{visibleAttr}}}{{{visibleHintAttr}}}>
+          <span{{{visibleHintAttr}}}>Visible</span>
+        </label>
+      </div>
+      
+      <div class="note-type-body">
+        <div class="note-type-body-inner">
+          <div class="field-grid note-field-grid">
+
+            <div class="note-fields-left">
+              <label{{{colorHintAttr}}}>
+                Node Color
+                <div class="color-picker">
+                  <input type="color" class="nt-color" data-ntid="{{id}}" value="{{colorValue}}"{{{colorHintAttr}}}>
+                </div>
+              </label>
+            </div>
+
+            <div class="note-fields-right">
+              <label{{{labelHintAttr}}}>
+                Label Field
+                <div class="select">
+                  <select class="nt-label" data-ntid="{{id}}"{{{labelHintAttr}}}>
+                    {{{labelOptions}}}
+                  </select>
+                  <span class="focus"></span>
+                </div>
+              </label>
+              <label{{{linkedHintAttr}}}>
+                Linked Field
+                <div class="select">
+                  <select class="nt-linked" data-ntid="{{id}}"{{{linkedHintAttr}}}>
+                    {{{linkedOptions}}}
+                  </select>
+                  <span class="focus"></span>
+                </div>
+              </label>
+            </div>
+
+            <div class="note-fields-bottom">
+              <label{{{tooltipHintAttr}}}>
+                Tooltip Fields
+                <div class="select select--multiple">
+                  <select class="nt-tooltip" data-ntid="{{id}}" multiple{{{tooltipHintAttr}}}>
+                    {{{tooltipOptions}}}
+                  </select>
+                  <span class="focus"></span>
+                </div>
+              </label>
+            </div>
+
+          </div>
+        </div>
+      </div>`,
+      {
+        id: id,
+        name: nt.name,
+        visibleAttr: nt.visible ? " checked" : "",
+        visibleHintAttr: titleAttr(noteTypeSettingHint("visible")),
+        colorHintAttr: titleAttr(noteTypeSettingHint("color")),
+        colorValue: normalizeHexColor(nt.color, "#93c5fd"),
+        labelHintAttr: titleAttr(noteTypeSettingHint("label")),
+        linkedHintAttr: titleAttr(noteTypeSettingHint("linked")),
+        tooltipHintAttr: titleAttr(noteTypeSettingHint("tooltip")),
+        labelOptions: labelOptions,
+        linkedOptions: linkedOptions,
+        tooltipOptions: tooltipOptions
+      }
+    );
 
     DOM.noteTypeList.appendChild(card);
   });
@@ -1498,58 +925,89 @@ function renderLinkSettings() {
 
     var row = document.createElement("div");
     row.className = "link-type-card" + (visible ? "" : " is-collapsed");
-    row.innerHTML = ""
-      + '<div class="link-type-head">'
-      + '<div class="link-type-name">' + escapeHtml(humanizeLayer(layer)) + "</div>"
-      + '<label class="line-item"' + titleAttr(linkSettingHint("visible")) + '><input type="checkbox" class="ln-visible" data-layer="' + escapeHtml(layer) + '" ' + (visible ? "checked" : "") + titleAttr(linkSettingHint("visible")) + '><span' + titleAttr(linkSettingHint("visible")) + '>Visible</span></label>'
-      + "</div>"
-      + '<div class="link-type-body"><div class="link-type-body-inner"><div class="field-grid link-field-grid">'
-      + '<div class="link-fields-left">'
-      + '<label' + titleAttr(linkSettingHint("color")) + '>Color<div class="ln-color-alpha"><div class="color-picker"><input type="color" class="ln-color" data-layer="' + escapeHtml(layer) + '" value="' + escapeHtml(color) + '"' + titleAttr(linkSettingHint("color")) + "></div></div></label>"
-      + '<label' + titleAttr(linkSettingHint("alpha")) + '>Alpha<div class="color-picker-alpha"><input type="number" step="0.01" min="0" max="1" class="ln-alpha" data-layer="' + escapeHtml(layer) + '" value="' + alpha.toFixed(2) + '"' + titleAttr(linkSettingHint("alpha")) + "></div></label>"
-      + "</div>"
-      + '<div class="link-fields-right"><label' + titleAttr(linkSettingHint("style")) + '>Style<div class="select"><select class="ln-style" data-layer="' + escapeHtml(layer) + '"' + titleAttr(linkSettingHint("style")) + ">"
-      + mkOption("solid", "Solid", style === "solid")
-      + mkOption("dashed", "Dashed", style === "dashed")
-      + mkOption("dotted", "Dotted", style === "dotted")
-      + '</select><span class="focus"></span></div></label>'
-      + '<label' + titleAttr(linkSettingHint("weight_mode")) + '>Weight Mode<div class="select"><select class="ln-weight-mode" data-layer="' + escapeHtml(layer) + '"' + titleAttr(linkSettingHint("weight_mode")) + ">"
-      + mkOption("manual", "Manual", weightMode === "manual")
-      + mkOption("metric", "Metric", weightMode === "metric")
-      + '</select><span class="focus"></span></div></label></div>'
-      + '<div class="link-fields-bottom"><label' + titleAttr(linkSettingHint("weight")) + '>Weight<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="' + escapeHtml(layer) + '" value="' + weightValue.toFixed(2) + '"' + titleAttr(linkSettingHint("weight")) + "></label></div>"
-      + "</div>"
-      + "</div></div>"
-      + "</div>";
+    row.innerHTML = renderHtmlTemplate(
+      `<div class="link-type-head">
+        <div class="link-type-name">{{label}}</div>
+        <label class="line-item"{{{visibleHintAttr}}}>
+          <input type="checkbox" class="ln-visible" data-layer="{{layer}}"{{{visibleAttr}}}{{{visibleHintAttr}}}>
+          <span{{{visibleHintAttr}}}>Visible</span>
+        </label>
+      </div>
+      <div class="link-type-body"><div class="link-type-body-inner"><div class="field-grid link-field-grid">
+        <div class="link-fields-left">
+          <label{{{colorHintAttr}}}>Color<div class="ln-color-alpha"><div class="color-picker"><input type="color" class="ln-color" data-layer="{{layer}}" value="{{color}}"{{{colorHintAttr}}}></div></div></label>
+          <label{{{alphaHintAttr}}}>Alpha<div class="color-picker-alpha"><input type="number" step="0.01" min="0" max="1" class="ln-alpha" data-layer="{{layer}}" value="{{alpha}}"{{{alphaHintAttr}}}></div></label>
+        </div>
+        <div class="link-fields-right">
+          <label{{{styleHintAttr}}}>Style<div class="select"><select class="ln-style" data-layer="{{layer}}"{{{styleHintAttr}}}>{{{styleOptions}}}</select><span class="focus"></span></div></label>
+          <label{{{weightModeHintAttr}}}>Weight Mode<div class="select"><select class="ln-weight-mode" data-layer="{{layer}}"{{{weightModeHintAttr}}}>{{{weightModeOptions}}}</select><span class="focus"></span></div></label>
+        </div>
+        <div class="link-fields-bottom"><label{{{weightHintAttr}}}>Weight<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="{{layer}}" value="{{weight}}"{{{weightHintAttr}}}></label></div>
+      </div>
+      </div></div>`,
+      {
+        label: humanizeLayer(layer),
+        layer: layer,
+        visibleAttr: visible ? " checked" : "",
+        visibleHintAttr: titleAttr(linkSettingHint("visible")),
+        colorHintAttr: titleAttr(linkSettingHint("color")),
+        alphaHintAttr: titleAttr(linkSettingHint("alpha")),
+        styleHintAttr: titleAttr(linkSettingHint("style")),
+        weightModeHintAttr: titleAttr(linkSettingHint("weight_mode")),
+        weightHintAttr: titleAttr(linkSettingHint("weight")),
+        color: color,
+        alpha: alpha.toFixed(2),
+        styleOptions: [
+          mkOption("solid", "Solid", style === "solid"),
+          mkOption("dashed", "Dashed", style === "dashed"),
+          mkOption("dotted", "Dotted", style === "dotted")
+        ].join(""),
+        weightModeOptions: [
+          mkOption("manual", "Manual", weightMode === "manual"),
+          mkOption("metric", "Metric", weightMode === "metric")
+        ].join(""),
+        weight: weightValue.toFixed(2)
+      }
+    );
     DOM.linkLayerList.appendChild(row);
   });
 
   var flowRow = document.createElement("div");
   flowRow.className = "control-row";
-  flowRow.innerHTML = ""
-    + "<div" + titleAttr(linkSettingHint("flow_speed")) + ">Particle Flow Speed</div>"
-    + '<input id="ln-flow-speed" type="number" min="0.01" max="1" step="0.01" value="' + Number(STATE.layerFlowSpeed || 0.35).toFixed(2) + '"' + titleAttr(linkSettingHint("flow_speed")) + ">";
+  flowRow.innerHTML = renderHtmlTemplate(
+    `<div{{{hintAttr}}}>Particle Flow Speed</div>
+    <input id="ln-flow-speed" type="number" min="0.01" max="1" step="0.01" value="{{flowSpeed}}"{{{hintAttr}}}>`,
+    {
+      hintAttr: titleAttr(linkSettingHint("flow_speed")),
+      flowSpeed: Number(STATE.layerFlowSpeed || 0.35).toFixed(2)
+    }
+  );
   DOM.linkSettings.appendChild(flowRow);
 
   var metricRow = document.createElement("div");
   metricRow.className = "control-row";
-  metricRow.innerHTML = ""
-    + "<div>Link Metric</div>"
-    + '<div class="inline-pair">'
-    + '<label>Mode<div class="select"><select id="ln-metric-mode">'
-    + mkOption("none", "None", String(nscale.mode || "none") === "none")
-    + mkOption("jaccard", "Jaccard", String(nscale.mode || "none") === "jaccard")
-    + mkOption("overlap", "Overlap", String(nscale.mode || "none") === "overlap")
-    + mkOption("common_neighbors", "Common Neighbors", String(nscale.mode || "none") === "common_neighbors")
-    + mkOption("ccm", "Clustering Coeff", String(nscale.mode || "none") === "ccm")
-    + mkOption("twohop", "2-Hop", String(nscale.mode || "none") === "twohop")
-    + '</select><span class="focus"></span></div></label>'
-    + '<label>Direction<div class="select"><select id="ln-metric-directed">'
-    + mkOption("undirected", "Undirected", String(nscale.directed || "undirected") === "undirected")
-    + mkOption("out", "Outgoing", String(nscale.directed || "undirected") === "out")
-    + mkOption("in", "Incoming", String(nscale.directed || "undirected") === "in")
-    + '</select><span class="focus"></span></div></label>'
-    + "</div>";
+  metricRow.innerHTML = renderHtmlTemplate(
+    `<div>Link Metric</div>
+    <div class="inline-pair">
+      <label>Mode<div class="select"><select id="ln-metric-mode">{{{modeOptions}}}</select><span class="focus"></span></div></label>
+      <label>Direction<div class="select"><select id="ln-metric-directed">{{{directionOptions}}}</select><span class="focus"></span></div></label>
+    </div>`,
+    {
+      modeOptions: [
+        mkOption("none", "None", String(nscale.mode || "none") === "none"),
+        mkOption("jaccard", "Jaccard", String(nscale.mode || "none") === "jaccard"),
+        mkOption("overlap", "Overlap", String(nscale.mode || "none") === "overlap"),
+        mkOption("common_neighbors", "Common Neighbors", String(nscale.mode || "none") === "common_neighbors"),
+        mkOption("ccm", "Clustering Coeff", String(nscale.mode || "none") === "ccm"),
+        mkOption("twohop", "2-Hop", String(nscale.mode || "none") === "twohop")
+      ].join(""),
+      directionOptions: [
+        mkOption("undirected", "Undirected", String(nscale.directed || "undirected") === "undirected"),
+        mkOption("out", "Outgoing", String(nscale.directed || "undirected") === "out"),
+        mkOption("in", "Incoming", String(nscale.directed || "undirected") === "in")
+      ].join("")
+    }
+  );
   DOM.linkSettings.appendChild(metricRow);
 
   function layerRgbaFromInputs(layer, colorInput, alphaInput) {
@@ -1640,7 +1098,7 @@ function renderLinkSettings() {
       var value = clamp(Number(flowInput.value || 0.35), 0, 3);
       STATE.layerFlowSpeed = value;
       flowInput.value = value.toFixed(2);
-      applyVisualStyles();
+      callEngineApplyVisualStyles();
       persistHook("lflowspeed:" + value.toFixed(2));
     });
   }
@@ -1651,9 +1109,7 @@ function renderLinkSettings() {
       : { mode: "none", directed: "undirected", weights: {} };
     STATE.neighborScaling = cfg;
     var updated = false;
-    if (typeof applyRuntimeLinkDistances === "function") {
-      updated = !!applyRuntimeLinkDistances(reheat !== false);
-    }
+    updated = !!callCityApplyRuntimeLinkDistances(reheat !== false);
     if (!updated) applyUiSettingsNoRebuild(reheat !== false);
     persistHook("neighborscale:" + encodeURIComponent(JSON.stringify(cfg)));
   }
@@ -1758,12 +1214,14 @@ function ensureCardsSettingsUi() {
     cardsPane = document.createElement("section");
     cardsPane.id = "tab-cards";
     cardsPane.className = "tab-pane";
-    cardsPane.innerHTML = ""
-      + '<section class="settings-block">'
-      + "<h3>Cards</h3>"
-      + '<p class="hint">Persisted card settings (UI only for now).</p>'
-      + '<div id="cards-settings" class="stack"></div>'
-      + "</section>";
+    cardsPane.innerHTML = renderHtmlTemplate(
+      `<section class="settings-block">
+        <h3>Cards</h3>
+        <p class="hint">Persisted card settings (UI only for now).</p>
+        <div id="cards-settings" class="stack"></div>
+      </section>`,
+      {}
+    );
     var notesPane = byId("tab-notes");
     if (notesPane && notesPane.nextSibling) scrollHost.insertBefore(cardsPane, notesPane.nextSibling);
     else scrollHost.appendChild(cardsPane);
@@ -1782,7 +1240,7 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
   else if (groupKey === "solver") STATE.solver = collectSolverSettings(STATE.solver || {});
   else if (groupKey === "renderer") STATE.renderer = collectRendererSettings(STATE.renderer || {});
   else if (groupKey === "node" && typeof collectNodeSettings === "function") STATE.node = collectNodeSettings(STATE.node || {});
-  else if (groupKey === "cards") STATE.cards = collectCardSettings(STATE.cards || {});
+  else if (groupKey === "cards") STATE.cards = callCityCollectCardSettings(STATE.cards || {});
 
   var stateValues;
   if (groupKey === "engine") stateValues = STATE.engine || {};
@@ -1799,24 +1257,50 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
 
     if (spec.type === "bool") {
       var checked = !!stateValues[spec.key];
-      row.innerHTML = ""
-        + "<div" + titleAttr(hint) + ">" + escapeHtml(spec.label) + "</div>"
-        + '<label class="line-item"' + titleAttr(hint) + '><input type="checkbox" data-pkey="' + escapeHtml(spec.key) + '" data-pgroup="' + escapeHtml(groupKey) + '" ' + (checked ? "checked" : "") + titleAttr(hint) + '><span' + titleAttr(hint) + ">Enabled</span></label>";
+      row.innerHTML = renderHtmlTemplate(
+        `<div{{{hintAttr}}}>{{label}}</div>
+        <label class="line-item"{{{hintAttr}}}>
+          <input type="checkbox" data-pkey="{{key}}" data-pgroup="{{groupKey}}"{{{checkedAttr}}}{{{hintAttr}}}>
+          <span{{{hintAttr}}}>Enabled</span>
+        </label>`,
+        {
+          hintAttr: titleAttr(hint),
+          label: spec.label,
+          key: spec.key,
+          groupKey: groupKey,
+          checkedAttr: checked ? " checked" : ""
+        }
+      );
     } else if (spec.type === "color") {
       var colorCurrent = normalizeHexColor(String(stateValues[spec.key] || defaults[spec.key] || "#94a3b8"), "#94a3b8");
-      row.innerHTML = ""
-        + "<div" + titleAttr(hint) + ">" + escapeHtml(spec.label) + "</div>"
-        + '<input type="color" data-pkey="' + escapeHtml(spec.key) + '" data-pgroup="' + escapeHtml(groupKey) + '" value="' + escapeHtml(colorCurrent) + '"' + titleAttr(hint) + ">";
+      row.innerHTML = renderHtmlTemplate(
+        `<div{{{hintAttr}}}>{{label}}</div>
+        <input type="color" data-pkey="{{key}}" data-pgroup="{{groupKey}}" value="{{value}}"{{{hintAttr}}}>`,
+        {
+          hintAttr: titleAttr(hint),
+          label: spec.label,
+          key: spec.key,
+          groupKey: groupKey,
+          value: colorCurrent
+        }
+      );
     } else {
       var current = Number(stateValues[spec.key]);
       if (!isFinite(current)) current = 0;
-      var attrs = 'type="number" data-pkey="' + escapeHtml(spec.key) + '" data-pgroup="' + escapeHtml(groupKey) + '"';
-      if (spec.step !== undefined) attrs += ' step="' + spec.step + '"';
-      if (spec.min !== undefined) attrs += ' min="' + spec.min + '"';
-      if (spec.max !== undefined) attrs += ' max="' + spec.max + '"';
-      row.innerHTML = ""
-        + "<div" + titleAttr(hint) + ">" + escapeHtml(spec.label) + "</div>"
-        + "<input " + attrs + ' value="' + current + '"' + titleAttr(hint) + ">";
+      row.innerHTML = renderHtmlTemplate(
+        `<div{{{hintAttr}}}>{{label}}</div>
+        <input type="number" data-pkey="{{key}}" data-pgroup="{{groupKey}}"{{{stepAttr}}}{{{minAttr}}}{{{maxAttr}}} value="{{value}}"{{{hintAttr}}}>`,
+        {
+          hintAttr: titleAttr(hint),
+          label: spec.label,
+          key: spec.key,
+          groupKey: groupKey,
+          stepAttr: spec.step !== undefined ? (' step="' + String(spec.step) + '"') : "",
+          minAttr: spec.min !== undefined ? (' min="' + String(spec.min) + '"') : "",
+          maxAttr: spec.max !== undefined ? (' max="' + String(spec.max) + '"') : "",
+          value: current
+        }
+      );
     }
     container.appendChild(row);
   });
@@ -1875,8 +1359,8 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
 }
 
 function renderCardsSettings() {
-  syncCardSettingsFromMeta();
-  renderSettingsList(DOM.cardsSettings, "cards", cardSettingsSpec(), getCardSettingsDefaults);
+  callCitySyncCardSettingsFromMeta();
+  renderSettingsList(DOM.cardsSettings, "cards", callCityGetCardSettingsSpec(), callCityGetCardSettingsDefaults);
 }
 
 function renderEngineSettings() {
@@ -2059,7 +1543,7 @@ function wireDom() {
         STATE.contextNodeId = null;
         STATE.contextPointIndex = null;
         hideContextMenu();
-        applyVisualStyles();
+        callEngineApplyVisualStyles();
         return;
       }
 
@@ -2068,7 +1552,7 @@ function wireDom() {
         STATE.contextNodeId = null;
         STATE.contextPointIndex = null;
         hideContextMenu();
-        applyVisualStyles();
+        callEngineApplyVisualStyles();
         return;
       }
 
@@ -2080,7 +1564,7 @@ function wireDom() {
 
       STATE.contextPointIndex = idx;
       STATE.contextNodeId = String(node.id || "");
-      applyVisualStyles();
+      callEngineApplyVisualStyles();
       showContextMenu(node, evt);
     });
   }
@@ -2109,7 +1593,7 @@ function wireDom() {
       if (window.pycmd) {
         window.pycmd("refresh");
       } else {
-        applyGraphData(true);
+        callEngineApplyGraphData(true);
       }
     });
   }
@@ -2154,7 +1638,7 @@ function wireDom() {
         } else if (STATE.suggestedIds.length > 0) {
           pickedId = STATE.suggestedIds[0];
         }
-        if (pickedId) focusNodeById(pickedId, true);
+        if (pickedId) callEngineFocusNodeById(pickedId, true);
         return;
       }
       if (evt.key === "Escape") {
@@ -2166,7 +1650,7 @@ function wireDom() {
   if (DOM.searchGo) {
     DOM.searchGo.addEventListener("click", function () {
       var id = STATE.suggestedIds.length ? STATE.suggestedIds[0] : null;
-      if (id) focusNodeById(id, true);
+      if (id) callEngineFocusNodeById(id, true);
     });
   }
 
@@ -2208,5 +1692,21 @@ function wireDom() {
     }
   });
 }
+
+(function registerUiAdapterPorts() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+
+  adapter.registerCityPort("updateStatus", updateStatus);
+  adapter.registerCityPort("showTooltip", showTooltip);
+  adapter.registerCityPort("moveTooltip", moveTooltip);
+  adapter.registerCityPort("setHoverDebug", setHoverDebug);
+  adapter.registerCityPort("clearHoverNodeState", clearHoverNodeState);
+  adapter.registerCityPort("hideTooltip", hideTooltip);
+  adapter.registerCityPort("hideContextMenu", hideContextMenu);
+  adapter.registerCityPort("buildSearchEntries", buildSearchEntries);
+  adapter.registerCityPort("hideSuggest", hideSuggest);
+})();
+
 
 

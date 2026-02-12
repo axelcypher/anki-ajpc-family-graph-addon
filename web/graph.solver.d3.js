@@ -12,6 +12,18 @@ function AjpcGraphSolverD3(owner) {
   this._cooldownTimeMs = 0;
 }
 
+function solverAdapterCallCity(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callCity !== "function") return undefined;
+  return adapter.callCity.apply(adapter, arguments);
+}
+
+function solverSeededPos(id) {
+  var out = solverAdapterCallCity("seededPos", id);
+  if (Array.isArray(out) && out.length >= 2) return out;
+  return [0, 0];
+}
+
 AjpcGraphSolverD3.prototype._d3 = function () {
   if (window && window.d3 && typeof window.d3.forceSimulation === "function") return window.d3;
   return null;
@@ -60,7 +72,7 @@ AjpcGraphSolverD3.prototype._buildModel = function () {
     var x = Number(attrs.x);
     var y = Number(attrs.y);
     if (!isFinite(x) || !isFinite(y)) {
-      var seed = seededPos(id);
+      var seed = solverSeededPos(id);
       x = Number(seed[0] || 0) - off();
       y = Number(seed[1] || 0) - off();
     }

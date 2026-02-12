@@ -7,6 +7,32 @@ var AJPC_CIRCLEPACK_SEED_HIERARCHY = [
   
 ];
 
+function adapterCallCityPort(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callCity !== "function") return undefined;
+  return adapter.callCity.apply(adapter, arguments);
+}
+
+function adapterSeededPos(id) {
+  var out = adapterCallCityPort("seededPos", id);
+  if (Array.isArray(out) && out.length >= 2) return out;
+  return [0, 0];
+}
+
+function adapterNodeBaseSize(node) {
+  var out = adapterCallCityPort("AjpcNodeBaseSize", node);
+  var n = Number(out);
+  if (isFinite(n) && n > 0) return n;
+  return 1;
+}
+
+function adapterEdgeCurvByStyle(code, idx) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return 0;
+  var out = Number(adapter.callEngine("edgeCurvByStyle", code, idx));
+  return isFinite(out) ? out : 0;
+}
+
 function ajpcCreateSeedGraph() {
   var api = window && window.graphology ? window.graphology : null;
   if (!api) return null;
@@ -34,11 +60,7 @@ function ajpcHasLayer(node, key) {
 }
 
 function ajpcSeedNodeSize(node) {
-  if (window && typeof window.AjpcNodeBaseSize === "function") {
-    var shared = Number(window.AjpcNodeBaseSize(node));
-    if (isFinite(shared) && shared > 0) return shared;
-  }
-  return 1;
+  return adapterNodeBaseSize(node);
 }
 
 function ajpcPrimaryFamilyId(node) {
@@ -204,7 +226,7 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
     var x = Number(owner.pointPositions[i * 2]);
     var y = Number(owner.pointPositions[(i * 2) + 1]);
     if (!fin(x) || !fin(y)) {
-      var seed = seededPos(id);
+      var seed = adapterSeededPos(id);
       x = Number(seed[0]);
       y = Number(seed[1]);
       owner.pointPositions[i * 2] = x;
@@ -259,7 +281,7 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
 
     var styleCodeValue = styleCode(owner.linkStyleCodes, e);
     var edgeType = edgeTypeByStyle(styleCodeValue);
-    var curvature = edgeCurvByStyle(styleCodeValue, e);
+    var curvature = adapterEdgeCurvByStyle(styleCodeValue, e);
     var alphaMultiplier = alphaMul(styleCodeValue);
 
     var weight = Number(owner.linkStrength[e]);
@@ -331,7 +353,7 @@ AjpcGraphDataGraphology.prototype.styleGraph = function () {
 
     var styleCodeValue = styleCode(owner.linkStyleCodes, e);
     var edgeType = edgeTypeByStyle(styleCodeValue);
-    var curvature = edgeCurvByStyle(styleCodeValue, e);
+    var curvature = adapterEdgeCurvByStyle(styleCodeValue, e);
     var alphaMultiplier = alphaMul(styleCodeValue);
 
     var weight = Number(owner.linkStrength[e]);

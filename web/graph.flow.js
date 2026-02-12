@@ -129,10 +129,12 @@ function flowEdgeStyleCode(edgeIndex) {
 
 function flowEdgeCurvature(edgeIndex) {
   var sc = flowEdgeStyleCode(edgeIndex);
-  if (typeof edgeCurvByStyle === "function") {
-    var cv = Number(edgeCurvByStyle(sc, edgeIndex));
-    if (isFinite(cv)) return cv;
+  var cv = NaN;
+  var adapter = window && window.GraphAdapter;
+  if (adapter && typeof adapter.callEngine === "function") {
+    cv = Number(adapter.callEngine("edgeCurvByStyle", sc, edgeIndex));
   }
+  if (isFinite(cv)) return cv;
   if (sc === 0) return (edgeIndex % 2 === 0) ? 0.2 : -0.2;
   return (edgeIndex % 2 === 0) ? 0.12 : -0.12;
 }
@@ -341,4 +343,11 @@ function ensureFlowParticlesLoop() {
     STATE.flowRaf = window.requestAnimationFrame(drawFlowParticles);
   }
 }
+
+(function registerFlowAdapterPorts() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+  adapter.registerCityPort("ensureFlowCanvasSize", ensureFlowCanvasSize);
+  adapter.registerCityPort("ensureFlowParticlesLoop", ensureFlowParticlesLoop);
+})();
 

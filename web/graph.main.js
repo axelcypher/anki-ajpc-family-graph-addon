@@ -3,8 +3,14 @@
 log("graph.main.js modular");
 
 function resolveApplyGraphData() {
-  if (typeof applyGraphData === "function") return applyGraphData;
-  if (window && typeof window.applyGraphData === "function") return window.applyGraphData;
+  if (window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function") {
+    if (typeof window.GraphAdapter.hasEnginePort === "function" && !window.GraphAdapter.hasEnginePort("applyGraphData")) {
+      return null;
+    }
+    return function (fitView) {
+      return window.GraphAdapter.callEngine("applyGraphData", fitView);
+    };
+  }
   return null;
 }
 

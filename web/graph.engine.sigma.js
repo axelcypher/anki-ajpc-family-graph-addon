@@ -140,6 +140,82 @@ function bol(v, fallback) {
 }
 function off() { return (typeof SPACE_SIZE === "number" && isFinite(SPACE_SIZE)) ? (SPACE_SIZE * 0.5) : 2048; }
 
+function adapterCallCity(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callCity !== "function") return undefined;
+  return adapter.callCity.apply(adapter, arguments);
+}
+
+function cityEnsureFlowParticlesLoop() {
+  return adapterCallCity("ensureFlowParticlesLoop");
+}
+
+function cityUpdateStatus(extraText) {
+  return adapterCallCity("updateStatus", extraText);
+}
+
+function cityHideSuggest() {
+  return adapterCallCity("hideSuggest");
+}
+
+function cityMoveTooltip(x, y) {
+  return adapterCallCity("moveTooltip", x, y);
+}
+
+function citySetHoverDebug(reason, details) {
+  return adapterCallCity("setHoverDebug", reason, details);
+}
+
+function cityShowTooltip(node, eventPos) {
+  return adapterCallCity("showTooltip", node, eventPos);
+}
+
+function cityClearHoverNodeState(reason) {
+  return adapterCallCity("clearHoverNodeState", reason);
+}
+
+function cityHideTooltip() {
+  return adapterCallCity("hideTooltip");
+}
+
+function cityHideContextMenu() {
+  return adapterCallCity("hideContextMenu");
+}
+
+function cityBuildSearchEntries() {
+  return adapterCallCity("buildSearchEntries");
+}
+
+function cityCollectEngineRuntimeSettings(input) {
+  var res = adapterCallCity("collectEngineRuntimeSettings", input);
+  if (res !== undefined) return res;
+  return (input && typeof input === "object") ? input : {};
+}
+
+function cityCollectSolverSettings(input) {
+  var res = adapterCallCity("collectSolverSettings", input);
+  if (res !== undefined) return res;
+  return (input && typeof input === "object") ? input : {};
+}
+
+function cityCollectRendererSettings(input) {
+  var res = adapterCallCity("collectRendererSettings", input);
+  if (res !== undefined) return res;
+  return (input && typeof input === "object") ? input : {};
+}
+
+function cityBuildGraphArrays(source) {
+  var res = adapterCallCity("buildGraphArrays", source);
+  if (res !== undefined) return res;
+  return { nodes: [], edges: [], indexById: new Map(), idsByIndex: [] };
+}
+
+function cityApplyRuntimeUiSettings(reheatLayout) {
+  var res = adapterCallCity("applyRuntimeUiSettings", reheatLayout);
+  if (res !== undefined) return !!res;
+  return false;
+}
+
 function rgba(flat, i, fallback) {
   if (!flat || flat.length < ((i * 4) + 4)) return String(fallback || "#94a3b8");
   var r = cl(Number(flat[i * 4] || 0), 0, 1);
@@ -1122,7 +1198,7 @@ function applyVisualStyles(renderAlpha) {
   applySelectionFocusStyles();
   if (renderAlpha === undefined || renderAlpha === null) STATE.graph.render(); else STATE.graph.render(renderAlpha);
   
-  if (typeof ensureFlowParticlesLoop === "function") ensureFlowParticlesLoop();
+  cityEnsureFlowParticlesLoop();
 }
 
 function selectNodeByIndex(index, statusLabel) {
@@ -1135,28 +1211,28 @@ function selectNodeByIndex(index, statusLabel) {
   STATE.focusedIndex = idx;
   if (STATE.graph && typeof STATE.graph.selectPointByIndex === "function") { STATE.graph.selectPointByIndex(idx); }
   applyVisualStyles();
-  updateStatus(statusLabel);
+  cityUpdateStatus(statusLabel);
   return true;
 }
 
 function focusNodeById(nodeId, fromSearch) {
   if (!STATE.graph) return;
   var idx = STATE.activeIndexById.get(String(nodeId));
-  if (idx === undefined) { updateStatus("Search miss: node hidden by filters"); return; }
+  if (idx === undefined) { cityUpdateStatus("Search miss: node hidden by filters"); return; }
   if (STATE.runtimeNodeVisibleMask && idx >= 0 && idx < STATE.runtimeNodeVisibleMask.length && !STATE.runtimeNodeVisibleMask[idx]) {
-    updateStatus("Search miss: node hidden by filters");
+    cityUpdateStatus("Search miss: node hidden by filters");
     return;
   }
   STATE.graph.zoomToPointByIndex(idx, 220, 3.5, true);
   selectNodeByIndex(idx, fromSearch ? ("Selected: " + (STATE.activeNodes[idx] ? STATE.activeNodes[idx].label : nodeId)) : null);
-  hideSuggest();
+  cityHideSuggest();
 }
 
 function applyPhysicsToGraph() {
   if (!STATE.graph) return;
-  var engineCfg = collectEngineRuntimeSettings(STATE.engine || {});
-  var solverCfg = collectSolverSettings(STATE.solver || {});
-  var rendererCfg = collectRendererSettings(STATE.renderer || {});
+  var engineCfg = cityCollectEngineRuntimeSettings(STATE.engine || {});
+  var solverCfg = cityCollectSolverSettings(STATE.solver || {});
+  var rendererCfg = cityCollectRendererSettings(STATE.renderer || {});
   STATE.engine = engineCfg;
   STATE.solver = solverCfg;
   STATE.renderer = rendererCfg;
@@ -1179,29 +1255,25 @@ function ensureGraphInstance() {
         STATE.pointerClientY = Number(evt.clientY);
       }
       if (Number(STATE.hoveredPointIndex) === Number(index)) {
-        moveTooltip(STATE.pointerClientX, STATE.pointerClientY);
+        cityMoveTooltip(STATE.pointerClientX, STATE.pointerClientY);
         return;
       }
       STATE.hoveredPointIndex = index;
       applyVisualStyles(0.08);
-      if (typeof setHoverDebug === "function") {
-        setHoverDebug("enter-node", {
-          idx: index,
-          nodeId: node.id,
-          noteType: node.note_type || node.kind || "",
-          pointerX: STATE.pointerClientX,
-          pointerY: STATE.pointerClientY
-        });
-      }
-      showTooltip(node, { clientX: STATE.pointerClientX, clientY: STATE.pointerClientY });
+      citySetHoverDebug("enter-node", {
+        idx: index,
+        nodeId: node.id,
+        noteType: node.note_type || node.kind || "",
+        pointerX: STATE.pointerClientX,
+        pointerY: STATE.pointerClientY
+      });
+      cityShowTooltip(node, { clientX: STATE.pointerClientX, clientY: STATE.pointerClientY });
     },
     onPointMouseOut: function () {
-      if (typeof setHoverDebug === "function") {
-        setHoverDebug("leave-node-event", {
-          idx: STATE.hoveredPointIndex
-        });
-      }
-      clearHoverNodeState("leave-node-event");
+      citySetHoverDebug("leave-node-event", {
+        idx: STATE.hoveredPointIndex
+      });
+      cityClearHoverNodeState("leave-node-event");
     },
     onLinkMouseOver: function (linkIndex) { STATE.hoveredLinkIndex = linkIndex; },
     onLinkMouseOut: function () { STATE.hoveredLinkIndex = null; },
@@ -1214,10 +1286,10 @@ function ensureGraphInstance() {
       STATE.hoveredLinkIndex = null;
       STATE.focusedIndex = undefined;
       if (STATE.graph && typeof STATE.graph.unselectPoints === "function") { STATE.graph.unselectPoints(); }
-      hideTooltip();
-      if (typeof hideContextMenu === "function") hideContextMenu();
+      cityHideTooltip();
+      cityHideContextMenu();
       applyVisualStyles();
-      updateStatus();
+      cityUpdateStatus();
     },
     onZoom: function () {
       if (DOM.statusZoom && STATE.graph && typeof STATE.graph.getZoomLevel === "function") DOM.statusZoom.textContent = "Zoom: " + Number(STATE.graph.getZoomLevel() || 1).toFixed(2) + "x";
@@ -1234,7 +1306,7 @@ function applyGraphData(fitView) {
     nodes: Array.isArray(STATE.raw.nodes) ? STATE.raw.nodes : [],
     edges: Array.isArray(STATE.raw.edges) ? STATE.raw.edges : []
   };
-  var arrays = buildGraphArrays(source);
+  var arrays = cityBuildGraphArrays(source);
   STATE.activeNodes = arrays.nodes;
   STATE.activeEdges = arrays.edges;
   STATE.activeIndexById = arrays.indexById;
@@ -1256,8 +1328,8 @@ function applyGraphData(fitView) {
     STATE.visibleGraphCounts = { notes: 0, families: 0, edges: 0 };
     STATE.contextNodeId = null;
     STATE.contextPointIndex = null;
-    buildSearchEntries();
-    updateStatus();
+    cityBuildSearchEntries();
+    cityUpdateStatus();
     return;
   }
 
@@ -1285,7 +1357,7 @@ function applyGraphData(fitView) {
   STATE.lastEdgeCount = STATE.activeEdges.length;
   STATE.lastNodeCount = STATE.activeNodes.length;
 
-  applyRuntimeUiSettings(false);
+  cityApplyRuntimeUiSettings(false);
   if (STATE.graph && typeof STATE.graph.resize === "function") {
     STATE.graph.resize();
   }
@@ -1293,9 +1365,20 @@ function applyGraphData(fitView) {
     STATE.graph.fitView(0, 0.1);
   }
   if (STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") STATE.graph.start();
-  if (typeof ensureFlowParticlesLoop === "function") ensureFlowParticlesLoop();
+  cityEnsureFlowParticlesLoop();
 }
 
 window.applyGraphData = applyGraphData;
 window.applyVisualStyles = applyVisualStyles;
 window.applyPhysicsToGraph = applyPhysicsToGraph;
+
+(function registerEngineAdapterPorts() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.registerEnginePort !== "function") return;
+  adapter.registerEnginePort("applyGraphData", applyGraphData);
+  adapter.registerEnginePort("applyVisualStyles", applyVisualStyles);
+  adapter.registerEnginePort("applyPhysicsToGraph", applyPhysicsToGraph);
+  adapter.registerEnginePort("createGraphEngineSigma", createGraphEngineSigma);
+  adapter.registerEnginePort("focusNodeById", focusNodeById);
+  adapter.registerEnginePort("edgeCurvByStyle", edgeCurvByStyle);
+})();

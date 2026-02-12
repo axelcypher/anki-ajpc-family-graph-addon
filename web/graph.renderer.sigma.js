@@ -14,6 +14,12 @@ function setNoteNodeAAFlag(enabled) {
   root.AJPCSigmaRuntime.noteNodeAAEnabled = !!enabled;
 }
 
+function requestFlowCanvasSizeSync() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callCity !== "function") return;
+  adapter.callCity("ensureFlowCanvasSize");
+}
+
 AjpcGraphRendererSigma.prototype._settings = function () {
   var self = this;
   var owner = this.owner;
@@ -240,7 +246,7 @@ AjpcGraphRendererSigma.prototype._setupOverlayLayers = function () {
     flow.style.pointerEvents = "none";
     DOM.flowCanvas = flow;
     DOM.flowCtx = flow.getContext("2d");
-    if (typeof ensureFlowCanvasSize === "function") ensureFlowCanvasSize();
+    requestFlowCanvasSizeSync();
   } else {
     DOM.flowCanvas = null;
     DOM.flowCtx = null;

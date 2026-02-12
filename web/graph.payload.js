@@ -1,5 +1,123 @@
 "use strict";
 
+// === Node Settings Contracts =================================================
+var AJPC_NODE_SETTINGS_DEFAULTS = {
+  node_degree_size_factor: 0.18
+};
+
+var AJPC_NODE_SETTINGS_SPEC = [
+  {
+    key: "node_degree_size_factor",
+    label: "Degree Size Factor",
+    type: "number",
+    min: 0,
+    max: 2,
+    step: 0.01,
+    affectsEngine: true,
+    hint: "Scales node size by degree: size = base * (1 + k * sqrt(degree))."
+  }
+];
+
+window.ajpcNodeSettings = {
+  defaults: Object.assign({}, AJPC_NODE_SETTINGS_DEFAULTS),
+  spec: AJPC_NODE_SETTINGS_SPEC.slice()
+};
+
+// === Card Settings Contracts =================================================
+var AJPC_CARD_SETTINGS_DEFAULTS = {
+  card_dots_enabled: true,
+  card_dot_suspended_color: "#ef4444",
+  card_dot_buried_color: "#f59e0b"
+};
+
+var AJPC_CARD_SETTINGS_SPEC = [
+  {
+    key: "card_dots_enabled",
+    label: "Enable Card Dots",
+    type: "bool",
+    affectsEngine: false,
+    hint: "Persisted UI setting for card-dot visibility."
+  },
+  {
+    key: "card_dot_suspended_color",
+    label: "Suspended Color",
+    type: "color",
+    affectsEngine: false,
+    hint: "Persisted color for suspended-card dots."
+  },
+  {
+    key: "card_dot_buried_color",
+    label: "Buried Color",
+    type: "color",
+    affectsEngine: false,
+    hint: "Persisted color for buried-card dots."
+  }
+];
+
+window.ajpcCardSettings = {
+  defaults: Object.assign({}, AJPC_CARD_SETTINGS_DEFAULTS),
+  spec: AJPC_CARD_SETTINGS_SPEC.slice()
+};
+
+function getCardSettingsDefaults() {
+  var src = window.ajpcCardSettings && typeof window.ajpcCardSettings === "object"
+    ? window.ajpcCardSettings
+    : null;
+  if (src && src.defaults && typeof src.defaults === "object") {
+    return Object.assign({}, src.defaults);
+  }
+  return Object.assign({}, AJPC_CARD_SETTINGS_DEFAULTS);
+}
+
+function getCardSettingsSpec() {
+  var src = window.ajpcCardSettings && typeof window.ajpcCardSettings === "object"
+    ? window.ajpcCardSettings
+    : null;
+  if (src && Array.isArray(src.spec)) return src.spec.slice();
+  return AJPC_CARD_SETTINGS_SPEC.slice();
+}
+
+function cardSettingsSpec() {
+  return getCardSettingsSpec();
+}
+
+function collectCardSettings(input) {
+  var src = (input && typeof input === "object") ? input : {};
+  var defaults = getCardSettingsDefaults();
+  var out = Object.assign({}, defaults);
+
+  var dotsEnabled = src.card_dots_enabled;
+  if (typeof dotsEnabled === "string") {
+    var raw = dotsEnabled.trim().toLowerCase();
+    if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") dotsEnabled = true;
+    else if (raw === "0" || raw === "false" || raw === "no" || raw === "off") dotsEnabled = false;
+  }
+  out.card_dots_enabled = (dotsEnabled === undefined) ? !!defaults.card_dots_enabled : !!dotsEnabled;
+  out.card_dot_suspended_color = String(src.card_dot_suspended_color || defaults.card_dot_suspended_color || "").trim() || defaults.card_dot_suspended_color;
+  out.card_dot_buried_color = String(src.card_dot_buried_color || defaults.card_dot_buried_color || "").trim() || defaults.card_dot_buried_color;
+  return out;
+}
+
+function cardSettingsFromMeta() {
+  var meta = (STATE && STATE.raw && STATE.raw.meta && typeof STATE.raw.meta === "object")
+    ? STATE.raw.meta
+    : {};
+  var colors = (meta.card_dot_colors && typeof meta.card_dot_colors === "object")
+    ? meta.card_dot_colors
+    : {};
+
+  return {
+    card_dots_enabled: meta.card_dots_enabled,
+    card_dot_suspended_color: meta.card_dot_suspended_color !== undefined ? meta.card_dot_suspended_color : colors.suspended,
+    card_dot_buried_color: meta.card_dot_buried_color !== undefined ? meta.card_dot_buried_color : colors.buried
+  };
+}
+
+function syncCardSettingsFromMeta() {
+  var merged = Object.assign({}, cardSettingsFromMeta(), STATE.cards || {});
+  STATE.cards = collectCardSettings(merged);
+}
+
 function getEngineSettings() {
   if (window.ajpcEngineSettings && typeof window.ajpcEngineSettings === "object") {
     return window.ajpcEngineSettings;
@@ -97,28 +215,6 @@ function collectEngineRuntimeSettings(input) {
 function collectRendererSettings(input) {
   return collectEngineSettings(input, getEngineRendererDefaults());
 }
-
-var AJPC_NODE_SETTINGS_DEFAULTS = {
-  node_degree_size_factor: 0.18
-};
-
-var AJPC_NODE_SETTINGS_SPEC = [
-  {
-    key: "node_degree_size_factor",
-    label: "Degree Size Factor",
-    type: "number",
-    min: 0,
-    max: 2,
-    step: 0.01,
-    affectsEngine: true,
-    hint: "Scales node size by degree: size = base * (1 + k * sqrt(degree))."
-  }
-];
-
-window.ajpcNodeSettings = {
-  defaults: Object.assign({}, AJPC_NODE_SETTINGS_DEFAULTS),
-  spec: AJPC_NODE_SETTINGS_SPEC.slice()
-};
 
 function getNodeSettingsDefaults() {
   var src = window.ajpcNodeSettings && typeof window.ajpcNodeSettings === "object"
@@ -1452,9 +1548,13 @@ function applyRuntimeUiSettings(reheatLayout) {
   if (typeof STATE.graph.setLinkStyleCodes === "function") STATE.graph.setLinkStyleCodes(linkStyleCodes);
   if (typeof STATE.graph.setLinkDistance === "function") STATE.graph.setLinkDistance(linkDistance);
 
-  if (typeof applyVisualStyles === "function") {
-    applyVisualStyles(0.08);
-  } else if (typeof STATE.graph.render === "function") {
+  var adapter = window && window.GraphAdapter;
+  var handledByEngineAdapter = false;
+  if (adapter && typeof adapter.callEngine === "function") {
+    var res = adapter.callEngine("applyVisualStyles", 0.08);
+    handledByEngineAdapter = (res !== undefined);
+  }
+  if (!handledByEngineAdapter && typeof STATE.graph.render === "function") {
     STATE.graph.render(0.08);
   }
 
@@ -1515,3 +1615,30 @@ function applyRuntimeLinkDistances(reheat) {
 
 window.applyRuntimeLinkDistances = applyRuntimeLinkDistances;
 window.applyRuntimeUiSettings = applyRuntimeUiSettings;
+
+(function registerPayloadAdapterPorts() {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+
+  adapter.registerCityPort("getEngineSolverDefaults", getEngineSolverDefaults);
+  adapter.registerCityPort("getEngineRuntimeDefaults", getEngineRuntimeDefaults);
+  adapter.registerCityPort("getEngineRendererDefaults", getEngineRendererDefaults);
+  adapter.registerCityPort("getEngineSolverSpec", getEngineSolverSpec);
+  adapter.registerCityPort("getEngineRuntimeSpec", getEngineRuntimeSpec);
+  adapter.registerCityPort("getEngineRendererSpec", getEngineRendererSpec);
+  adapter.registerCityPort("collectSolverSettings", collectSolverSettings);
+  adapter.registerCityPort("collectEngineRuntimeSettings", collectEngineRuntimeSettings);
+  adapter.registerCityPort("collectRendererSettings", collectRendererSettings);
+  adapter.registerCityPort("getNodeSettingsDefaults", getNodeSettingsDefaults);
+  adapter.registerCityPort("getNodeSettingsSpec", getNodeSettingsSpec);
+  adapter.registerCityPort("collectNodeSettings", collectNodeSettings);
+  adapter.registerCityPort("getCardSettingsDefaults", getCardSettingsDefaults);
+  adapter.registerCityPort("getCardSettingsSpec", getCardSettingsSpec);
+  adapter.registerCityPort("collectCardSettings", collectCardSettings);
+  adapter.registerCityPort("cardSettingsFromMeta", cardSettingsFromMeta);
+  adapter.registerCityPort("syncCardSettingsFromMeta", syncCardSettingsFromMeta);
+  adapter.registerCityPort("AjpcNodeBaseSize", ajpcNodeBaseSize);
+  adapter.registerCityPort("buildGraphArrays", buildGraphArrays);
+  adapter.registerCityPort("applyRuntimeUiSettings", applyRuntimeUiSettings);
+  adapter.registerCityPort("applyRuntimeLinkDistances", applyRuntimeLinkDistances);
+})();

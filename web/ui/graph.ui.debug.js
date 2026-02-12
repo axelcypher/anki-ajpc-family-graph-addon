@@ -16,6 +16,12 @@ var DEBUG_COORD_SPEC = [
   { key: "cam", a: "camX", b: "camY" }
 ];
 
+function debugCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
 function ensureDebugCoordRows() {
   if (!DOM.debugCoords || DOM.debugCoordCells) return;
   DOM.debugCoordCells = {};
@@ -299,7 +305,7 @@ function wireDebugDom() {
       if (window.pycmd) {
         window.pycmd("devtools");
       } else {
-        applyGraphData(true);
+        debugCallEngine("applyGraphData", true);
       }
     });
   }
