@@ -232,13 +232,14 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_theme_css_mtime = 0.0
 
         editor_layout = QVBoxLayout(self._editor_panel)
-        editor_layout.setContentsMargins(12, 12, 12, 12)
-        editor_layout.setSpacing(8)
+        editor_layout.setContentsMargins(6, 6, 6, 6)
+        editor_layout.setSpacing(4)
 
         editor_head = QWidget(self._editor_panel)
+        editor_head.setObjectName("ajpcEmbeddedEditorHead")
         editor_head_layout = QHBoxLayout(editor_head)
-        editor_head_layout.setContentsMargins(0, 0, 0, 0)
-        editor_head_layout.setSpacing(8)
+        editor_head_layout.setContentsMargins(6, 4, 6, 4)
+        editor_head_layout.setSpacing(6)
         self._editor_title = QLabel("AJpC Note Editor", editor_head)
         self._editor_close_btn = QPushButton("Close", editor_head)
         self._editor_close_btn.clicked.connect(self._hide_embedded_editor_panel)
@@ -247,9 +248,10 @@ class FamilyGraphWindow(QWidget):
         editor_head_layout.addWidget(self._editor_close_btn)
 
         self._editor_mount = QWidget(self._editor_panel)
+        self._editor_mount.setObjectName("ajpcEmbeddedEditorMount")
         self._editor_mount_layout = QVBoxLayout(self._editor_mount)
         self._editor_mount_layout.setContentsMargins(0, 0, 0, 0)
-        self._editor_mount_layout.setSpacing(6)
+        self._editor_mount_layout.setSpacing(2)
         self._editor_hint = QLabel("Select a note and press Editor to open the embedded Anki editor.", self._editor_mount)
         self._editor_hint.setWordWrap(True)
         self._editor_mount_layout.addWidget(self._editor_hint)
@@ -348,9 +350,17 @@ class FamilyGraphWindow(QWidget):
                 """
                 QWidget#ajpcEmbeddedEditorPanel {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 rgba(8,16,32,245),
-                        stop:1 rgba(6,12,24,245));
+                        stop:0 rgba(5,10,20,245),
+                        stop:1 rgba(4,8,16,245));
                     border-right: 1px solid rgba(100,116,139,115);
+                }
+                QWidget#ajpcEmbeddedEditorHead {
+                    background-color: rgba(9,18,36,235);
+                    border: 1px solid rgba(100,116,139,96);
+                    border-radius: 8px;
+                }
+                QWidget#ajpcEmbeddedEditorMount {
+                    background: transparent;
                 }
                 QWidget#ajpcEmbeddedEditorPanel QLabel {
                     color: #e2e8f0;
@@ -360,7 +370,7 @@ class FamilyGraphWindow(QWidget):
                     background-color: rgba(30,41,59,215);
                     border: 1px solid rgba(148,163,184,125);
                     border-radius: 8px;
-                    padding: 6px 10px;
+                    padding: 4px 10px;
                 }
                 QWidget#ajpcEmbeddedEditorPanel QPushButton:hover {
                     background-color: rgba(51,65,85,230);
