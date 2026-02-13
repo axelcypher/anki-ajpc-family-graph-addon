@@ -619,6 +619,19 @@ function hideSuggest() {
   STATE.selectedSuggestIdx = -1;
 }
 
+function firstSearchMatchId(query) {
+  var q = String(query || "").trim().toLowerCase();
+  if (!q) return null;
+  var entries = Array.isArray(STATE.allSearchEntries) ? STATE.allSearchEntries : [];
+  for (var i = 0; i < entries.length; i += 1) {
+    var entry = entries[i];
+    if (!entry || typeof entry !== "object") continue;
+    var text = String(entry.text || "").toLowerCase();
+    if (text.indexOf(q) >= 0) return entry.id || null;
+  }
+  return null;
+}
+
 function renderSuggestions(query) {
   if (!DOM.searchSuggest) return;
   var q = String(query || "").trim().toLowerCase();
@@ -1754,6 +1767,8 @@ function wireDom() {
           pickedId = STATE.suggestedIds[STATE.selectedSuggestIdx];
         } else if (STATE.suggestedIds.length > 0) {
           pickedId = STATE.suggestedIds[0];
+        } else {
+          pickedId = firstSearchMatchId(DOM.searchInput.value || "");
         }
         if (pickedId) callEngineFocusNodeById(pickedId, true);
         return;
@@ -1766,7 +1781,9 @@ function wireDom() {
 
   if (DOM.searchGo) {
     DOM.searchGo.addEventListener("click", function () {
-      var id = STATE.suggestedIds.length ? STATE.suggestedIds[0] : null;
+      var id = STATE.suggestedIds.length
+        ? STATE.suggestedIds[0]
+        : firstSearchMatchId(DOM.searchInput ? (DOM.searchInput.value || "") : "");
       if (id) callEngineFocusNodeById(id, true);
     });
   }

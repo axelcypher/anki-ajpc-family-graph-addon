@@ -246,6 +246,7 @@
       margin-top: 10px;
 
       .active-cards-table {
+
         border-radius: 7px;
         overflow: hidden;
       }
@@ -273,6 +274,8 @@
       }
 
       .active-cards-list {
+        @include mixins.scrollbar();
+        
         display: block;
         max-height: 180px;
         overflow: auto;

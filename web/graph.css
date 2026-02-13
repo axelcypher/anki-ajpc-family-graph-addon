@@ -1258,6 +1258,24 @@ input[type=checkbox]:checked::before {
   color: var(--text-soft);
   font-weight: 700;
 }
+#status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar {
+  width: 10px;
+  background: transparent;
+  margin: var(--radius-small) 0;
+}
+#status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+#status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
+  background: var(--accent-200);
+  border-radius: 999px;
+}
+#status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list {
   display: block;
   max-height: 180px;

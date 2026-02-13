@@ -365,7 +365,9 @@
       // Coverage must include both ring and ping outer extents.
       var ringOuter = NODE_PULSE_MAX_RADIUS_MUL + ringPulseMul + ringWidthMul;
       var pingOuter = pingRadiusMul + pingWidthMul;
-      var maxCoverage = Math.max(ringOuter, pingOuter);
+      // Extra headroom so max-size ping/ring cannot hit the carrier clip edge.
+      var coveragePad = 0.45;
+      var maxCoverage = Math.max(ringOuter, pingOuter) + coveragePad;
       if (!(maxCoverage > 0)) maxCoverage = 1.6;
 
       var focusActive = runtime && runtime.focusDimActive !== undefined ? !!runtime.focusDimActive : false;
