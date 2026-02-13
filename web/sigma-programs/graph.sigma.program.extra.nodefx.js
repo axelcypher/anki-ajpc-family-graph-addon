@@ -29,12 +29,21 @@
     "u_ring_base_mul",
     "u_ring_pulse_mul",
     "u_ring_width_mul",
-    "u_ring_alpha",
     "u_ring_speed",
     "u_focus_active",
     "u_dim_rgb_mul",
     "u_dim_alpha_mul"
   ];
+
+  // Must stay aligned with node pulse max in graph.sigma.program.node.note.js:
+  // pulseOuterMax = coreRadius * (1.28 + 0.40) = 1.68 * coreRadius
+  var NODE_PULSE_MAX_RADIUS_MUL = 1.68;
+  // Must stay aligned with node pulse min in graph.sigma.program.node.note.js:
+  // pulseOuterMin = coreRadius * (1.28 + 0.20) = 1.48 * coreRadius
+  var NODE_PULSE_MIN_RADIUS_MUL = 1.48;
+  // Must stay aligned with node pulse speed in graph.sigma.program.node.note.js:
+  // wave = sin(((u_time * 0.4) + seed) * TAU) -> angular speed = TAU * 0.4
+  var NODE_PULSE_ANGULAR_SPEED = 6.28318530717958647692 * 0.4;
 
   var VERTEX_SHADER_SOURCE = [
     "attribute vec4 a_id;",
@@ -68,18 +77,14 @@
     "",
     "void main(void) {",
     "  float baseSize = a_size * u_correctionRatio / u_sizeRatio * 4.0;",
-    "  float nodeRadius = baseSize * 0.5;",
-    // For sigma triangle geometry, inradius is half of circumradius.
-    // We want a safe circular coverage radius of (nodeRadius * u_maxCoverageMul),
-    // so circumradius must be doubled.
-    "  float coverageRadius = nodeRadius * u_maxCoverageMul * 2.0;",
-    "  vec2 local = coverageRadius * vec2(cos(a_angle), sin(a_angle));",
+    "  float coverageScale = u_maxCoverageMul + 0.7;",
+    "  vec2 local = (baseSize * coverageScale) * vec2(cos(a_angle), sin(a_angle));",
     "  vec2 position = a_position + local;",
     "  gl_Position = vec4((u_matrix * vec3(position, 1.0)).xy, 0.0, 1.0);",
     "",
     "  v_id = a_id;",
     "  v_local = local;",
-    "  v_node_radius = nodeRadius;",
+    "  v_node_radius = baseSize * 0.5;",
     "  v_focus = a_focus;",
     "  v_ping_start = a_ping_start;",
     "  v_ping_dur = a_ping_dur;",
@@ -113,7 +118,6 @@
     "uniform float u_ring_base_mul;",
     "uniform float u_ring_pulse_mul;",
     "uniform float u_ring_width_mul;",
-    "uniform float u_ring_alpha;",
     "uniform float u_ring_speed;",
     "uniform float u_focus_active;",
     "uniform float u_dim_rgb_mul;",
@@ -138,9 +142,9 @@
     "",
     "  float dist = length(v_local);",
     "  if (!(dist >= 0.0)) discard;",
-    "  float aa = clamp(v_node_radius * 0.03 * u_correctionRatio, 0.35, 2.5);",
-    // Keep all animated geometry comfortably inside the triangle inradius to avoid clipping artifacts.
-    "  float safeMaxRadius = max((v_node_radius * u_maxCoverageMul) - (aa * 3.0), aa * 2.0);",
+    "  float aa = v_node_radius * 0.03 * u_correctionRatio;",
+    "  float safeMaxRadius = v_node_radius * u_maxCoverageMul;",
+    "  if (!(safeMaxRadius > 0.0)) discard;",
     // Hard circular clip guard: never render outside this radius even if branch math goes wrong.
     "  float coverageClip = 1.0 - smoothstep(safeMaxRadius - (aa * 1.5), safeMaxRadius + (aa * 1.5), dist);",
     "  if (!(coverageClip > 0.001)) discard;",
@@ -148,31 +152,40 @@
     "  float alpha = 0.0;",
     "  float activeOuter = -1.0;",
     "",
-    "  if (v_ring_mode > 0.5 && v_ring_color.a > 0.0) {",
+    "  if (v_ring_mode > 0.5) {",
     "    float phase = 0.5 + (0.5 * sin(u_time * u_ring_speed));",
-    "    float ringRadius = v_node_radius * (u_ring_base_mul + (phase * u_ring_pulse_mul));",
+    "    float ringRadius = v_node_radius * (" + String(NODE_PULSE_MAX_RADIUS_MUL) + " + (phase * u_ring_pulse_mul));",
     "    ringRadius = min(ringRadius, safeMaxRadius);",
     "    float ringWidth = max(v_node_radius * u_ring_width_mul, aa * 1.2);",
     "    activeOuter = max(activeOuter, min(ringRadius + ringWidth + aa, safeMaxRadius));",
     "    float ringMask = bandMask(dist, ringRadius, ringWidth, aa);",
     "    if (!(ringMask >= 0.0)) ringMask = 0.0;",
-    "    float ringA = ringMask * u_ring_alpha * v_ring_color.a;",
+    "    float ringA = ringMask;",
     "    compositePremul(rgb, alpha, v_ring_color.rgb, ringA);",
     "  }",
     "",
     "  if (v_ping_mode > 0.5 && v_ping_dur > 0.001 && v_ping_color.a > 0.0) {",
     "    float t = (u_time - v_ping_start) / v_ping_dur;",
-    "    if (t >= 0.0 && t <= 1.0) {",
-    "      float ease = t * t * (3.0 - (2.0 * t));",
-    "      float pingRadius = mix(v_node_radius * 1.02, v_node_radius * u_ping_max_radius_mul, ease);",
-    "      pingRadius = min(pingRadius, safeMaxRadius);",
-    "      float pingWidth = max(v_node_radius * u_ping_width_mul, aa * 1.6);",
-    "      activeOuter = max(activeOuter, min(pingRadius + pingWidth + aa, safeMaxRadius));",
-    "      float pingMask = bandMask(dist, pingRadius, pingWidth, aa);",
-    "      if (!(pingMask >= 0.0)) pingMask = 0.0;",
-    "      float fade = 1.0 - ease;",
-    "      float pingA = pingMask * fade * u_ping_alpha * v_ping_color.a;",
-    "      compositePremul(rgb, alpha, v_ping_color.rgb, pingA);",
+    "    float launchGap = 0.22;",
+    "    float activeSpan = 0.56;",
+    "    float pingStartRadius = v_node_radius * " + String(NODE_PULSE_MIN_RADIUS_MUL) + ";",
+    "    for (int i = 0; i < 3; i++) {",
+    "      float fi = float(i);",
+    "      float t0 = fi * launchGap;",
+    "      float t1 = t0 + activeSpan;",
+    "      if (t >= t0 && t <= t1) {",
+    "        float lt = (t - t0) / max(activeSpan, 0.0001);",
+    "        float ease = lt * lt * (3.0 - (2.0 * lt));",
+    "        float pingRadius = mix(pingStartRadius, v_node_radius * u_ping_max_radius_mul, ease);",
+    "        pingRadius = min(pingRadius, safeMaxRadius);",
+    "        float pingWidth = max(v_node_radius * u_ping_width_mul, aa * 1.6);",
+    "        activeOuter = max(activeOuter, min(pingRadius + pingWidth + aa, safeMaxRadius));",
+    "        float pingMask = bandMask(dist, pingRadius, pingWidth, aa);",
+    "        if (!(pingMask >= 0.0)) pingMask = 0.0;",
+    "        float fade = 0.5 * (1.0 - ease);",
+    "        float pingA = pingMask * fade * u_ping_alpha * v_ping_color.a;",
+    "        compositePremul(rgb, alpha, v_ping_color.rgb, pingA);",
+    "      }",
     "    }",
     "  }",
     "",
@@ -334,33 +347,26 @@
       var runtime = root && root.AJPCSigmaRuntime && typeof root.AJPCSigmaRuntime === "object" ? root.AJPCSigmaRuntime : null;
 
       var pingRadiusMul = numOr(runtime && runtime.nodeFxPingRadiusMul, 2.9);
-      if (pingRadiusMul < 1.05) pingRadiusMul = 1.05;
-      if (pingRadiusMul > 4.5) pingRadiusMul = 4.5;
+      if (!(pingRadiusMul > 0)) pingRadiusMul = 2.9;
       var pingWidthMul = numOr(runtime && runtime.nodeFxPingWidthMul, 0.22);
-      if (pingWidthMul < 0.02) pingWidthMul = 0.02;
-      if (pingWidthMul > 0.8) pingWidthMul = 0.8;
+      if (!(pingWidthMul >= 0)) pingWidthMul = 0.22;
       var pingAlpha = clamp01(numOr(runtime && runtime.nodeFxPingAlpha, 0.92));
 
       var ringBaseMul = numOr(runtime && runtime.nodeFxRingBaseMul, 1.28);
-      if (ringBaseMul < 1.02) ringBaseMul = 1.02;
-      if (ringBaseMul > 2.2) ringBaseMul = 2.2;
+      if (!(ringBaseMul > 0)) ringBaseMul = 1.28;
       var ringPulseMul = numOr(runtime && runtime.nodeFxRingPulseMul, 0.24);
       if (ringPulseMul < 0) ringPulseMul = 0;
-      if (ringPulseMul > 0.9) ringPulseMul = 0.9;
       var ringWidthMul = numOr(runtime && runtime.nodeFxRingWidthMul, 0.11);
-      if (ringWidthMul < 0.02) ringWidthMul = 0.02;
-      if (ringWidthMul > 0.5) ringWidthMul = 0.5;
-      var ringAlpha = clamp01(numOr(runtime && runtime.nodeFxRingAlpha, 0.95));
-      var ringSpeed = numOr(runtime && runtime.nodeFxRingSpeed, 4.6);
-      if (ringSpeed < 0) ringSpeed = 0;
-      if (ringSpeed > 12) ringSpeed = 12;
+      if (!(ringWidthMul > 0)) ringWidthMul = 0.11;
+      var ringSpeed = numOr(runtime && runtime.nodeFxRingSpeed, NODE_PULSE_ANGULAR_SPEED);
+      if (!(ringSpeed > 0)) ringSpeed = NODE_PULSE_ANGULAR_SPEED;
 
-      var maxCoverage = Math.max(
-        pingRadiusMul + pingWidthMul + 0.8,
-        ringBaseMul + ringPulseMul + ringWidthMul + 0.8
-      );
-      if (maxCoverage < 1.4) maxCoverage = 1.4;
-      if (maxCoverage > 6.5) maxCoverage = 6.5;
+      // Ring minimum should match node-pulse maximum radius.
+      // Coverage must include both ring and ping outer extents.
+      var ringOuter = NODE_PULSE_MAX_RADIUS_MUL + ringPulseMul + ringWidthMul;
+      var pingOuter = pingRadiusMul + pingWidthMul;
+      var maxCoverage = Math.max(ringOuter, pingOuter);
+      if (!(maxCoverage > 0)) maxCoverage = 1.6;
 
       var focusActive = runtime && runtime.focusDimActive !== undefined ? !!runtime.focusDimActive : false;
       var dimRgbMul = numOr(runtime && runtime.focusDimRgbMul, 0.58);
@@ -381,7 +387,6 @@
       gl.uniform1f(uniformLocations.u_ring_base_mul, ringBaseMul);
       gl.uniform1f(uniformLocations.u_ring_pulse_mul, ringPulseMul);
       gl.uniform1f(uniformLocations.u_ring_width_mul, ringWidthMul);
-      gl.uniform1f(uniformLocations.u_ring_alpha, ringAlpha);
       gl.uniform1f(uniformLocations.u_ring_speed, ringSpeed);
       gl.uniform1f(uniformLocations.u_focus_active, focusActive ? 1 : 0);
       gl.uniform1f(uniformLocations.u_dim_rgb_mul, dimRgbMul);
