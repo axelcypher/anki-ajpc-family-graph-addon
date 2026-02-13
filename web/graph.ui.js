@@ -338,18 +338,26 @@ function renderActiveCards(node) {
   var rows = cards.map(function (card) {
     
     var c = card && typeof card === "object" ? card : {};
+    var cid = Number(c.id);
+    var cardId = (isFiniteNumber(cid) && cid > 0) ? String(Math.floor(cid)) : "";
     var ord = Number(c.ord);
     var cardName = String(c.name || c.card_name || c.template || "").trim();
     if (!cardName) cardName = isFiniteNumber(ord) ? ("Card " + String(ord + 1)) : "Card";
+    var cardNameHtml = renderHtmlTemplate(
+      cardId
+        ? `<a href="#" class="active-card-open" data-card-id="{{cid}}">{{name}}</a>`
+        : `<span class="active-card-open-disabled">{{name}}</span>`,
+      { cid: cardId, name: cardName }
+    );
     var statusText = normalizeCardStatusLabel(c.status);
     var stabilityText = formatCardStability(c.stability);
     return renderHtmlTemplate(
       `<div class="active-card-row">
-        <span class="active-card-cell active-card-ord">{{name}}</span>
+        <span class="active-card-cell active-card-ord">{{{name_html}}}</span>
         <span class="active-card-cell active-card-status">{{status}}</span>
         <span class="active-card-cell active-card-stability">{{stability}} days</span>
       </div>`,
-      { name: cardName, status: statusText, stability: stabilityText }
+      { name_html: cardNameHtml, status: statusText, stability: stabilityText }
     );
   }).join("");
 
@@ -365,6 +373,19 @@ function renderActiveCards(node) {
     </div>`,
     { title: "Cards", rows: rows }
   );
+  var openButtons = DOM.statusActiveCards.querySelectorAll(".active-card-open[data-card-id]");
+  for (var i = 0; i < openButtons.length; i += 1) {
+    openButtons[i].addEventListener("click", function (evt) {
+      if (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
+      var rawId = String(this.getAttribute("data-card-id") || "");
+      var cardIdNum = Number(rawId);
+      if (!isFiniteNumber(cardIdNum) || cardIdNum <= 0) return;
+      if (window.pycmd) window.pycmd("ctx:previewcard:" + String(Math.floor(cardIdNum)));
+    });
+  }
 }
 
 function renderActiveDetails() {
@@ -1494,8 +1515,18 @@ function renderCardsSettings() {
   renderSettingsList(DOM.cardsSettings, "cards", callCityGetCardSettingsSpec(), callCityGetCardSettingsDefaults);
 }
 
+function syncEngineSectionVisibility() {
+  if (!DOM.engineList) return;
+  var section = (DOM.engineList.closest && DOM.engineList.closest(".settings-block")) || null;
+  if (!section) return;
+  var hasItems = !!(DOM.engineList.children && DOM.engineList.children.length > 0);
+  section.classList.toggle("hidden", !hasItems);
+  section.setAttribute("aria-hidden", hasItems ? "false" : "true");
+}
+
 function renderEngineSettings() {
   renderSettingsList(DOM.engineList, "engine", engineSpec(), getEngineRuntimeDefaults);
+  syncEngineSectionVisibility();
   if (typeof getNodeSettingsDefaults === "function") {
     renderSettingsList(DOM.nodeSettings, "node", nodeSpec(), getNodeSettingsDefaults);
   }
@@ -1622,22 +1653,16 @@ function wireDom() {
 
   if (DOM.btnEditor) {
     DOM.btnEditor.addEventListener("click", function () {
-      var nowClosed = DOM.editorPanel.classList.contains("closed");
-      if (nowClosed) {
-        updateEditorVisibility(true);
-        if (typeof openEmbeddedEditorForSelectedNote === "function") {
-          var opened = !!openEmbeddedEditorForSelectedNote();
-          if (!opened) {
-            updateEditorVisibility(false);
-            if (typeof updateStatus === "function") updateStatus("Select a note node first");
-            return;
-          }
+      updateEditorVisibility(true);
+      if (typeof openEmbeddedEditorForSelectedNote === "function") {
+        var opened = !!openEmbeddedEditorForSelectedNote();
+        if (!opened) {
+          updateEditorVisibility(false);
+          if (typeof updateStatus === "function") updateStatus("Select a note node first");
+          return;
         }
-        if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
-        return;
       }
-      if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
-      updateEditorVisibility(false);
+      if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
     });
   }
   

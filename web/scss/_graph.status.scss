@@ -2,7 +2,8 @@
 
 /* Hover Tooltip */
 #hover-tip {
-  @include mixins.overlay-panel($position: fixed,
+  @include mixins.overlay-panel(
+    $position: fixed,
     $padding: 8px 10px,
   );
   pointer-events: none;
@@ -207,7 +208,9 @@
 
 
   #status-active {
-    @include mixins.overlay-panel();
+    @include mixins.overlay-panel(
+      $padding: 2px 12px 12px 12px
+      );
     position: relative;
     width: 100%;
     transform: translateX(calc(-100% - 18px));
@@ -220,7 +223,7 @@
       pointer-events: auto;
     }
 
-
+ 
     .title {
       h2 {
         margin-bottom: 2px;

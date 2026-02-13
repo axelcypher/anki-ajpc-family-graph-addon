@@ -65,7 +65,7 @@
   border: 1px solid var(--border-100);
   background: var(--bg-chip-200);
   backdrop-filter: blur(8px);
-  padding: 7px 12px;
+  padding: $padding;
   color: var(--text-main);
   font-size: 12px;
   box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);

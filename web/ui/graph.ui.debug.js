@@ -136,11 +136,16 @@ function styleDebugSummary() {
 }
 
 function syncDebugPanelVisibility() {
-  if (!DOM.statusDebugPanel) return;
   var enabled = !!STATE.debugEnabled;
-  DOM.toolbarDebugPanel.classList.toggle("is-hidden", !enabled);
-  DOM.statusDebugPanel.classList.toggle("is-hidden", !enabled);
-  DOM.statusDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
+  if (DOM.toolbarDebugPanel) {
+    DOM.toolbarDebugPanel.classList.toggle("hidden", !enabled);
+    DOM.toolbarDebugPanel.classList.toggle("is-hidden", !enabled);
+    DOM.toolbarDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
+  }
+  if (DOM.statusDebugPanel) {
+    DOM.statusDebugPanel.classList.toggle("is-hidden", !enabled);
+    DOM.statusDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
+  }
 }
 
 function stopDebugPerfMonitor() {

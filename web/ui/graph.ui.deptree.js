@@ -83,7 +83,7 @@ function depTreeRenderEmptyState(payload, text) {
   depTreeSetEmptyState(true);
   DOM.statusActiveDepTree.innerHTML = renderHtmlTemplate(
     `<div class="dep-tree-empty">
-      <h3>Dependency Tree:</h3> {{message}}
+      <p>{{message}}</p>
     </div>`,
     { message: String(text || "No dependency data") }
   );
