@@ -235,6 +235,7 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_footer_devtools_btn = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
         self._editor_panel_transition_ms = 180
+        self._editor_panel_transition_extra_ms = 300
         self._editor_panel_anim: QPropertyAnimation | None = None
         self._editor_panel_closing = False
         self._embedded_editor_theme_css = ""
@@ -439,7 +440,7 @@ class FamilyGraphWindow(QWidget):
                 panel.hide()
                 self._editor_panel_closing = False
             return
-        dur = int(self._editor_panel_transition_ms or 180)
+        dur = int((self._editor_panel_transition_ms or 180) + (self._editor_panel_transition_extra_ms or 0))
         if dur < 1:
             dur = 1
         off_x = x - (w + 16)
