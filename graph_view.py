@@ -12,6 +12,7 @@ from aqt import mw, gui_hooks
 from aqt.operations import QueryOp
 from aqt.qt import (
     QDialogButtonBox,
+    QFrame,
     QHBoxLayout,
     QKeySequence,
     QLabel,
@@ -448,6 +449,7 @@ class FamilyGraphWindow(QWidget):
                     self._embedded_editor_footer_devtools_btn = btn
                 except Exception:
                     self._embedded_editor_footer_devtools_btn = None
+            self._strip_embedded_editor_chrome()
             self._editor_hint.setVisible(False)
             self._theme_embedded_editor_web()
             logger.dbg("embedded editor ready")
@@ -472,6 +474,22 @@ class FamilyGraphWindow(QWidget):
             f"var css={css_js};"
             "var st=document.getElementById(id);"
             "if(!st){st=document.createElement(\"style\");st.id=id;document.head.appendChild(st);}st.textContent=css;"
+            # Hide default editor top caption/link and separator if present.
+            "var candidates=document.querySelectorAll('a,span,div,label');"
+            "for(var i=0;i<candidates.length;i++){"
+            " var el=candidates[i];"
+            " if(!el||el.children&&el.children.length) continue;"
+            " var t=(el.textContent||'').trim();"
+            " if(t!=='Edit') continue;"
+            " var r=el.getBoundingClientRect();"
+            " if(r&&r.top<180&&r.height<48){el.style.display='none';}"
+            "}"
+            "var hrs=document.querySelectorAll('hr');"
+            "for(var j=0;j<hrs.length;j++){"
+            " var hr=hrs[j];"
+            " var rr=hr.getBoundingClientRect();"
+            " if(rr&&rr.top<220){hr.style.display='none';}"
+            "}"
             "}catch(_e){}"
             "})();"
         )
@@ -602,6 +620,28 @@ class FamilyGraphWindow(QWidget):
                 if color:
                     return color
         return "#0b1220"
+
+    def _strip_embedded_editor_chrome(self) -> None:
+        # Remove legacy top "Edit" caption and divider from embedded Qt form, if present.
+        root = self._embedded_editor_root
+        if root is None:
+            return
+        try:
+            for lbl in root.findChildren(QLabel):
+                txt = str(lbl.text() or "").strip().lower()
+                if txt == "edit":
+                    lbl.hide()
+        except Exception:
+            pass
+        try:
+            for frame in root.findChildren(QFrame):
+                try:
+                    if frame.frameShape() == QFrame.Shape.HLine:
+                        frame.hide()
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
     def _show_embedded_editor_widgets(self) -> None:
         # Ensure the nested editor widget tree is visible when mounted in overlay mode.
