@@ -4,6 +4,8 @@
 // This module only handles UI -> Python bridge messaging for the native editor panel.
 (function () {
   var rectSyncTimer = null;
+  var pendingOpenTimer = null;
+  var pendingOpenNonce = 0;
 
   function pycmdSafe(msg) {
     try {
@@ -41,13 +43,43 @@
     if (closed) return { visible: false, x: 0, y: 0, w: 0, h: 0 };
     var r = DOM.editorPanel.getBoundingClientRect();
     if (!r) return { visible: false, x: 0, y: 0, w: 0, h: 0 };
+    var cs = null;
+    try { cs = window.getComputedStyle(DOM.editorPanel); } catch (_e0) {}
+    var cssW = cs ? Number.parseFloat(cs.width || "0") : 0;
+    var cssH = cs ? Number.parseFloat(cs.height || "0") : 0;
     return {
       visible: true,
       x: Math.round(Number(r.left || 0)),
       y: Math.round(Number(r.top || 0)),
-      w: Math.max(0, Math.round(Number(r.width || 0))),
-      h: Math.max(0, Math.round(Number(r.height || 0)))
+      w: Math.max(0, Math.round(cssW > 0 ? cssW : Number(r.width || 0))),
+      h: Math.max(0, Math.round(cssH > 0 ? cssH : Number(r.height || 0)))
     };
+  }
+
+  function parseCssTimeMs(raw) {
+    var s = String(raw || "").trim();
+    if (!s) return 0;
+    if (s.slice(-2) === "ms") return Number.parseFloat(s.slice(0, -2)) || 0;
+    if (s.slice(-1) === "s") return (Number.parseFloat(s.slice(0, -1)) || 0) * 1000;
+    return Number.parseFloat(s) || 0;
+  }
+
+  function editorPanelTransitionMs() {
+    if (!window.DOM || !DOM.editorPanel) return 220;
+    var cs = null;
+    try { cs = window.getComputedStyle(DOM.editorPanel); } catch (_e1) {}
+    if (!cs) return 220;
+    var durs = String(cs.transitionDuration || "").split(",");
+    var delays = String(cs.transitionDelay || "").split(",");
+    var n = Math.max(durs.length, delays.length, 1);
+    var maxMs = 0;
+    for (var i = 0; i < n; i += 1) {
+      var d = parseCssTimeMs(durs[i] || durs[durs.length - 1] || "0ms");
+      var dl = parseCssTimeMs(delays[i] || delays[delays.length - 1] || "0ms");
+      var total = d + dl;
+      if (total > maxMs) maxMs = total;
+    }
+    return Math.max(0, Math.round(maxMs));
   }
 
   function sendEmbeddedEditorRect() {
@@ -57,16 +89,39 @@
 
   function syncEmbeddedEditorRect() {
     sendEmbeddedEditorRect();
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        sendEmbeddedEditorRect();
+      });
+    });
     if (rectSyncTimer) {
       try { window.clearTimeout(rectSyncTimer); } catch (_e0) {}
       rectSyncTimer = null;
     }
-    // Re-send after panel transition settles.
+    // Re-send after panel transition settles (duration is read from CSS).
+    var settleMs = editorPanelTransitionMs() + 40;
     rectSyncTimer = window.setTimeout(function () {
       rectSyncTimer = null;
       sendEmbeddedEditorRect();
-    }, 240);
+      window.setTimeout(sendEmbeddedEditorRect, 90);
+    }, settleMs);
     return true;
+  }
+
+  function cancelPendingOpen() {
+    pendingOpenNonce += 1;
+    if (pendingOpenTimer) {
+      try { window.clearTimeout(pendingOpenTimer); } catch (_e2) {}
+      pendingOpenTimer = null;
+    }
+  }
+
+  function runDelayedOpen(nid, nonce) {
+    if (nonce !== pendingOpenNonce) return;
+    if (!(window.DOM && DOM.editorPanel) || DOM.editorPanel.classList.contains("closed")) return;
+    syncEmbeddedEditorRect();
+    pycmdSafe("embed_editor:open:" + String(nid));
+    syncEmbeddedEditorRect();
   }
 
   function openEmbeddedEditorForSelectedNote() {
@@ -75,10 +130,10 @@
       if (typeof updateStatus === "function") updateStatus("Select a note node first");
       return false;
     }
+    cancelPendingOpen();
     syncEmbeddedEditorRect();
-    var ok = pycmdSafe("embed_editor:open:" + String(nid));
-    syncEmbeddedEditorRect();
-    return ok;
+    runDelayedOpen(nid, pendingOpenNonce);
+    return true;
   }
 
   function toggleEmbeddedEditorForSelectedNote() {
@@ -88,6 +143,7 @@
   }
 
   function closeEmbeddedEditorPanel() {
+    cancelPendingOpen();
     var ok = pycmdSafe("embed_editor:close");
     sendEmbeddedEditorRect();
     return ok;

@@ -387,10 +387,8 @@ class FamilyGraphWindow(QWidget):
         host_w = max(1, int(self.width()))
         host_h = max(1, int(self.height()))
         if x < 0:
-            w += x
             x = 0
         if y < 0:
-            h += y
             y = 0
         if x + w > host_w:
             w = max(0, host_w - x)
@@ -415,7 +413,11 @@ class FamilyGraphWindow(QWidget):
             return False
         try:
             # editcurrent.Ui_Dialog expects a MainWindow-like host (uses setCentralWidget).
-            self._embedded_editor_root = QMainWindow(self._editor_mount)
+            self._embedded_editor_root = QMainWindow(self._editor_mount, Qt.WindowType.Widget)
+            try:
+                self._embedded_editor_root.setWindowFlags(Qt.WindowType.Widget)
+            except Exception:
+                pass
             self._embedded_editor_form = aqt.forms.editcurrent.Ui_Dialog()
             self._embedded_editor_form.setupUi(self._embedded_editor_root)
             self._editor_mount_layout.addWidget(self._embedded_editor_root, 1)
@@ -451,7 +453,6 @@ class FamilyGraphWindow(QWidget):
             "var css='"
             "html,body{background:#0b1220!important;color:#e2e8f0!important;}"
             " .field{background:#0f172a!important;border-color:#334155!important;color:#e2e8f0!important;}"
-            " .field *{color:inherit!important;}"
             " .toolbar{background:#111827!important;border-color:#334155!important;}"
             "';"
             "var st=document.getElementById(id);"
@@ -476,6 +477,85 @@ class FamilyGraphWindow(QWidget):
             except Exception:
                 continue
 
+    def _show_embedded_editor_widgets(self) -> None:
+        # Ensure the nested editor widget tree is visible when mounted in overlay mode.
+        try:
+            self._editor_mount.setVisible(True)
+            self._editor_mount.show()
+        except Exception:
+            pass
+        try:
+            if self._embedded_editor_root is not None:
+                self._embedded_editor_root.setVisible(True)
+                self._embedded_editor_root.show()
+                self._embedded_editor_root.raise_()
+        except Exception:
+            pass
+        editor = self._embedded_editor
+        if editor is None:
+            return
+        for attr in ("web", "toolbarWeb"):
+            wv = None
+            try:
+                wv = getattr(editor, attr, None)
+            except Exception:
+                wv = None
+            if wv is None:
+                continue
+            try:
+                wv.setVisible(True)
+                wv.show()
+                wv.raise_()
+            except Exception:
+                continue
+
+    def _deferred_set_embedded_editor_note(self, nid: int, focus_to: int = 0) -> None:
+        # Some Anki editor webviews can initialize blank when first mounted hidden;
+        # replaying set_note after panel show stabilizes rendering.
+        if not self._editor_panel_open or self._embedded_editor is None:
+            return
+        try:
+            target_nid = int(nid or 0)
+        except Exception:
+            target_nid = 0
+        if target_nid <= 0 or int(self._embedded_editor_nid or 0) != target_nid:
+            return
+        if mw is None or getattr(mw, "col", None) is None:
+            return
+        try:
+            note = mw.col.get_note(target_nid)
+        except Exception:
+            note = None
+        if note is None:
+            return
+        try:
+            self._embedded_editor.set_note(note, focusTo=focus_to)
+            self._show_embedded_editor_widgets()
+            self._theme_embedded_editor_web()
+            logger.dbg("embedded editor deferred set_note", target_nid)
+        except Exception as exc:
+            logger.dbg("embedded editor deferred set_note failed", target_nid, repr(exc))
+
+    def _sync_web_editor_panel_visibility(self, visible: bool) -> None:
+        # Keep the web sidebar state in sync when the native editor closes itself
+        # (e.g. the embedded Anki "Close" button in the editor form).
+        try:
+            open_js = "true" if bool(visible) else "false"
+            self.web.eval(
+                "(function(){"
+                "try{"
+                f"var open={open_js};"
+                "if(typeof window.updateEditorVisibility==='function'){window.updateEditorVisibility(open);return;}"
+                "var panel=document.getElementById('editor-panel');"
+                "if(!panel) return;"
+                "panel.classList.toggle('closed', !open);"
+                "panel.setAttribute('aria-hidden', open ? 'false' : 'true');"
+                "}catch(_e){}"
+                "})();"
+            )
+        except Exception:
+            pass
+
     def _show_embedded_editor_for_note(self, nid: int, *, focus_to: int = 0) -> bool:
         try:
             nid = int(nid)
@@ -494,7 +574,6 @@ class FamilyGraphWindow(QWidget):
         if note is None:
             return False
         try:
-            self._embedded_editor.set_note(note, focusTo=focus_to)
             self._embedded_editor_nid = nid
             self._editor_panel_open = True
             if not bool(self._editor_panel_rect.get("visible")):
@@ -506,10 +585,14 @@ class FamilyGraphWindow(QWidget):
                 self._editor_title.setText(f"AJpC Note Editor - {note.note_type()['name']}")
             except Exception:
                 self._editor_title.setText("AJpC Note Editor")
-            self._theme_embedded_editor_web()
             self._update_embedded_editor_geometry()
             self._editor_panel.setVisible(True)
             self._editor_panel.raise_()
+            self._show_embedded_editor_widgets()
+            self._embedded_editor.set_note(note, focusTo=focus_to)
+            self._theme_embedded_editor_web()
+            QTimer.singleShot(0, lambda n=nid, f=focus_to: self._deferred_set_embedded_editor_note(n, f))
+            QTimer.singleShot(120, lambda n=nid, f=focus_to: self._deferred_set_embedded_editor_note(n, f))
             logger.dbg("embedded editor show", nid)
             return True
         except Exception as exc:
@@ -519,6 +602,7 @@ class FamilyGraphWindow(QWidget):
     def _hide_embedded_editor_panel(self) -> None:
         self._editor_panel_open = False
         self._editor_panel.setVisible(False)
+        self._sync_web_editor_panel_visibility(False)
         logger.dbg("embedded editor hide")
 
     def _toggle_embedded_editor(self, nid: int) -> bool:

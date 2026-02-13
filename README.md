@@ -80,6 +80,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Active selection gets a pulsing ring in node color.
 - Context selection (right-click target) gets a red pulsing ring.
 - Editor button in the active panel toggles the embedded native editor (no extra popup required).
+- Closing from inside the embedded native editor also closes the left editor sidebar state in the graph UI.
 
 ## Notes
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
