@@ -504,6 +504,7 @@ class FamilyGraphWindow(QWidget):
     def _get_embedded_editor_theme_css(self) -> str:
         css_path = os.path.join(WEB_DIR, "graph.css")
         scss_path = os.path.join(WEB_DIR, "scss", "_graph.editor.scss")
+        tokens_path = os.path.join(WEB_DIR, "scss", "_graph.tokens.scss")
         try:
             mtime = float(os.path.getmtime(css_path))
         except Exception:
@@ -512,7 +513,11 @@ class FamilyGraphWindow(QWidget):
             scss_mtime = float(os.path.getmtime(scss_path))
         except Exception:
             scss_mtime = 0.0
-        source_mtime = max(mtime, scss_mtime)
+        try:
+            tokens_mtime = float(os.path.getmtime(tokens_path))
+        except Exception:
+            tokens_mtime = 0.0
+        source_mtime = max(mtime, scss_mtime, tokens_mtime)
         if self._embedded_editor_theme_css and source_mtime > 0 and source_mtime <= float(self._embedded_editor_theme_css_mtime):
             return self._embedded_editor_theme_css
         css = ""
@@ -550,6 +555,9 @@ class FamilyGraphWindow(QWidget):
             )
             logger.dbg("embedded editor theme css fallback active")
         css = self._unscope_embedded_editor_theme_css(css)
+        root_vars_css = self._get_embedded_editor_root_vars_css()
+        if root_vars_css:
+            css = root_vars_css + "\n" + css
         self._embedded_editor_theme_css = css
         self._embedded_editor_theme_css_mtime = source_mtime
         return css
@@ -568,6 +576,30 @@ class FamilyGraphWindow(QWidget):
         out = out.replace(scope + ",", ",")
         out = re.sub(r"\s{2,}", " ", out)
         return out.strip()
+
+    def _get_embedded_editor_root_vars_css(self) -> str:
+        # Provide :root variables so var(--...) works inside embedded editor webviews.
+        candidates = [
+            os.path.join(WEB_DIR, "graph.css"),
+            os.path.join(WEB_DIR, "scss", "_graph.tokens.scss"),
+        ]
+        for path in candidates:
+            try:
+                with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                    raw = fh.read()
+            except Exception:
+                continue
+            match = re.search(r":root\s*,\s*#app\s*\{(.*?)\}", raw, flags=re.DOTALL)
+            if match:
+                decls = str(match.group(1) or "").strip()
+                if decls:
+                    return ":root{" + decls + "}"
+            match = re.search(r":root\s*\{(.*?)\}", raw, flags=re.DOTALL)
+            if match:
+                decls = str(match.group(1) or "").strip()
+                if decls:
+                    return ":root{" + decls + "}"
+        return ""
 
     def _show_embedded_editor_widgets(self) -> None:
         # Ensure the nested editor widget tree is visible when mounted in overlay mode.
