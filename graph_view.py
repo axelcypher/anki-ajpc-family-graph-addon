@@ -12,12 +12,15 @@ from aqt import mw, gui_hooks
 from aqt.operations import QueryOp
 from aqt.qt import (
     QDialogButtonBox,
+    QEasingCurve,
     QFrame,
     QHBoxLayout,
     QKeySequence,
     QLabel,
     QMainWindow,
+    QPropertyAnimation,
     QPushButton,
+    QRect,
     QVBoxLayout,
     QWidget,
     Qt,
@@ -231,6 +234,9 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_devtools = None
         self._embedded_editor_footer_devtools_btn = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
+        self._editor_panel_transition_ms = 180
+        self._editor_panel_anim: QPropertyAnimation | None = None
+        self._editor_panel_closing = False
         self._embedded_editor_theme_css = ""
         self._embedded_editor_theme_css_mtime = 0.0
 
@@ -375,9 +381,23 @@ class FamilyGraphWindow(QWidget):
             return
         rect = self._editor_panel_rect if isinstance(self._editor_panel_rect, dict) else {}
         visible = bool(rect.get("visible"))
-        if not visible:
+        x, y, w, h = self._clamped_editor_panel_rect()
+        if w <= 0 or h <= 0:
+            if not self._editor_panel_open and not self._editor_panel_closing:
+                panel.hide()
+            return
+        if not visible and not self._editor_panel_open and not self._editor_panel_closing:
             panel.hide()
             return
+        if self._editor_panel_anim is not None:
+            return
+        panel.setGeometry(x, y, w, h)
+        panel.raise_()
+        if self._editor_panel_open or self._editor_panel_closing:
+            panel.show()
+
+    def _clamped_editor_panel_rect(self) -> tuple[int, int, int, int]:
+        rect = self._editor_panel_rect if isinstance(self._editor_panel_rect, dict) else {}
         try:
             x = int(rect.get("x", 0) or 0)
             y = int(rect.get("y", 0) or 0)
@@ -385,9 +405,6 @@ class FamilyGraphWindow(QWidget):
             h = int(rect.get("h", 0) or 0)
         except Exception:
             x, y, w, h = 0, 0, 0, 0
-        if w <= 0 or h <= 0:
-            panel.hide()
-            return
         host_w = max(1, int(self.width()))
         host_h = max(1, int(self.height()))
         if x < 0:
@@ -398,13 +415,76 @@ class FamilyGraphWindow(QWidget):
             w = max(0, host_w - x)
         if y + h > host_h:
             h = max(0, host_h - y)
-        if w <= 0 or h <= 0:
-            panel.hide()
+        return x, y, w, h
+
+    def _stop_embedded_editor_animation(self) -> None:
+        anim = self._editor_panel_anim
+        if anim is None:
             return
-        panel.setGeometry(x, y, w, h)
-        panel.raise_()
-        if self._editor_panel_open:
+        try:
+            anim.stop()
+        except Exception:
+            pass
+        self._editor_panel_anim = None
+
+    def _animate_embedded_editor_panel(self, opening: bool) -> None:
+        panel = self._editor_panel
+        if panel is None:
+            return
+        x, y, w, h = self._clamped_editor_panel_rect()
+        if w <= 0 or h <= 0:
+            if opening:
+                panel.hide()
+            else:
+                panel.hide()
+                self._editor_panel_closing = False
+            return
+        dur = int(self._editor_panel_transition_ms or 180)
+        if dur < 1:
+            dur = 1
+        off_x = x - (w + 16)
+        end_rect = QRect(x, y, w, h)
+        if opening:
+            start_rect = QRect(off_x, y, w, h)
+            self._editor_panel_closing = False
+            panel.setGeometry(start_rect)
             panel.show()
+            panel.raise_()
+        else:
+            current = panel.geometry()
+            if current.width() <= 0 or current.height() <= 0:
+                current = QRect(x, y, w, h)
+            start_rect = current
+            end_rect = QRect(off_x, y, w, h)
+            self._editor_panel_closing = True
+        self._stop_embedded_editor_animation()
+        anim = QPropertyAnimation(panel, b"geometry", panel)
+        anim.setDuration(dur)
+        anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        anim.setStartValue(start_rect)
+        anim.setEndValue(end_rect)
+        if opening:
+            def _done_open() -> None:
+                try:
+                    panel.setGeometry(QRect(x, y, w, h))
+                    panel.raise_()
+                except Exception:
+                    pass
+                self._editor_panel_anim = None
+        else:
+            def _done_close() -> None:
+                try:
+                    panel.hide()
+                except Exception:
+                    pass
+                self._editor_panel_closing = False
+                self._editor_panel_anim = None
+        try:
+            anim.finished.connect(_done_open if opening else _done_close)
+        except Exception:
+            pass
+        self._editor_panel_anim = anim
+        anim.start()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -774,9 +854,7 @@ class FamilyGraphWindow(QWidget):
                 host_h = max(1, int(self.height()))
                 fallback_w = max(360, min(720, int(host_w * 0.42)))
                 self._editor_panel_rect = {"visible": True, "x": 0, "y": 0, "w": fallback_w, "h": host_h}
-            self._update_embedded_editor_geometry()
-            self._editor_panel.setVisible(True)
-            self._editor_panel.raise_()
+            self._animate_embedded_editor_panel(True)
             self._show_embedded_editor_widgets()
             self._embedded_editor.set_note(note, focusTo=focus_to)
             self._theme_embedded_editor_web()
@@ -790,7 +868,7 @@ class FamilyGraphWindow(QWidget):
 
     def _hide_embedded_editor_panel(self) -> None:
         self._editor_panel_open = False
-        self._editor_panel.setVisible(False)
+        self._animate_embedded_editor_panel(False)
         self._sync_web_editor_panel_visibility(False)
         logger.dbg("embedded editor hide")
 
@@ -805,6 +883,8 @@ class FamilyGraphWindow(QWidget):
         return False
 
     def _cleanup_embedded_editor(self) -> None:
+        self._stop_embedded_editor_animation()
+        self._editor_panel_closing = False
         if self._embedded_editor_devtools is not None:
             try:
                 self._embedded_editor_devtools.close()
@@ -966,6 +1046,10 @@ class FamilyGraphWindow(QWidget):
                         "w": int(data.get("w", 0) or 0),
                         "h": int(data.get("h", 0) or 0),
                     }
+                    try:
+                        self._editor_panel_transition_ms = max(1, int(data.get("tms", self._editor_panel_transition_ms) or self._editor_panel_transition_ms))
+                    except Exception:
+                        self._editor_panel_transition_ms = 180
                     self._update_embedded_editor_geometry()
                     logger.dbg("embed editor rect", self._editor_panel_rect)
                 elif action == "open" or action == "select":

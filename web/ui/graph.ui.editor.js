@@ -4,8 +4,6 @@
 // This module only handles UI -> Python bridge messaging for the native editor panel.
 (function () {
   var rectSyncTimer = null;
-  var rectSyncRaf = 0;
-  var rectSyncUntil = 0;
   var pendingOpenTimer = null;
   var pendingOpenNonce = 0;
 
@@ -37,25 +35,26 @@
     return Math.floor(nid);
   }
 
-  function editorPanelRectPayload(forceVisible) {
+  function editorPanelRectPayload() {
     if (!window.DOM || !DOM.editorPanel) {
-      return { visible: false, x: 0, y: 0, w: 0, h: 0 };
+      return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: 0 };
     }
     var closed = DOM.editorPanel.classList.contains("closed");
-    var keepVisible = !!forceVisible;
-    if (closed && !keepVisible) return { visible: false, x: 0, y: 0, w: 0, h: 0 };
+    var tms = editorPanelTransitionMs();
+    if (closed) return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: tms };
     var r = DOM.editorPanel.getBoundingClientRect();
-    if (!r) return { visible: false, x: 0, y: 0, w: 0, h: 0 };
+    if (!r) return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: tms };
     var cs = null;
     try { cs = window.getComputedStyle(DOM.editorPanel); } catch (_e0) {}
     var cssW = cs ? Number.parseFloat(cs.width || "0") : 0;
     var cssH = cs ? Number.parseFloat(cs.height || "0") : 0;
     return {
-      visible: (!closed) || keepVisible,
+      visible: true,
       x: Math.round(Number(r.left || 0)),
       y: Math.round(Number(r.top || 0)),
       w: Math.max(0, Math.round(cssW > 0 ? cssW : Number(r.width || 0))),
-      h: Math.max(0, Math.round(cssH > 0 ? cssH : Number(r.height || 0)))
+      h: Math.max(0, Math.round(cssH > 0 ? cssH : Number(r.height || 0))),
+      tms: tms
     };
   }
 
@@ -85,34 +84,9 @@
     return Math.max(0, Math.round(maxMs));
   }
 
-  function sendEmbeddedEditorRect(forceVisible) {
-    var payload = editorPanelRectPayload(!!forceVisible);
+  function sendEmbeddedEditorRect() {
+    var payload = editorPanelRectPayload();
     return pycmdSafe("embed_editor:rect:" + encodeURIComponent(JSON.stringify(payload)));
-  }
-
-  function stopTransitionRectSync() {
-    rectSyncUntil = 0;
-    if (rectSyncRaf) {
-      try { window.cancelAnimationFrame(rectSyncRaf); } catch (_e3) {}
-      rectSyncRaf = 0;
-    }
-  }
-
-  function startTransitionRectSync(ms) {
-    stopTransitionRectSync();
-    var duration = Math.max(0, Number(ms || 0));
-    if (duration <= 0) return;
-    rectSyncUntil = Date.now() + duration;
-    (function tick() {
-      sendEmbeddedEditorRect(true);
-      if (Date.now() < rectSyncUntil) {
-        rectSyncRaf = window.requestAnimationFrame(tick);
-        return;
-      }
-      rectSyncRaf = 0;
-      rectSyncUntil = 0;
-      sendEmbeddedEditorRect(false);
-    })();
   }
 
   function syncEmbeddedEditorRect() {
@@ -128,11 +102,10 @@
     }
     // Re-send after panel transition settles (duration is read from CSS).
     var settleMs = editorPanelTransitionMs() + 40;
-    startTransitionRectSync(settleMs + 24);
     rectSyncTimer = window.setTimeout(function () {
       rectSyncTimer = null;
-      sendEmbeddedEditorRect(false);
-      window.setTimeout(function () { sendEmbeddedEditorRect(false); }, 90);
+      sendEmbeddedEditorRect();
+      window.setTimeout(sendEmbeddedEditorRect, 90);
     }, settleMs);
     return true;
   }
@@ -175,7 +148,6 @@
     cancelPendingOpen();
     var ok = pycmdSafe("embed_editor:close");
     sendEmbeddedEditorRect();
-    stopTransitionRectSync();
     return ok;
   }
 
