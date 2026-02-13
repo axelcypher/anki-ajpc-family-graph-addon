@@ -158,6 +158,8 @@ function buildContextMenuGroupsForCtx(ctx) {
   var pycmd = ctx.pycmd || null;
   var showFamilyPicker = ctx.showFamilyPicker || null;
   function openEditorViaApi(nodeId) {
+    if (typeof updateEditorVisibility === "function") updateEditorVisibility(true);
+    if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
     if (!pycmd) return;
     pycmd("ctx:editapi:" + String(nodeId));
   }

@@ -1518,6 +1518,7 @@ function updateEditorVisibility(open) {
   DOM.editorPanel.classList.toggle("closed", !isOpen);
   DOM.statusOverlayTopLeft.classList.toggle("sidepanel", isOpen);
   DOM.editorPanel.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
   scheduleGraphViewportSync();
 }
 
@@ -1622,13 +1623,22 @@ function wireDom() {
 
   if (DOM.btnEditor) {
     DOM.btnEditor.addEventListener("click", function () {
-      if (typeof toggleEmbeddedEditorForSelectedNote === "function") {
-        var ok = !!toggleEmbeddedEditorForSelectedNote();
-        if (!ok && typeof updateStatus === "function") updateStatus("Select a note node first");
+      var nowClosed = DOM.editorPanel.classList.contains("closed");
+      if (nowClosed) {
+        updateEditorVisibility(true);
+        if (typeof openEmbeddedEditorForSelectedNote === "function") {
+          var opened = !!openEmbeddedEditorForSelectedNote();
+          if (!opened) {
+            updateEditorVisibility(false);
+            if (typeof updateStatus === "function") updateStatus("Select a note node first");
+            return;
+          }
+        }
+        if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
         return;
       }
-      var nowClosed = DOM.editorPanel.classList.contains("closed");
-      updateEditorVisibility(nowClosed);
+      if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
+      updateEditorVisibility(false);
     });
   }
   if (DOM.btnCloseEditor) {

@@ -208,7 +208,7 @@ class FamilyGraphWindow(QWidget):
             setWindowIcon(self)
         except Exception:
             pass
-        self.layout = QHBoxLayout()
+        self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.setLayout(self.layout)
@@ -224,6 +224,7 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor = None
         self._embedded_editor_form = None
         self._embedded_editor_root = None
+        self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
 
         editor_layout = QVBoxLayout(self._editor_panel)
         editor_layout.setContentsMargins(12, 12, 12, 12)
@@ -250,7 +251,7 @@ class FamilyGraphWindow(QWidget):
 
         editor_layout.addWidget(editor_head, 0)
         editor_layout.addWidget(self._editor_mount, 1)
-        self.layout.addWidget(self._editor_panel, 0)
+        self._editor_panel.setParent(self)
         self._apply_embedded_editor_panel_style()
 
         # WebView hosts the graph UI; JS talks back via pycmd bridge.
@@ -268,8 +269,6 @@ class FamilyGraphWindow(QWidget):
         self._devtools = None
         self.web.set_bridge_command(self._on_bridge_cmd, self)
         self.layout.addWidget(self.web, 1)
-        self.layout.setStretch(0, 0)
-        self.layout.setStretch(1, 1)
         self.setMinimumSize(900, 600)
         self._graph_ready = False
         # Coalesce rebuilds when many updates arrive in a short time.
@@ -366,6 +365,49 @@ class FamilyGraphWindow(QWidget):
         except Exception:
             pass
 
+    def _update_embedded_editor_geometry(self) -> None:
+        panel = self._editor_panel
+        if panel is None:
+            return
+        rect = self._editor_panel_rect if isinstance(self._editor_panel_rect, dict) else {}
+        visible = bool(rect.get("visible"))
+        if not visible:
+            panel.hide()
+            return
+        try:
+            x = int(rect.get("x", 0) or 0)
+            y = int(rect.get("y", 0) or 0)
+            w = int(rect.get("w", 0) or 0)
+            h = int(rect.get("h", 0) or 0)
+        except Exception:
+            x, y, w, h = 0, 0, 0, 0
+        if w <= 0 or h <= 0:
+            panel.hide()
+            return
+        host_w = max(1, int(self.width()))
+        host_h = max(1, int(self.height()))
+        if x < 0:
+            w += x
+            x = 0
+        if y < 0:
+            h += y
+            y = 0
+        if x + w > host_w:
+            w = max(0, host_w - x)
+        if y + h > host_h:
+            h = max(0, host_h - y)
+        if w <= 0 or h <= 0:
+            panel.hide()
+            return
+        panel.setGeometry(x, y, w, h)
+        panel.raise_()
+        if self._editor_panel_open:
+            panel.show()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._update_embedded_editor_geometry()
+
     def _ensure_embedded_editor(self) -> bool:
         if self._embedded_editor is not None:
             return True
@@ -454,13 +496,20 @@ class FamilyGraphWindow(QWidget):
         try:
             self._embedded_editor.set_note(note, focusTo=focus_to)
             self._embedded_editor_nid = nid
-            self._editor_panel.setVisible(True)
             self._editor_panel_open = True
+            if not bool(self._editor_panel_rect.get("visible")):
+                host_w = max(1, int(self.width()))
+                host_h = max(1, int(self.height()))
+                fallback_w = max(360, min(720, int(host_w * 0.42)))
+                self._editor_panel_rect = {"visible": True, "x": 0, "y": 0, "w": fallback_w, "h": host_h}
             try:
                 self._editor_title.setText(f"AJpC Note Editor - {note.note_type()['name']}")
             except Exception:
                 self._editor_title.setText("AJpC Note Editor")
             self._theme_embedded_editor_web()
+            self._update_embedded_editor_geometry()
+            self._editor_panel.setVisible(True)
+            self._editor_panel.raise_()
             logger.dbg("embedded editor show", nid)
             return True
         except Exception as exc:
@@ -468,8 +517,8 @@ class FamilyGraphWindow(QWidget):
             return False
 
     def _hide_embedded_editor_panel(self) -> None:
-        self._editor_panel.setVisible(False)
         self._editor_panel_open = False
+        self._editor_panel.setVisible(False)
         logger.dbg("embedded editor hide")
 
     def _toggle_embedded_editor(self, nid: int) -> bool:
@@ -567,7 +616,24 @@ class FamilyGraphWindow(QWidget):
                         nid = int(payload)
                     except Exception:
                         nid = 0
-                if action == "open" or action == "select":
+                if action == "rect":
+                    try:
+                        raw = unquote(payload) if payload else "{}"
+                        data = json.loads(raw) if raw else {}
+                        if not isinstance(data, dict):
+                            data = {}
+                    except Exception:
+                        data = {}
+                    self._editor_panel_rect = {
+                        "visible": bool(data.get("visible", False)),
+                        "x": int(data.get("x", 0) or 0),
+                        "y": int(data.get("y", 0) or 0),
+                        "w": int(data.get("w", 0) or 0),
+                        "h": int(data.get("h", 0) or 0),
+                    }
+                    self._update_embedded_editor_geometry()
+                    logger.dbg("embed editor rect", self._editor_panel_rect)
+                elif action == "open" or action == "select":
                     opened = self._show_embedded_editor_for_note(nid)
                     logger.dbg("embed editor open", nid, opened)
                 elif action == "toggle":
