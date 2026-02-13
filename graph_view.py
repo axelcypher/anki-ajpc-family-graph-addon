@@ -505,6 +505,29 @@ class FamilyGraphWindow(QWidget):
                 pass
             self._embedded_editor_form = aqt.forms.editcurrent.Ui_Dialog()
             self._embedded_editor_form.setupUi(self._embedded_editor_root)
+            # Remove default outer Qt margins from the embedded editcurrent form host.
+            try:
+                self._embedded_editor_root.setContentsMargins(0, 0, 0, 0)
+            except Exception:
+                pass
+            try:
+                cw = self._embedded_editor_root.centralWidget()
+            except Exception:
+                cw = None
+            if cw is not None:
+                try:
+                    cw.setContentsMargins(0, 0, 0, 0)
+                except Exception:
+                    pass
+                try:
+                    lay = cw.layout()
+                except Exception:
+                    lay = None
+                if lay is not None:
+                    try:
+                        lay.setContentsMargins(0, 0, 0, 0)
+                    except Exception:
+                        pass
             self._editor_mount_layout.addWidget(self._embedded_editor_root, 1)
             self._embedded_editor = aqt.editor.Editor(
                 mw,
