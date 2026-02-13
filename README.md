@@ -109,9 +109,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.sigma.program.node.hub.js`).
 - Ping/ring effects scale with camera ratio in the same render pass as nodes (no canvas drift).
 - The graph window hosts a native embedded Anki editor panel (Qt side) that can be toggled from the graph UI.
+- Python host runtime is split into dedicated modules (`graph_launcher.py`, `graph_view.py`, `graph_sync.py`, `graph_bridge_handlers.py`, `graph_actions.py`, `graph_note_ops.py`, `graph_api_adapter.py`, `graph_web_assets.py`, `graph_previewer.py`, `graph_editor_embedded.py`, `graph_editor_window.py`).
 - Embedded editor theming source:
   - `web/scss/_graph.editor.scss` marker block (`AJPC_EMBED_EDITOR_CSS_START/END`).
-  - `graph_view.py` injects that block into embedded editor webviews (primary from `web/graph.css`, fallback from SCSS source).
+  - `graph_editor_embedded.py` injects that block into embedded editor webviews (primary from `web/graph.css`, fallback from SCSS source).
 - Styling source can be maintained in SCSS:
   - Entry file: `web/graph.scss`
   - Partials: `web/scss/_graph.*.scss`

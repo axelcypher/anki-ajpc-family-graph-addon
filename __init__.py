@@ -3,7 +3,7 @@ from __future__ import annotations
 from aqt import gui_hooks, mw
 from aqt.qt import QAction
 
-from .graph_view import show_family_graph
+from .graph_launcher import show_family_graph
 from .version import __version__  # noqa: F401
 
 
@@ -148,6 +148,14 @@ def _on_webview_cmd(handled, message, context):
     if message == "ajpc_family_graph_open":
         show_family_graph()
         return (True, None)
+    if isinstance(message, str) and message.startswith("embed_editor:"):
+        win = getattr(mw, "_ajpc_family_graph_win", None) if mw is not None else None
+        if win is not None and hasattr(win, "_on_bridge_cmd"):
+            try:
+                win._on_bridge_cmd(message)
+                return (True, None)
+            except Exception:
+                return handled
     return handled
 
 
