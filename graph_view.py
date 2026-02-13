@@ -348,6 +348,10 @@ class FamilyGraphWindow(QWidget):
 
     def _apply_embedded_editor_panel_style(self) -> None:
         bg = self._get_embedded_editor_panel_bg_color()
+        btn_bg = self._resolve_embedded_css_value("var(--bg-btn)") or "#282c35"
+        btn_text = self._resolve_embedded_css_value("var(--text-main)") or "#dbdbdb"
+        btn_hover_bg = self._resolve_embedded_css_value("var(--bg-btn-soft)") or "#3e4350"
+        btn_hover_border = self._resolve_embedded_css_value("var(--border-100)") or "#232427"
         try:
             self._editor_panel.setStyleSheet(
                 f"""
@@ -362,14 +366,15 @@ class FamilyGraphWindow(QWidget):
                     color: #e2e8f0;
                 }
                 QWidget#ajpcEmbeddedEditorPanel QPushButton {
-                    color: #e2e8f0;
-                    background-color: rgba(30,41,59,215);
-                    border: 1px solid rgba(148,163,184,125);
-                    border-radius: 8px;
-                    padding: 3px 10px;
+                    color: {btn_text};
+                    background-color: {btn_bg};
+                    border: 0px;
+                    border-radius: 6px;
+                    padding: 10px;
                 }
                 QWidget#ajpcEmbeddedEditorPanel QPushButton:hover {
-                    background-color: rgba(51,65,85,230);
+                    background-color: {btn_hover_bg};
+                    border-color: {btn_hover_border};
                 }
                 """
             )
@@ -762,14 +767,46 @@ class FamilyGraphWindow(QWidget):
 
     def _get_embedded_editor_panel_bg_color(self) -> str:
         # Match Qt panel background to the editor body theme variable when available.
-        vars_css = self._get_embedded_editor_root_vars_css()
-        if vars_css:
-            m = re.search(r"--bg-panel\s*:\s*([^;]+);", vars_css)
-            if m:
-                color = str(m.group(1) or "").strip()
-                if color:
-                    return color
+        color = self._resolve_embedded_css_value("var(--bg-panel)")
+        if color:
+            return color
         return "#0b1220"
+
+    def _get_embedded_editor_css_vars(self) -> dict[str, str]:
+        raw = self._get_embedded_editor_root_vars_css()
+        out: dict[str, str] = {}
+        if not raw:
+            return out
+        for m in re.finditer(r"(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);", raw):
+            name = str(m.group(1) or "").strip()
+            value = str(m.group(2) or "").strip()
+            if name:
+                out[name] = value
+        return out
+
+    def _resolve_embedded_css_value(self, value: str) -> str:
+        vars_map = self._get_embedded_editor_css_vars()
+        if not vars_map:
+            return str(value or "").strip()
+
+        def _resolve(v: str, depth: int = 0) -> str:
+            if depth > 8:
+                return v
+            s = str(v or "").strip()
+            if "color-mix(" in s:
+                # Qt QSS cannot parse color-mix; use nearby token fallback.
+                return vars_map.get("--bg-chip-100", vars_map.get("--bg-chip", "#3e4350"))
+            m = re.search(r"var\((--[a-zA-Z0-9_-]+)\)", s)
+            if not m:
+                return s
+            key = str(m.group(1) or "").strip()
+            rep = vars_map.get(key, "")
+            if not rep:
+                return s
+            s = s.replace(f"var({key})", rep)
+            return _resolve(s, depth + 1)
+
+        return _resolve(value)
 
     def _strip_embedded_editor_chrome(self) -> None:
         # Remove legacy top "Edit" caption and divider from embedded Qt form, if present.
