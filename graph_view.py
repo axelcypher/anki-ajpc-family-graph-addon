@@ -228,28 +228,14 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_form = None
         self._embedded_editor_root = None
         self._embedded_editor_devtools = None
+        self._embedded_editor_footer_devtools_btn = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
         self._embedded_editor_theme_css = ""
         self._embedded_editor_theme_css_mtime = 0.0
 
         editor_layout = QVBoxLayout(self._editor_panel)
-        editor_layout.setContentsMargins(6, 6, 6, 6)
-        editor_layout.setSpacing(4)
-
-        editor_head = QWidget(self._editor_panel)
-        editor_head.setObjectName("ajpcEmbeddedEditorHead")
-        editor_head_layout = QHBoxLayout(editor_head)
-        editor_head_layout.setContentsMargins(6, 4, 6, 4)
-        editor_head_layout.setSpacing(6)
-        self._editor_title = QLabel("AJpC Note Editor", editor_head)
-        self._editor_devtools_btn = QPushButton("DevTools", editor_head)
-        self._editor_devtools_btn.clicked.connect(self._open_embedded_editor_devtools)
-        self._editor_close_btn = QPushButton("Close", editor_head)
-        self._editor_close_btn.clicked.connect(self._hide_embedded_editor_panel)
-        editor_head_layout.addWidget(self._editor_title)
-        editor_head_layout.addStretch(1)
-        editor_head_layout.addWidget(self._editor_devtools_btn)
-        editor_head_layout.addWidget(self._editor_close_btn)
+        editor_layout.setContentsMargins(2, 2, 2, 2)
+        editor_layout.setSpacing(2)
 
         self._editor_mount = QWidget(self._editor_panel)
         self._editor_mount.setObjectName("ajpcEmbeddedEditorMount")
@@ -260,7 +246,6 @@ class FamilyGraphWindow(QWidget):
         self._editor_hint.setWordWrap(True)
         self._editor_mount_layout.addWidget(self._editor_hint)
 
-        editor_layout.addWidget(editor_head, 0)
         editor_layout.addWidget(self._editor_mount, 1)
         self._editor_panel.setParent(self)
         self._apply_embedded_editor_panel_style()
@@ -354,19 +339,13 @@ class FamilyGraphWindow(QWidget):
         self._note_add_hooks.clear()
 
     def _apply_embedded_editor_panel_style(self) -> None:
+        bg = self._get_embedded_editor_panel_bg_color()
         try:
             self._editor_panel.setStyleSheet(
-                """
+                f"""
                 QWidget#ajpcEmbeddedEditorPanel {
-                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 rgba(5,10,20,245),
-                        stop:1 rgba(4,8,16,245));
+                    background: {bg};
                     border-right: 1px solid rgba(100,116,139,115);
-                }
-                QWidget#ajpcEmbeddedEditorHead {
-                    background-color: rgba(9,18,36,235);
-                    border: 1px solid rgba(100,116,139,96);
-                    border-radius: 8px;
                 }
                 QWidget#ajpcEmbeddedEditorMount {
                     background: transparent;
@@ -379,7 +358,7 @@ class FamilyGraphWindow(QWidget):
                     background-color: rgba(30,41,59,215);
                     border: 1px solid rgba(148,163,184,125);
                     border-radius: 8px;
-                    padding: 4px 10px;
+                    padding: 3px 10px;
                 }
                 QWidget#ajpcEmbeddedEditorPanel QPushButton:hover {
                     background-color: rgba(51,65,85,230);
@@ -458,6 +437,17 @@ class FamilyGraphWindow(QWidget):
                 except Exception:
                     pass
                 close_button.clicked.connect(self._hide_embedded_editor_panel)
+            if self._embedded_editor_footer_devtools_btn is None:
+                try:
+                    btn = QPushButton("DevTools", self._embedded_editor_form.buttonBox)
+                    btn.clicked.connect(self._open_embedded_editor_devtools)
+                    self._embedded_editor_form.buttonBox.addButton(
+                        btn,
+                        QDialogButtonBox.ButtonRole.ActionRole,
+                    )
+                    self._embedded_editor_footer_devtools_btn = btn
+                except Exception:
+                    self._embedded_editor_footer_devtools_btn = None
             self._editor_hint.setVisible(False)
             self._theme_embedded_editor_web()
             logger.dbg("embedded editor ready")
@@ -473,6 +463,7 @@ class FamilyGraphWindow(QWidget):
         css = self._get_embedded_editor_theme_css()
         if not css:
             return
+        self._apply_embedded_editor_panel_style()
         css_js = json.dumps(css)
         js = (
             "(function(){"
@@ -601,6 +592,17 @@ class FamilyGraphWindow(QWidget):
                     return ":root{" + decls + "}"
         return ""
 
+    def _get_embedded_editor_panel_bg_color(self) -> str:
+        # Match Qt panel background to the editor body theme variable when available.
+        vars_css = self._get_embedded_editor_root_vars_css()
+        if vars_css:
+            m = re.search(r"--bg-panel\s*:\s*([^;]+);", vars_css)
+            if m:
+                color = str(m.group(1) or "").strip()
+                if color:
+                    return color
+        return "#0b1220"
+
     def _show_embedded_editor_widgets(self) -> None:
         # Ensure the nested editor widget tree is visible when mounted in overlay mode.
         try:
@@ -705,10 +707,6 @@ class FamilyGraphWindow(QWidget):
                 host_h = max(1, int(self.height()))
                 fallback_w = max(360, min(720, int(host_w * 0.42)))
                 self._editor_panel_rect = {"visible": True, "x": 0, "y": 0, "w": fallback_w, "h": host_h}
-            try:
-                self._editor_title.setText(f"AJpC Note Editor - {note.note_type()['name']}")
-            except Exception:
-                self._editor_title.setText("AJpC Note Editor")
             self._update_embedded_editor_geometry()
             self._editor_panel.setVisible(True)
             self._editor_panel.raise_()
@@ -753,6 +751,7 @@ class FamilyGraphWindow(QWidget):
                 pass
         self._embedded_editor = None
         self._embedded_editor_form = None
+        self._embedded_editor_footer_devtools_btn = None
         self._embedded_editor_nid = 0
 
     def _open_devtools(self) -> None:
