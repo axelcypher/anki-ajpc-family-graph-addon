@@ -73,12 +73,13 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - **Left-click** a node to highlight its direct neighborhood.
 - **Right-click** a node for actions:
   - Open Preview
-  - Open Editor
+  - Open Editor (embedded native Anki editor in the left graph panel)
   - Filter by Family ID
   - Connect to selected (Family): adds the selected family to the right-clicked note. If the selected item is a **Family Hub**, the new entry is added with prio 0. If the selected item is a **note**, the new entry is added with prio = (selected note prio + 1).
   - Append link to selected: appends a link into the right-clicked note, pointing to the currently selected note (only if that note type has a Linked Notes field configured)
 - Active selection gets a pulsing ring in node color.
 - Context selection (right-click target) gets a red pulsing ring.
+- Editor button in the active panel toggles the embedded native editor (no extra popup required).
 
 ## Notes
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
@@ -90,7 +91,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `graph.state.js`, `graph.bridge.js`, `graph.adapter.js`, `graph.utils.js`, `graph.payload.js`
   - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
   - `graph.solver.d3.js`, `graph.renderer.sigma.js`
-  - `ui/graph.ui.deptree.js`, `ui/graph.ui.debug.js`, `ui/graph.ui.tooltip.js`, `ui/graph.ui.ctx.js`
+  - `ui/graph.ui.deptree.js`, `ui/graph.ui.debug.js`, `ui/graph.ui.tooltip.js`, `ui/graph.ui.ctx.js`, `ui/graph.ui.editor.js`
   - `graph.ui.js`, `graph.main.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
@@ -106,6 +107,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
 - Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.sigma.program.node.hub.js`).
 - Ping/ring effects scale with camera ratio in the same render pass as nodes (no canvas drift).
+- The graph window hosts a native embedded Anki editor panel (Qt side) that can be toggled from the graph UI.
 - Styling source can be maintained in SCSS:
   - Entry file: `web/graph.scss`
   - Partials: `web/scss/_graph.*.scss`

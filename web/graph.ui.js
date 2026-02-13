@@ -1622,12 +1622,18 @@ function wireDom() {
 
   if (DOM.btnEditor) {
     DOM.btnEditor.addEventListener("click", function () {
+      if (typeof toggleEmbeddedEditorForSelectedNote === "function") {
+        var ok = !!toggleEmbeddedEditorForSelectedNote();
+        if (!ok && typeof updateStatus === "function") updateStatus("Select a note node first");
+        return;
+      }
       var nowClosed = DOM.editorPanel.classList.contains("closed");
       updateEditorVisibility(nowClosed);
     });
   }
   if (DOM.btnCloseEditor) {
     DOM.btnCloseEditor.addEventListener("click", function () {
+      if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
       updateEditorVisibility(false);
     });
   }

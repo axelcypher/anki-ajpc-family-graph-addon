@@ -12,8 +12,11 @@ from aqt import mw, gui_hooks
 from aqt.operations import QueryOp
 from aqt.qt import (
     QDialogButtonBox,
+    QHBoxLayout,
     QKeySequence,
+    QLabel,
     QMainWindow,
+    QPushButton,
     QVBoxLayout,
     QWidget,
     Qt,
@@ -139,6 +142,7 @@ def _html(payload: dict[str, Any]) -> str:
     graph_ui_debug_js_src = asset_url("ui/graph.ui.debug.js")
     graph_ui_tooltip_js_src = asset_url("ui/graph.ui.tooltip.js")
     graph_ui_ctx_js_src = asset_url("ui/graph.ui.ctx.js")
+    graph_ui_editor_js_src = asset_url("ui/graph.ui.editor.js")
     graph_ui_js_src = asset_url("graph.ui.js")
     graph_main_js_src = asset_url("graph.main.js")
     graph_css_src = asset_url("graph.css")
@@ -179,6 +183,7 @@ def _html(payload: dict[str, Any]) -> str:
     html = html.replace("__GRAPH_UI_DEBUG_JS__", graph_ui_debug_js_src)
     html = html.replace("__GRAPH_UI_TOOLTIP_JS__", graph_ui_tooltip_js_src)
     html = html.replace("__GRAPH_UI_CTX_JS__", graph_ui_ctx_js_src)
+    html = html.replace("__GRAPH_UI_EDITOR_JS__", graph_ui_editor_js_src)
     html = html.replace("__GRAPH_UI_JS__", graph_ui_js_src)
     html = html.replace("__GRAPH_MAIN_JS__", graph_main_js_src)
     return html
@@ -203,9 +208,51 @@ class FamilyGraphWindow(QWidget):
             setWindowIcon(self)
         except Exception:
             pass
-        self.layout = QVBoxLayout()
+        self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
         self.setLayout(self.layout)
+
+        # Native embedded editor panel (left side).
+        self._editor_panel = QWidget(self)
+        self._editor_panel.setObjectName("ajpcEmbeddedEditorPanel")
+        self._editor_panel.setMinimumWidth(360)
+        self._editor_panel.setMaximumWidth(720)
+        self._editor_panel.setVisible(False)
+        self._editor_panel_open = False
+        self._embedded_editor_nid = 0
+        self._embedded_editor = None
+        self._embedded_editor_form = None
+        self._embedded_editor_root = None
+
+        editor_layout = QVBoxLayout(self._editor_panel)
+        editor_layout.setContentsMargins(12, 12, 12, 12)
+        editor_layout.setSpacing(8)
+
+        editor_head = QWidget(self._editor_panel)
+        editor_head_layout = QHBoxLayout(editor_head)
+        editor_head_layout.setContentsMargins(0, 0, 0, 0)
+        editor_head_layout.setSpacing(8)
+        self._editor_title = QLabel("AJpC Note Editor", editor_head)
+        self._editor_close_btn = QPushButton("Close", editor_head)
+        self._editor_close_btn.clicked.connect(self._hide_embedded_editor_panel)
+        editor_head_layout.addWidget(self._editor_title)
+        editor_head_layout.addStretch(1)
+        editor_head_layout.addWidget(self._editor_close_btn)
+
+        self._editor_mount = QWidget(self._editor_panel)
+        self._editor_mount_layout = QVBoxLayout(self._editor_mount)
+        self._editor_mount_layout.setContentsMargins(0, 0, 0, 0)
+        self._editor_mount_layout.setSpacing(6)
+        self._editor_hint = QLabel("Select a note and press Editor to open the embedded Anki editor.", self._editor_mount)
+        self._editor_hint.setWordWrap(True)
+        self._editor_mount_layout.addWidget(self._editor_hint)
+
+        editor_layout.addWidget(editor_head, 0)
+        editor_layout.addWidget(self._editor_mount, 1)
+        self.layout.addWidget(self._editor_panel, 0)
+        self._apply_embedded_editor_panel_style()
+
         # WebView hosts the graph UI; JS talks back via pycmd bridge.
         self.web = AnkiWebView(self, title="ajpc_family_graph")
         try:
@@ -220,7 +267,9 @@ class FamilyGraphWindow(QWidget):
                 pass
         self._devtools = None
         self.web.set_bridge_command(self._on_bridge_cmd, self)
-        self.layout.addWidget(self.web)
+        self.layout.addWidget(self.web, 1)
+        self.layout.setStretch(0, 0)
+        self.layout.setStretch(1, 1)
         self.setMinimumSize(900, 600)
         self._graph_ready = False
         # Coalesce rebuilds when many updates arrive in a short time.
@@ -253,6 +302,7 @@ class FamilyGraphWindow(QWidget):
                 self._devtools.close()
         except Exception:
             pass
+        self._cleanup_embedded_editor()
         super().closeEvent(event)
 
     def _bind_note_add_hooks(self) -> None:
@@ -287,6 +337,159 @@ class FamilyGraphWindow(QWidget):
             except Exception:
                 pass
         self._note_add_hooks.clear()
+
+    def _apply_embedded_editor_panel_style(self) -> None:
+        try:
+            self._editor_panel.setStyleSheet(
+                """
+                QWidget#ajpcEmbeddedEditorPanel {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                        stop:0 rgba(8,16,32,245),
+                        stop:1 rgba(6,12,24,245));
+                    border-right: 1px solid rgba(100,116,139,115);
+                }
+                QWidget#ajpcEmbeddedEditorPanel QLabel {
+                    color: #e2e8f0;
+                }
+                QWidget#ajpcEmbeddedEditorPanel QPushButton {
+                    color: #e2e8f0;
+                    background-color: rgba(30,41,59,215);
+                    border: 1px solid rgba(148,163,184,125);
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                }
+                QWidget#ajpcEmbeddedEditorPanel QPushButton:hover {
+                    background-color: rgba(51,65,85,230);
+                }
+                """
+            )
+        except Exception:
+            pass
+
+    def _ensure_embedded_editor(self) -> bool:
+        if self._embedded_editor is not None:
+            return True
+        if mw is None or getattr(mw, "col", None) is None:
+            return False
+        try:
+            self._embedded_editor_root = QWidget(self._editor_mount)
+            self._embedded_editor_form = aqt.forms.editcurrent.Ui_Dialog()
+            self._embedded_editor_form.setupUi(self._embedded_editor_root)
+            self._editor_mount_layout.addWidget(self._embedded_editor_root, 1)
+            self._embedded_editor = aqt.editor.Editor(
+                mw,
+                self._embedded_editor_form.fieldsArea,
+                self,
+                editor_mode=aqt.editor.EditorMode.BROWSER,
+            )
+            close_button = self._embedded_editor_form.buttonBox.button(QDialogButtonBox.StandardButton.Close)
+            if close_button is not None:
+                try:
+                    close_button.clicked.disconnect()
+                except Exception:
+                    pass
+                close_button.clicked.connect(self._hide_embedded_editor_panel)
+            self._editor_hint.setVisible(False)
+            self._theme_embedded_editor_web()
+            logger.dbg("embedded editor ready")
+            return True
+        except Exception as exc:
+            logger.dbg("embedded editor init failed", repr(exc))
+            return False
+
+    def _theme_embedded_editor_web(self) -> None:
+        editor = self._embedded_editor
+        if editor is None:
+            return
+        js = (
+            "(function(){"
+            "try{"
+            "var id='ajpc-graph-editor-theme';"
+            "var css='"
+            "html,body{background:#0b1220!important;color:#e2e8f0!important;}"
+            " .field{background:#0f172a!important;border-color:#334155!important;color:#e2e8f0!important;}"
+            " .field *{color:inherit!important;}"
+            " .toolbar{background:#111827!important;border-color:#334155!important;}"
+            "';"
+            "var st=document.getElementById(id);"
+            "if(!st){st=document.createElement(\"style\");st.id=id;document.head.appendChild(st);}st.textContent=css;"
+            "}catch(_e){}"
+            "})();"
+        )
+        webs = []
+        try:
+            webs.append(getattr(editor, "web", None))
+        except Exception:
+            pass
+        try:
+            webs.append(getattr(editor, "toolbarWeb", None))
+        except Exception:
+            pass
+        for wv in webs:
+            if wv is None:
+                continue
+            try:
+                wv.eval(js)
+            except Exception:
+                continue
+
+    def _show_embedded_editor_for_note(self, nid: int, *, focus_to: int = 0) -> bool:
+        try:
+            nid = int(nid)
+        except Exception:
+            nid = 0
+        if nid <= 0:
+            return False
+        if mw is None or getattr(mw, "col", None) is None:
+            return False
+        if not self._ensure_embedded_editor():
+            return False
+        try:
+            note = mw.col.get_note(nid)
+        except Exception:
+            note = None
+        if note is None:
+            return False
+        try:
+            self._embedded_editor.set_note(note, focusTo=focus_to)
+            self._embedded_editor_nid = nid
+            self._editor_panel.setVisible(True)
+            self._editor_panel_open = True
+            try:
+                self._editor_title.setText(f"AJpC Note Editor - {note.note_type()['name']}")
+            except Exception:
+                self._editor_title.setText("AJpC Note Editor")
+            self._theme_embedded_editor_web()
+            logger.dbg("embedded editor show", nid)
+            return True
+        except Exception as exc:
+            logger.dbg("embedded editor show failed", nid, repr(exc))
+            return False
+
+    def _hide_embedded_editor_panel(self) -> None:
+        self._editor_panel.setVisible(False)
+        self._editor_panel_open = False
+        logger.dbg("embedded editor hide")
+
+    def _toggle_embedded_editor(self, nid: int) -> bool:
+        if self._editor_panel_open:
+            self._hide_embedded_editor_panel()
+            return True
+        if nid > 0:
+            return self._show_embedded_editor_for_note(nid)
+        if self._embedded_editor_nid > 0:
+            return self._show_embedded_editor_for_note(self._embedded_editor_nid)
+        return False
+
+    def _cleanup_embedded_editor(self) -> None:
+        if self._embedded_editor is not None:
+            try:
+                self._embedded_editor.cleanup()
+            except Exception:
+                pass
+        self._embedded_editor = None
+        self._embedded_editor_form = None
+        self._embedded_editor_nid = 0
 
     def _open_devtools(self) -> None:
         try:
@@ -351,6 +554,31 @@ class FamilyGraphWindow(QWidget):
             self._load()
         elif message.startswith("log:"):
             logger.dbg("js", message[4:])
+        elif message.startswith("embed_editor:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                parts = rest.split(":", 1)
+                action = str(parts[0] if parts else "").strip().lower()
+                payload = str(parts[1] if len(parts) > 1 else "").strip()
+                nid = 0
+                if payload:
+                    try:
+                        nid = int(payload)
+                    except Exception:
+                        nid = 0
+                if action == "open" or action == "select":
+                    opened = self._show_embedded_editor_for_note(nid)
+                    logger.dbg("embed editor open", nid, opened)
+                elif action == "toggle":
+                    opened = self._toggle_embedded_editor(nid)
+                    logger.dbg("embed editor toggle", nid, opened)
+                elif action == "close":
+                    self._hide_embedded_editor_panel()
+                    logger.dbg("embed editor close")
+                else:
+                    logger.dbg("embed editor unknown action", action, payload)
+            except Exception:
+                logger.dbg("embed editor parse failed", message)
         elif message.startswith("ntvis:"):
             try:
                 _prefix, rest = message.split(":", 1)
@@ -1179,9 +1407,32 @@ class FamilyGraphWindow(QWidget):
             pass
         self._refresh_timer.start(350)
 
+    def _sync_embedded_editor_on_operation(self, changes, handler) -> None:
+        editor = self._embedded_editor
+        if editor is None:
+            return
+        if not getattr(changes, "note_text", False):
+            return
+        if handler is editor:
+            return
+        note = getattr(editor, "note", None)
+        if note is None:
+            return
+        try:
+            note.load()
+        except Exception:
+            return
+        try:
+            editor.set_note(note)
+            self._theme_embedded_editor_web()
+            logger.dbg("embedded editor note sync", getattr(note, "id", 0))
+        except Exception:
+            pass
+
     def _on_operation_did_execute(self, changes, handler) -> None:
         # Sync graph when collection changes (notes/tags/decks/notetypes).
         try:
+            self._sync_embedded_editor_on_operation(changes, handler)
             if not self._graph_ready:
                 return
             if getattr(changes, "note", False) or getattr(changes, "note_text", False):
@@ -1767,6 +2018,13 @@ def _open_editor_via_main_api(nid: int) -> bool:
 def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
     if mw is None:
         return
+    try:
+        win = getattr(mw, "_ajpc_family_graph_win", None)
+        if isinstance(win, FamilyGraphWindow) and win._show_embedded_editor_for_note(int(nid)):
+            logger.dbg("ctx editor via embedded panel", nid)
+            return
+    except Exception:
+        pass
     if prefer_api:
         if _open_editor_via_main_api(nid):
             return
