@@ -151,6 +151,10 @@
     return ok;
   }
 
+  function openEmbeddedEditorDevTools() {
+    return pycmdSafe("embed_editor:devtools");
+  }
+
   function bindEmbeddedEditorRectSync() {
     if (window.__ajpcEditorRectSyncBound) return;
     window.__ajpcEditorRectSyncBound = true;
@@ -166,6 +170,7 @@
   window.openEmbeddedEditorForSelectedNote = openEmbeddedEditorForSelectedNote;
   window.toggleEmbeddedEditorForSelectedNote = toggleEmbeddedEditorForSelectedNote;
   window.closeEmbeddedEditorPanel = closeEmbeddedEditorPanel;
+  window.openEmbeddedEditorDevTools = openEmbeddedEditorDevTools;
   window.sendEmbeddedEditorRect = sendEmbeddedEditorRect;
   window.syncEmbeddedEditorRect = syncEmbeddedEditorRect;
 })();

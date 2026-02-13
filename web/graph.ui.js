@@ -1589,6 +1589,7 @@ function wireDom() {
 
   DOM.editorPanel = byId("editor-panel");
   DOM.btnEditor = byId("btn-editor");
+  DOM.btnEditorDevtools = byId("btn-editor-devtools");
   DOM.btnCloseEditor = byId("btn-close-editor");
 
   DOM.settingsPanel = byId("settings-panel");
@@ -1645,6 +1646,13 @@ function wireDom() {
     DOM.btnCloseEditor.addEventListener("click", function () {
       if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
       updateEditorVisibility(false);
+    });
+  }
+  if (DOM.btnEditorDevtools) {
+    DOM.btnEditorDevtools.addEventListener("click", function () {
+      if (typeof openEmbeddedEditorDevTools === "function") {
+        openEmbeddedEditorDevTools();
+      }
     });
   }
   

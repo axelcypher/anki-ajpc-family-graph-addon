@@ -232,7 +232,6 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_form = None
         self._embedded_editor_root = None
         self._embedded_editor_devtools = None
-        self._embedded_editor_footer_devtools_btn = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
         self._editor_panel_transition_ms = 180
         self._editor_panel_transition_extra_ms = 450
@@ -540,24 +539,11 @@ class FamilyGraphWindow(QWidget):
                 self,
                 editor_mode=aqt.editor.EditorMode.BROWSER,
             )
-            close_button = self._embedded_editor_form.buttonBox.button(QDialogButtonBox.StandardButton.Close)
-            if close_button is not None:
-                try:
-                    close_button.clicked.disconnect()
-                except Exception:
-                    pass
-                close_button.clicked.connect(self._hide_embedded_editor_panel)
-            if self._embedded_editor_footer_devtools_btn is None:
-                try:
-                    btn = QPushButton("DevTools", self._embedded_editor_form.buttonBox)
-                    btn.clicked.connect(self._open_embedded_editor_devtools)
-                    self._embedded_editor_form.buttonBox.addButton(
-                        btn,
-                        QDialogButtonBox.ButtonRole.ActionRole,
-                    )
-                    self._embedded_editor_footer_devtools_btn = btn
-                except Exception:
-                    self._embedded_editor_footer_devtools_btn = None
+            try:
+                if getattr(self._embedded_editor_form, "buttonBox", None) is not None:
+                    self._embedded_editor_form.buttonBox.hide()
+            except Exception:
+                pass
             self._strip_embedded_editor_chrome()
             self._editor_hint.setVisible(False)
             self._theme_embedded_editor_web()
@@ -978,7 +964,6 @@ class FamilyGraphWindow(QWidget):
                 pass
         self._embedded_editor = None
         self._embedded_editor_form = None
-        self._embedded_editor_footer_devtools_btn = None
         self._embedded_editor_nid = 0
 
     def _open_devtools(self) -> None:
@@ -1138,6 +1123,9 @@ class FamilyGraphWindow(QWidget):
                 elif action == "toggle":
                     opened = self._toggle_embedded_editor(nid)
                     logger.dbg("embed editor toggle", nid, opened)
+                elif action == "devtools":
+                    self._open_embedded_editor_devtools()
+                    logger.dbg("embed editor devtools")
                 elif action == "close":
                     self._hide_embedded_editor_panel()
                     logger.dbg("embed editor close")
