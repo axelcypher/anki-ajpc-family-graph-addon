@@ -1,0 +1,313 @@
+﻿@use "graph.mixins" as mixins;
+
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.line-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  @include mixins.row-chip(
+    $background: var(--bg-chip),
+  );
+  font-size: 12px;
+}
+
+
+
+.control-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(66px, auto);
+  gap: 8px;
+  align-items: center;
+  @include mixins.row-chip(   
+    $background: var(--bg-panel), 
+    $border: var(--border-100)
+  );
+  font-size: 12px;
+
+  label {
+    color: var(--text-soft);
+    font-size: 11px;
+  }
+}
+
+.inline-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.inline-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.inline-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+
+
+
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+
+  label {
+    display: grid;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+
+
+
+
+}
+
+.hint {
+  margin: 0 0 8px 0;
+  color: var(--text-soft);
+  font-size: 11px;
+
+}
+
+
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border-dark);
+}
+
+.fancy button,
+button {
+  @include mixins.interactive-control($background: var(--bg-btn));
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover,
+  &:active {
+    @include mixins.interactive-control($background: var(--bg-btn-soft));
+  }
+}
+
+input[type="text"] {
+  @include mixins.interactive-control($background: var(--bg-chip),
+  );
+  width: 100%;
+
+
+  &:hover,
+  &.active,
+  &:focus {
+    @include mixins.interactive-control($background: var(--bg-chip),
+      $border: var(--accent-200),
+    );
+    outline: none;
+  }
+}
+
+select {
+  @include mixins.scrollbar();
+
+  appearance: none;
+  background-color: transparent;
+  border: none;
+  padding: 0 1em 0 0;
+  margin: 0;
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: inherit;
+  line-height: inherit;
+  outline: none;
+  z-index: 1;
+
+  &::-ms-expand {
+    display: none;
+  } 
+
+}
+
+
+.select {
+  @include mixins.form-input(
+    $background: var(--bg-panel-100),
+  );
+  position: relative;
+  display: grid;
+  grid-template-areas: "select";
+  align-items: center;
+
+  cursor: pointer;
+  line-height: 1.1;
+
+  select,
+  &::after {
+    grid-area: select;
+  }
+
+  &:not(.select--multiple)::after {
+    content: "";
+    grid-area: select;
+    justify-self: end;
+    width: 0.8em;
+    height: 0.5em;
+    background: var(--accent-100);
+    clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  }
+
+  &:not(.select--multiple) option {
+    display: flex;
+    justify-content: flex-start;
+    background: var(--bg-panel);
+    transition: 0.4s;
+  }
+
+}
+
+select:hover+.focus,
+select:focus+.focus {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border: 1px solid var(--accent-200);
+  border-radius: inherit;
+}
+
+.select--multiple {
+  padding: 0;
+}
+select[multiple] {
+  @include mixins.scrollbar();
+  @include mixins.form-input(
+    $background: transparent,
+  );
+
+  height: 5rem;
+
+  option {
+    white-space: normal;
+    outline-color: var(--border-100);
+    padding-left: 0.5em;
+    color: var(--text-soft) !important;
+  }
+
+
+  &:not(:disabled) option {
+    border-radius: 2px;
+    margin-bottom: 1px;
+    transition: 120ms all ease-in;
+
+    &:checked {
+      background: var(--accent-200);
+      padding-left: 0.5em;
+      color: var(--text-main) !important;
+    }
+  }
+
+  &:hover,
+  &:focus {
+    border-color: var(--accent-200);
+  }
+}
+
+
+
+
+.color-picker {
+  border-radius: 9999px;
+  padding: 2px;
+  width:80%;
+  aspect-ratio: 1;
+  border: 0;
+
+  input[type="color"] {
+    appearance: none;
+    -webkit-appearance: none;
+    @include mixins.form-input($padding: 0px);
+    width: 100%;
+    height: 100%;
+    margin-top: -2px;
+    border-radius: 9999px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 9999px;
+    
+    &:hover,
+    &:focus {
+      border: 1px solid var(--accent);
+    }
+  }
+
+  input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: 9999px;
+  }
+}
+
+
+
+
+
+
+
+input[type="number"] {
+  @include mixins.form-input(
+    $background: var(--bg-chip)
+  );
+  width: 100%;
+  outline: none;
+
+  &:hover,
+  &.active,
+  &:focus {
+    border-color: var(--accent-200);
+    outline: none;
+  }
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  background-color: var(--bg-chip-100);
+  margin: 0;
+  font: inherit;
+  color: currentColor;
+  width: 1em;
+  height: 1em;
+  border: 0.1em solid var(--bg-chip-100);
+  border-radius: 0.1em;
+  display: grid;
+  place-content: center;
+  outline: var(--accent-100);
+
+  &::before {
+    content: "";
+    width: 0.67em;
+    height: 0.67em;
+    border-radius: 0.1em;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em var(--accent);
+  }
+
+  &:checked::before {
+    transform: scale(1);
+  }
+}

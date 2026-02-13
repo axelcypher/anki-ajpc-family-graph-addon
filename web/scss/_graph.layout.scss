@@ -1,0 +1,63 @@
+﻿#main-layout {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+#graph-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  background: var(--bg-main);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+#graph-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: var(--bg-main-100);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+#graph-panel.focus-mode::after {
+  opacity: 1;
+}
+
+#graph {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+}
+
+#gl-bench {
+  top: 50px;
+}
+#flow-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+#graph-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-soft);
+  font-size: 14px;
+  padding: 8px 14px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-100);
+  border-radius: 999px;
+  z-index: 4;
+}

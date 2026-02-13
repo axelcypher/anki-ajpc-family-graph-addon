@@ -1,0 +1,110 @@
+@mixin interactive-control(
+  $radius: var(--radius-small),
+  $border: var(--border-100),
+  $background: var(--bg-btn),
+  $padding: 8px 10px,
+  $font-size: 13px
+) {
+  border-radius: $radius;
+  border: 1px solid $border; 
+  background: $background;
+  color: var(--text-main);
+  padding: $padding;
+  font-size: $font-size;
+  box-shadow: 
+    0px 2px 1px -1px rgba(20,20,20,.12),
+    0px 1px 1px 0px rgba(20,20,20,.06),
+    0px 1px 3px 0px rgba(20,20,20,.04);
+}
+
+@mixin form-input(
+  $radius: 7px,
+  $border: var(--border-100),
+  $background: var(--bg-panel),
+  $padding: 5px 6px,
+  $font-size: 12px
+) {
+  border-radius: $radius;
+  border: 1px solid $border;
+  background-color: $background;
+  color: var(--text-main);
+  padding: $padding;
+  font-size: $font-size;
+} 
+
+@mixin surface-card(
+  $border: var(--border-100),
+  $background: var(--bg-panel),
+  $radius: var(--radius-small),
+  $padding: 8px
+) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
+
+@mixin row-chip(
+  $border: var(--border-100),
+  $background: var(--bg-chip),
+  $radius: 8px,
+  $padding: 5px 6px
+) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
+
+@mixin overlay-panel(
+  $position: relative,
+  $padding: 7px 12px,
+) {
+  position: $position;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-100);
+  background: var(--bg-chip-200);
+  backdrop-filter: blur(8px);
+  padding: $padding;
+  color: var(--text-main);
+  font-size: 12px;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  z-index: 500;
+}
+
+
+@mixin scrollbar() {
+    &::-webkit-scrollbar {
+      width: 10px !important;
+      background: transparent !important;
+      margin: var(--radius-small) 0 !important;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent !important;
+      border-radius: 999px !important;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--accent-200) !important;
+      border-radius: 999px !important;
+    }
+
+    &::-webkit-scrollbar-button {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+}
+
+@mixin hover-hint() {
+  &:hover::after {
+  content: attr(title);
+  position: absolute;
+  border-radius: var(--radius-small);
+  background-color: var(--bg-chip);
+  border: 1px solid var(--border);
+  top: -100%;
+  left: 0;
+}
+}

@@ -3,9 +3,9 @@
     "1768963265679": "SentMeaning",
     "1769741511321": "Concept",
     "1768669148068": "VocabMeaning",
-    "1768669162567": "VocabMeaning",
     "1768654427037": "VocabMeaning",
-    "1769454350497": "Concept"
+    "1769454350497": "Concept",
+    "1768669162567": "VocabMeaning"
   },
   "note_type_visible": {
     "1769281677593": false,
@@ -14,7 +14,7 @@
     "1769741511321": true,
     "1769454350497": true,
     "1769220678917": false,
-    "1769367768468": false,
+    "1769367768468": true,
     "1751376700451": false,
     "1768669162567": true,
     "1768654427037": true
@@ -33,29 +33,46 @@
   "layer_colors": {
     "family": "#3d95e7",
     "family_hub": "#34d399",
-    "mass_linker": "#f56e0d"
+    "mass_linker": "#f56e0d",
+    "example": "#fa5fd8",
+    "priority": "#3d95e7",
+    "families": "rgba(49,198,141,0.580)",
+    "examples": "rgba(250,95,216,0.580)",
+    "mass_links": "rgba(172,89,17,0.200)",
+    "notes": "rgba(85,85,255,0.580)",
+    "kanji": "rgba(248,113,113,0.150)"
   },
   "family_same_prio_edges": false,
   "layer_styles": {
-    "family_hub": "pointed",
+    "family_hub": "dotted",
     "family": "solid",
     "reference": "dashed",
-    "kanji": "solid"
+    "kanji": "dotted",
+    "mass_linker": "dashed",
+    "priority": "solid",
+    "families": "dotted",
+    "note_links": "dashed",
+    "mass_links": "dashed"
   },
   "layer_flow": {
     "family": false,
     "family_hub": false,
     "reference": false,
-    "kanji": true,
-    "example": true,
-    "mass_linker": false
+    "kanji": false,
+    "example": false,
+    "mass_linker": false,
+    "priority": false,
+    "families": false,
+    "note_links": false,
+    "examples": false,
+    "mass_links": false
   },
   "family_chain_edges": true,
-  "layer_flow_speed": 1.06,
+  "layer_flow_speed": 1.0,
   "note_type_linked_fields": {
-    "1768669148068": "LinkedCards",
-    "1768654427037": "LinkedCards",
-    "1768669162567": "LinkedCards",
+    "1768669148068": "LinkedNotes",
+    "1768654427037": "LinkedNotes",
+    "1768669162567": "LinkedNotes",
     "1769741511321": "LinkedNotes",
     "1769454350497": "LinkedNotes",
     "1769220678917": "FamilyID"
@@ -63,19 +80,19 @@
   "family_same_prio_opacity": 0.15,
   "note_type_tooltip_fields": {
     "1768669162567": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768654427037": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768669148068": [
-      "VocabKanji",
       "VocabReading",
-      "VocabHepburn"
+      "VocabHepburn",
+      "FamilyID"
     ],
     "1768738698248": [
       "Kanji",
@@ -109,53 +126,59 @@
   "card_dot_buried_color": "#f55831",
   "card_dots_enabled": true,
   "link_strengths": {
-    "family": 0.76,
-    "family_hub": 0.99,
-    "reference": 1.23,
-    "example": 0.99,
-    "kanji": 0.99,
+    "family": 0.5,
+    "family_hub": 0.5,
+    "reference": 0.5,
+    "example": 0.1,
+    "kanji": 0.5,
     "kanji_component": 0.99,
-    "mass_linker": 1.5
+    "mass_linker": 0.5,
+    "priority": 0.5,
+    "families": 0.5,
+    "note_links": 0.3,
+    "examples": 0.1,
+    "mass_links": 0.5
   },
   "note_type_hubs": {
     "1769454350497": true,
     "1769741511321": true
   },
   "layer_enabled": {
-    "reference": true,
+    "reference": false,
     "example": false,
     "kanji": false,
     "mass_linker": false,
-    "family_hub": true
-  },
-  "physics": {
-    "charge": -90.0,
-    "link_distance": 100.0,
-    "link_strength": 1,
-    "velocity_decay": 0.16,
-    "alpha_decay": 0.006,
-    "cooldown_ticks": -1.0,
-    "warmup_ticks": 10.0,
-    "max_radius": 750.0,
-    "center_force": 0.44,
-    "cooldown_time": -1.0
+    "family_hub": false,
+    "family": false,
+    "priority": true,
+    "families": true,
+    "note_links": true,
+    "examples": false,
+    "mass_links": false,
+    "notes": true
   },
   "soft_pin_radius": 90.0,
   "link_distances": {
     "mass_linker": 45.0,
-    "family_hub": 37.0,
+    "family_hub": 1.0,
     "reference": 49.0,
-    "family": 21.0
+    "family": 20.0,
+    "example": 100.0,
+    "priority": 20.0,
+    "families": 111.0,
+    "note_links": 49.0,
+    "examples": 100.0,
+    "mass_links": 45.0
   },
   "neighbor_scaling": {
     "mode": "ccm",
     "directed": "out",
     "weights": {
-      "family": 1.4,
-      "family_hub": 0.9,
-      "reference": 0.9,
-      "mass_linker": 0.4,
-      "example": 1.0,
+      "priority": 1.4,
+      "families": 0.9,
+      "note_links": 0.9,
+      "mass_links": 0.4,
+      "examples": 1.0,
       "kanji": 0.2,
       "kanji_component": 0.0
     }
@@ -166,5 +189,66 @@
   "kanji_tfidf_enabled": true,
   "kanji_top_k_enabled": false,
   "kanji_top_k": 25,
-  "kanji_quantile_norm": true
+  "kanji_quantile_norm": true,
+  "solver": {
+    "layout_enabled": true,
+    "d3_alpha": 1.0,
+    "d3_alpha_min": 0.01,
+    "d3_alpha_decay": 0.01,
+    "d3_alpha_target": 0.0,
+    "d3_velocity_decay": 0.35,
+    "d3_center_x": 0.0,
+    "d3_center_y": 0.0,
+    "d3_center_strength": 0.05,
+    "d3_manybody_strength": -150.0,
+    "d3_manybody_theta": 1.0,
+    "d3_manybody_distance_min": 0.0,
+    "d3_manybody_distance_max": 0.0,
+    "d3_link_distance": 0.0,
+    "d3_link_strength": 1.0,
+    "d3_link_iterations": 5.0,
+    "d3_warmup_ticks": 0.0,
+    "d3_cooldown_ticks": 0.0,
+    "d3_cooldown_time_ms": 30000.0
+  },
+  "renderer": {
+    "sigma_draw_labels": true,
+    "sigma_draw_hover_nodes": false,
+    "sigma_note_node_aa": true,
+    "sigma_label_threshold": 0.0,
+    "sigma_label_zoom_min": 1.0,
+    "sigma_hide_edges_on_move": false,
+    "sigma_batch_edges_drawing": true,
+    "sigma_mouse_wheel_enabled": true,
+    "sigma_double_click_enabled": false,
+    "sigma_min_camera_ratio": 0.1,
+    "sigma_max_camera_ratio": 6.0,
+    "sigma_side_margin": 0.0,
+    "sigma_animations_time": 360.0,
+    "sigma_enable_edge_hovering": false
+  },
+  "node": {
+    "node_degree_size_factor": 0.9
+  },
+  "engine": {},
+  "link_colors": {
+    "priority": "rgba(53,114,227,0.580)",
+    "families": "rgba(52,211,153,0.580)",
+    "note_links": "#f59e0b",
+    "examples": "#60a5fa",
+    "mass_links": "#f97316",
+    "kanji": "#f87171",
+    "notes": "#6e54ff"
+  },
+  "link_weights": {
+    "families": 1.0,
+    "priority": 0.5,
+    "note_links": 2.0
+  },
+  "link_weight_modes": {
+    "priority": "metric"
+  },
+  "layer_flow_spacing_mul": 80.0,
+  "layer_flow_radius_mul": 6.0,
+  "trailing_hub_distance": 20.0
 }
