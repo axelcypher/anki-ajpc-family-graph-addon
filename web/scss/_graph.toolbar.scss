@@ -110,7 +110,7 @@
 
     overflow: auto;
 
-    background: var(--bg-panel);
+    background: var(--bg-popup);
 
     border: 1px solid var(--border-100);
     border-radius: var(--radius-small);
@@ -132,11 +132,7 @@
     &:hover,
     &:active {
       background: var(--bg-chip-100);
-      border-bottom: 1px solid color-mix(
-        in srgb, 
-        var(--accent), 
-        transparent 25%
-      );
+      border-bottom:  1px solid var(--accent-200);
     }
   }
 

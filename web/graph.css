@@ -8,7 +8,8 @@
   --bg-chip: #282c35;
   --bg-chip-100: #3e435080;
   --bg-chip-200: #17191f54;
-  --bg-btn: var(--bg-chip);
+  --bg-popup: #2d313d;
+  --bg-btn: #282c35;
   --bg-btn-soft: color-mix(
                         in srgb,
                         var(--bg-btn),
@@ -63,6 +64,10 @@ body {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+.hidden {
+  display: none;
 }
 
 .stack {
@@ -148,6 +153,7 @@ button {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   cursor: pointer;
   font-weight: 600;
 }
@@ -160,6 +166,7 @@ button:active {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
 }
 
 input[type=text] {
@@ -169,6 +176,7 @@ input[type=text] {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   width: 100%;
 }
 input[type=text]:hover, input[type=text].active, input[type=text]:focus {
@@ -178,26 +186,27 @@ input[type=text]:hover, input[type=text].active, input[type=text]:focus {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   outline: none;
 }
 
 select::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 select::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 select::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 select::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 select {
   appearance: none;
@@ -266,22 +275,22 @@ select:focus + .focus {
 }
 
 select[multiple]::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 select[multiple]::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 select[multiple] {
   border-radius: 7px;
@@ -376,6 +385,7 @@ input[type=checkbox] {
   border-radius: 0.1em;
   display: grid;
   place-content: center;
+  outline: var(--accent-100);
 }
 input[type=checkbox]::before {
   content: "";
@@ -510,28 +520,28 @@ input[type=checkbox]:checked::before {
   right: 85px;
   max-height: 260px;
   overflow: auto;
-  background: var(--bg-panel);
+  background: var(--bg-popup);
   border: 1px solid var(--border-100);
   border-radius: var(--radius-small);
   z-index: 500;
 }
 #search-wrap #search-suggest::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 #search-wrap #search-suggest.is-visible {
   display: block;
@@ -543,7 +553,7 @@ input[type=checkbox]:checked::before {
 }
 #search-wrap .suggest-item:hover, #search-wrap .suggest-item:active {
   background: var(--bg-chip-100);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent), transparent 25%);
+  border-bottom: 1px solid var(--accent-200);
 }
 #search-wrap .suggest-meta {
   display: block;
@@ -676,6 +686,7 @@ input[type=checkbox]:checked::before {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   cursor: pointer;
   font-weight: 600;
   border-radius: 0;
@@ -688,6 +699,7 @@ input[type=checkbox]:checked::before {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   border-radius: 0;
 }
 #settings-panel #settings-head #settings-tabs button.active {
@@ -704,6 +716,7 @@ input[type=checkbox]:checked::before {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   border-top-left-radius: var(--radius-small);
   border-bottom-left-radius: var(--radius-small);
 }
@@ -718,26 +731,27 @@ input[type=checkbox]:checked::before {
   color: var(--text-main);
   padding: 8px 10px;
   font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
   border-top-right-radius: var(--radius-small);
   border-bottom-right-radius: var(--radius-small);
 }
 #settings-panel .settings-scroll::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 #settings-panel .settings-scroll {
   height: 88%;
@@ -816,22 +830,22 @@ input[type=checkbox]:checked::before {
   flex: 0 0 100%;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 #settings-panel .settings-scroll .settings-block #link-runtime-settings {
   display: grid;
@@ -972,22 +986,22 @@ input[type=checkbox]:checked::before {
   font-size: 18px;
 }
 #editor-panel .edit-scroll::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 #editor-panel .edit-scroll::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 #editor-panel .edit-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 #editor-panel .edit-scroll::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 #editor-panel .edit-scroll {
   height: 88%;
@@ -1159,7 +1173,7 @@ input[type=checkbox]:checked::before {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 250;
+  z-index: 100;
   width: min(400px, 21vw);
   display: flex;
   flex-direction: column;
@@ -1231,6 +1245,7 @@ input[type=checkbox]:checked::before {
   line-height: 1.35;
   color: var(--text-main);
   font-size: 12px;
+  z-index: 100;
 }
 #status-overlay-top-left #status-active #status-active-cards {
   margin-top: 10px;
@@ -1259,22 +1274,22 @@ input[type=checkbox]:checked::before {
   font-weight: 700;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
-  margin: var(--radius-small) 0;
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 999px;
+  background: transparent !important;
+  border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
-  background: var(--accent-200);
-  border-radius: 999px;
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list {
   display: block;
@@ -1408,4 +1423,325 @@ input[type=checkbox]:checked::before {
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-empty {
   color: transparent;
+}
+
+#editor-anki html,
+#editor-anki body {
+  background: var(--bg-panel) !important;
+  color: var(--text-main) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#editor-anki body {
+  font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif !important;
+}
+#editor-anki a {
+  color: #93c5fd !important;
+}
+#editor-anki .editing-area,
+#editor-anki .label-container {
+  background: transparent !important;
+}
+#editor-anki button {
+  border-radius: var(--radius-small) !important;
+  border: 1px solid var(--border-100) !important;
+  background: var(--bg-btn) !important;
+  color: var(--text-main) !important;
+  padding: 8px 10px;
+  font-size: 13px;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
+  cursor: pointer;
+  font-weight: 600;
+}
+#editor-anki button:hover, #editor-anki button:active, #editor-anki button:focus-visible {
+  background: var(--bg-btn-soft) !important;
+}
+#editor-anki .field-state .ajt-play-icon {
+  padding-right: 22px;
+}
+#editor-anki .collapse-label {
+  position: relative !important;
+  display: grid !important;
+  grid-template-areas: "select" !important;
+  align-items: center !important;
+  width: 100%;
+}
+#editor-anki .collapse-label .collapse-badge {
+  display: none !important;
+}
+#editor-anki .collapse-label .label-name {
+  color: var(--text-soft);
+  font-size: 11px !important;
+  margin-left: 5px !important;
+  grid-area: select;
+}
+#editor-anki .collapse-label::after {
+  content: "";
+  grid-area: select;
+  justify-self: end;
+  width: 0.8em;
+  height: 0.5em;
+  background: var(--accent-100);
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transition: transform 0.16s ease;
+}
+#editor-anki .collapse-label[aria-expanded=false]::after {
+  transform: rotate(90deg);
+  transform-origin: 50% 50%;
+}
+#editor-anki .cloze,
+#editor-anki mark {
+  background: rgba(246, 134, 59, 0.25) !important;
+  color: var(--text-main) !important;
+}
+#editor-anki .hidden {
+  display: none !important;
+}
+#editor-anki #ajpc-graph-editor-web-controls {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 12px 8px 12px 20px;
+  height: 59px;
+  box-sizing: border-box;
+}
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug {
+  display: flex;
+  gap: 0px;
+}
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools,
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload {
+  border-color: var(--accent-300) !important;
+  background: var(--accent-200) !important;
+  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
+}
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:hover, #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:active,
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:hover,
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:active {
+  border-color: var(--accent-200) !important;
+  background: var(--accent-100) !important;
+}
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools {
+  margin-right: 0;
+  border-bottom-right-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-right: none !important;
+}
+#editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload {
+  margin-left: 0;
+  border-bottom-left-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+}
+#editor-anki .note-editor {
+  height: calc(100% - 59px) !important;
+}
+#editor-anki .note-editor .editor-toolbar {
+  background: var(--bg-panel) !important;
+  border-color: var(--border-100) !important;
+  margin: 0 !important;
+  padding: 3px 10px 3px 20px !important;
+}
+#editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle_prio],
+#editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle_graph],
+#editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle] {
+  display: none !important;
+}
+#editor-anki .note-editor .editor-toolbar .button-group button {
+  border-radius: 0 !important;
+  padding: 1px 3px !important;
+  font-size: 12px !important;
+}
+#editor-anki .note-editor .editor-toolbar .button-group button:hover, #editor-anki .note-editor .editor-toolbar .button-group button:active, #editor-anki .note-editor .editor-toolbar .button-group button:focus-visible {
+  background: var(--bg-btn-soft) !important;
+}
+#editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-first {
+  border-top-left-radius: 5px !important;
+  border-bottom-left-radius: 5px !important;
+}
+#editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-last {
+  border-top-right-radius: 5px !important;
+  border-bottom-right-radius: 5px !important;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar {
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 999px !important;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-thumb {
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area {
+  direction: rtl;
+  padding: 0 10px 10px 10px;
+  left: 0;
+}
+#editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area .d-flex {
+  direction: ltr;
+}
+#editor-anki .note-editor .fields {
+  border: 1px solid var(--border-100) !important;
+  border-radius: var(--radius-small) !important;
+  background: var(--bg-panel-100) !important;
+  padding: 10px !important;
+}
+#editor-anki .note-editor .fields .collapsible {
+  padding: 0px !important;
+}
+#editor-anki .note-editor .fields .field-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0px;
+  align-items: center;
+  border: 1px solid var(--border-100);
+  border-radius: var(--radius-small);
+  background: var(--bg-panel);
+  padding: 5px 6px;
+  font-size: 12px;
+}
+#editor-anki .note-editor .fields .field-container .label-container {
+  background: transparent;
+}
+#editor-anki .note-editor .fields .field-container .label-container .collapse-badge {
+  display: none !important;
+}
+#editor-anki .note-editor .fields .field-container .label-container .label-name {
+  margin-bottom: 4px;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area {
+  background: var(--bg-chip);
+  border: 1px solid var(--border-100);
+  border-radius: var(--radius-small);
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:hover, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:active, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus-visible {
+  border: 1px solid var(--accent-200);
+  outline: none;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area .CodeMirror-gutters {
+  background-color: transparent;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
+  border-radius: var(--radius-small);
+  background: var(--bg-chip);
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .rich-text-input {
+  border-radius: var(--radius-small);
+  background: var(--bg-chip-100);
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-plain-rich > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-plain-rich > .collapsible.full-hide:not(.hidden) + .collapsible.full-hide:not(.hidden) > .rich-text-input {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-rich-plain > .collapsible.full-hide:not(.hidden) > .rich-text-input {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+#editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-rich-plain > .collapsible.full-hide:not(.hidden) + .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+#editor-anki #ajpc-tag-wrapper {
+  padding: 5px 20px !important;
+}
+#editor-anki #ajpc-tag-wrapper .collapsible {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-soft);
+  font-size: 12px !important;
+}
+#editor-anki #ajpc-tag-wrapper .collapsible .tag-editor {
+  background: var(--bg-chip) !important;
+  border-radius: var(--radius-small) !important;
+  border: 1px solid var(--border-100) !important;
+  padding: 5px 6px !important;
+  margin: 0 0 10px 0 !important;
+  color: var(--text) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+#editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag {
+  background: var(--bg-panel) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-100) !important;
+  padding: 0px 3px 0px 3px;
+  font-size: 12px !important;
+  border-radius: var(--radius-small) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+#editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:hover, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:active, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:focus-visible {
+  background: var(--bg-btn-soft) !important;
+}
+#editor-anki .floating {
+  border-radius: var(--radius-small);
+}
+#editor-anki .floating .popover {
+  padding: 0 !important;
+  border: 1px solid var(--border-100) !important;
+  background: var(--bg-popup) !important;
+  color: var(--text-main) !important;
+  border-radius: var(--radius-small);
+}
+#editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar {
+  width: 10px !important;
+  background: transparent !important;
+  margin: var(--radius-small) 0 !important;
+}
+#editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 999px !important;
+}
+#editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-thumb {
+  background: var(--accent-200) !important;
+  border-radius: 999px !important;
+}
+#editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+#editor-anki .floating .popover .autocomplete-menu {
+  border-radius: var(--radius-small);
+}
+#editor-anki .floating .popover .autocomplete-menu .autocomplete-item {
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 7px 9px;
+}
+#editor-anki .floating .popover .autocomplete-menu .autocomplete-item:hover {
+  background: var(--bg-chip-100) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--accent-200) !important;
+}
+#editor-anki .floating .popover .autocomplete-menu .autocomplete-item.selected {
+  background: var(--accent-200) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--accent-200) !important;
+}
+#editor-anki .floating .floating-arrow .arrow {
+  background: var(--bg-popup) !important;
+}
+#editor-anki .tooltip .tooltip-arrow,
+#editor-anki .tooltip .tooltip-inner {
+  border: 1px solid var(--border-100) !important;
+  background: var(--bg-popup) !important;
+  color: var(--text-main) !important;
 }

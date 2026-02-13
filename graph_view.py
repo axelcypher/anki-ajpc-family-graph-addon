@@ -72,6 +72,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         logger.dbg("window open")
         self._load()
         self.show()
+        QTimer.singleShot(160, self._preload_embedded_editor_webview)
         try:
             gui_hooks.operation_did_execute.append(self._on_operation_did_execute)
         except Exception:
@@ -80,6 +81,10 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
 
     def closeEvent(self, event) -> None:
         saveGeom(self, "ajpc_family_graph")
+        try:
+            self._sync_web_editor_panel_visibility(False)
+        except Exception:
+            pass
         try:
             gui_hooks.operation_did_execute.remove(self._on_operation_did_execute)
         except Exception:

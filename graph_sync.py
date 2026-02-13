@@ -121,6 +121,10 @@ class GraphSyncMixin:
         try:
             editor.set_note(note)
             self._theme_embedded_editor_web()
+            try:
+                self._trigger_embedded_editor_tag_wrap()
+            except Exception:
+                pass
             logger.dbg("embedded editor note sync", getattr(note, "id", 0))
         except Exception:
             pass

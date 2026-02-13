@@ -295,6 +295,7 @@ input[type="checkbox"] {
   border-radius: 0.1em;
   display: grid;
   place-content: center;
+  outline: var(--accent-100);
 
   &::before {
     content: "";

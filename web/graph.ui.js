@@ -1589,8 +1589,6 @@ function wireDom() {
 
   DOM.editorPanel = byId("editor-panel");
   DOM.btnEditor = byId("btn-editor");
-  DOM.btnEditorDevtools = byId("btn-editor-devtools");
-  DOM.btnCloseEditor = byId("btn-close-editor");
 
   DOM.settingsPanel = byId("settings-panel");
   DOM.settingsTabs = Array.prototype.slice.call(document.querySelectorAll("#settings-tabs .settings-tab"));
@@ -1640,19 +1638,6 @@ function wireDom() {
       }
       if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
       updateEditorVisibility(false);
-    });
-  }
-  if (DOM.btnCloseEditor) {
-    DOM.btnCloseEditor.addEventListener("click", function () {
-      if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
-      updateEditorVisibility(false);
-    });
-  }
-  if (DOM.btnEditorDevtools) {
-    DOM.btnEditorDevtools.addEventListener("click", function () {
-      if (typeof openEmbeddedEditorDevTools === "function") {
-        openEmbeddedEditorDevTools();
-      }
     });
   }
   
@@ -1744,6 +1729,8 @@ function wireDom() {
 
   if (DOM.btnRefresh) {
     DOM.btnRefresh.addEventListener("click", function () {
+      if (typeof closeEmbeddedEditorPanel === "function") closeEmbeddedEditorPanel();
+      updateEditorVisibility(false);
       if (window.pycmd) {
         window.pycmd("refresh");
       } else {

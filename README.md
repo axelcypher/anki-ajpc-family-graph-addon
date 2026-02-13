@@ -80,6 +80,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Active selection gets a pulsing ring in node color.
 - Context selection (right-click target) gets a red pulsing ring.
 - Editor button in the active panel toggles the embedded native editor (no extra popup required).
+- Embedded editor web controls provide `DevTools`, `Reload CSS`, and `Close`.
 - Closing from inside the embedded native editor also closes the left editor sidebar state in the graph UI.
 
 ## Notes
@@ -111,8 +112,8 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - The graph window hosts a native embedded Anki editor panel (Qt side) that can be toggled from the graph UI.
 - Python host runtime is split into dedicated modules (`graph_launcher.py`, `graph_view.py`, `graph_sync.py`, `graph_bridge_handlers.py`, `graph_actions.py`, `graph_note_ops.py`, `graph_api_adapter.py`, `graph_web_assets.py`, `graph_previewer.py`, `graph_editor_embedded.py`, `graph_editor_window.py`).
 - Embedded editor theming source:
-  - `web/scss/_graph.editor.scss` marker block (`AJPC_EMBED_EDITOR_CSS_START/END`).
-  - `graph_editor_embedded.py` injects that block into embedded editor webviews (primary from `web/graph.css`, fallback from SCSS source).
+  - `web/scss/_graph.editor.scss` (scoped under `#editor-anki`).
+  - `graph_editor_embedded.py` injects compiled scoped rules from `web/graph.css` into embedded editor webviews.
 - Styling source can be maintained in SCSS:
   - Entry file: `web/graph.scss`
   - Partials: `web/scss/_graph.*.scss`

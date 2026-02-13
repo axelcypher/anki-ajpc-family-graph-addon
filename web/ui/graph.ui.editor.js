@@ -37,13 +37,35 @@
 
   function editorPanelRectPayload() {
     if (!window.DOM || !DOM.editorPanel) {
-      return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: 0 };
+      return { visible: false, x: 0, y: 0, w: 0, h: 0, vw: 0, vh: 0, tms: 0 };
     }
     var closed = DOM.editorPanel.classList.contains("closed");
     var tms = editorPanelTransitionMs();
-    if (closed) return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: tms };
+    if (closed) {
+      return {
+        visible: false,
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0,
+        vw: Math.max(0, Math.round(Number(window.innerWidth || 0))),
+        vh: Math.max(0, Math.round(Number(window.innerHeight || 0))),
+        tms: tms
+      };
+    }
     var r = DOM.editorPanel.getBoundingClientRect();
-    if (!r) return { visible: false, x: 0, y: 0, w: 0, h: 0, tms: tms };
+    if (!r) {
+      return {
+        visible: false,
+        x: 0,
+        y: 0,
+        w: 0,
+        h: 0,
+        vw: Math.max(0, Math.round(Number(window.innerWidth || 0))),
+        vh: Math.max(0, Math.round(Number(window.innerHeight || 0))),
+        tms: tms
+      };
+    }
     var cs = null;
     try { cs = window.getComputedStyle(DOM.editorPanel); } catch (_e0) {}
     var cssW = cs ? Number.parseFloat(cs.width || "0") : 0;
@@ -54,6 +76,8 @@
       y: Math.round(Number(r.top || 0)),
       w: Math.max(0, Math.round(cssW > 0 ? cssW : Number(r.width || 0))),
       h: Math.max(0, Math.round(cssH > 0 ? cssH : Number(r.height || 0))),
+      vw: Math.max(0, Math.round(Number(window.innerWidth || 0))),
+      vh: Math.max(0, Math.round(Number(window.innerHeight || 0))),
       tms: tms
     };
   }

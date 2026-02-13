@@ -120,15 +120,30 @@ class GraphBridgeHandlersMixin:
                     self._update_embedded_editor_geometry()
                     logger.dbg("embed editor rect", self._editor_panel_rect)
                 elif action == "open" or action == "select":
+                    try:
+                        self._hard_set_embedded_editor_transparent_background()
+                    except Exception:
+                        pass
                     opened = self._show_embedded_editor_for_note(nid)
                     logger.dbg("embed editor open", nid, opened)
                 elif action == "toggle":
+                    try:
+                        self._hard_set_embedded_editor_transparent_background()
+                    except Exception:
+                        pass
                     opened = self._toggle_embedded_editor(nid)
                     logger.dbg("embed editor toggle", nid, opened)
                 elif action == "devtools":
                     self._open_embedded_editor_devtools()
                     logger.dbg("embed editor devtools")
+                elif action == "cssreload":
+                    self._reload_embedded_editor_css()
+                    logger.dbg("embed editor css reload")
                 elif action == "close":
+                    try:
+                        self._hard_set_embedded_editor_transparent_background()
+                    except Exception:
+                        pass
                     self._hide_embedded_editor_panel()
                     logger.dbg("embed editor close")
                 else:

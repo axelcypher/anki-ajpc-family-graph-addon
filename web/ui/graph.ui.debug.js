@@ -138,6 +138,7 @@ function styleDebugSummary() {
 function syncDebugPanelVisibility() {
   if (!DOM.statusDebugPanel) return;
   var enabled = !!STATE.debugEnabled;
+  DOM.toolbarDebugPanel.classList.toggle("is-hidden", !enabled);
   DOM.statusDebugPanel.classList.toggle("is-hidden", !enabled);
   DOM.statusDebugPanel.setAttribute("aria-hidden", enabled ? "false" : "true");
 }
@@ -372,6 +373,7 @@ function wireDebugDom() {
   DOM.debugExtraCells = null;
 
   DOM.statusDebugPanel = byId("status-debug-panel");
+  DOM.toolbarDebugPanel = byId("toolbar-debug");
 
   DOM.btnDevTools = byId("btn-dev-tools");
   DOM.btnReloadCss = byId("btn-reload-css");
