@@ -1,69 +1,69 @@
 /*! AJPC_EMBED_EDITOR_CSS_START */
-html,
-body {
-  background: #0b1220 !important;
-  color: #e2e8f0 !important;
+#editor-anki html,
+#editor-anki body {
+  background: var(--bg-panel) !important;
+  color: var(--text-main) !important;
 }
 
-body {
+#editor-anki body {
   font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif !important;
 }
 
-a {
+#editor-anki a {
   color: #93c5fd !important;
 }
 
-button,
-input,
-select,
-textarea {
-  background: #0f172a !important;
+#editor-anki button,
+#editor-anki input,
+#editor-anki select,
+#editor-anki textarea {
+  background: var(--bg-panel-100) !important;
   color: #e2e8f0 !important;
   border: 1px solid #334155 !important;
   border-radius: 6px !important;
 }
 
-button:hover,
-button:focus-visible {
+#editor-anki button:hover,
+#editor-anki button:focus-visible {
   background: #1e293b !important;
   border-color: #3b82f6 !important;
 }
 
-.toolbar,
-#topbuts,
-.edit_tools,
-.editor-toolbar {
+#editor-anki .toolbar,
+#editor-anki #topbuts,
+#editor-anki .edit_tools,
+#editor-anki .editor-toolbar {
   background: #111827 !important;
   border-color: #334155 !important;
 }
 
-.field,
-.fline,
-.fbody,
-.fedit,
-.fhtml,
-[contenteditable="true"] {
+#editor-anki .field,
+#editor-anki .fline,
+#editor-anki .fbody,
+#editor-anki .fedit,
+#editor-anki .fhtml,
+#editor-anki [contenteditable="true"] {
   background: #0f172a !important;
   color: #e2e8f0 !important;
   border-color: #334155 !important;
 }
 
-.fieldname,
-.field .fname,
-.fname {
+#editor-anki .fieldname,
+#editor-anki .field .fname,
+#editor-anki .fname {
   color: #cbd5e1 !important;
 }
 
-.tags,
-.tagArea,
-#tags {
+#editor-anki .tags,
+#editor-anki .tagArea,
+#editor-anki #tags {
   background: #0f172a !important;
   color: #e2e8f0 !important;
   border-color: #334155 !important;
 }
 
-.cloze,
-mark {
+#editor-anki .cloze,
+#editor-anki mark {
   background: rgba(59, 130, 246, 0.25) !important;
   color: #dbeafe !important;
 }

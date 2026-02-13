@@ -83,6 +83,7 @@ ADDON_DIR = os.path.dirname(__file__)
 WEB_DIR = os.path.join(ADDON_DIR, "web")
 EMBED_EDITOR_CSS_START = "AJPC_EMBED_EDITOR_CSS_START"
 EMBED_EDITOR_CSS_END = "AJPC_EMBED_EDITOR_CSS_END"
+EMBED_EDITOR_CSS_SCOPE = "#editor-anki"
 
 
 # --- Web assets + HTML template --------------------------------------------
@@ -529,9 +530,25 @@ class FamilyGraphWindow(QWidget):
                 ".toolbar{background:#111827!important;border-color:#334155!important;}"
             )
             logger.dbg("embedded editor theme css fallback active")
+        css = self._unscope_embedded_editor_theme_css(css)
         self._embedded_editor_theme_css = css
         self._embedded_editor_theme_css_mtime = source_mtime
         return css
+
+    def _unscope_embedded_editor_theme_css(self, css: str) -> str:
+        # Allow SCSS to be safely namespaced in graph.css via #editor-anki, then strip
+        # that scope for the editor webview where selectors should be global.
+        if not css:
+            return ""
+        out = str(css)
+        scope = EMBED_EDITOR_CSS_SCOPE
+        out = out.replace(scope + " ", "")
+        out = out.replace(scope + ">", ">")
+        out = out.replace(scope + "+", "+")
+        out = out.replace(scope + "~", "~")
+        out = out.replace(scope + ",", ",")
+        out = re.sub(r"\s{2,}", " ", out)
+        return out.strip()
 
     def _show_embedded_editor_widgets(self) -> None:
         # Ensure the nested editor widget tree is visible when mounted in overlay mode.
