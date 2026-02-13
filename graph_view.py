@@ -227,6 +227,7 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor = None
         self._embedded_editor_form = None
         self._embedded_editor_root = None
+        self._embedded_editor_devtools = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
         self._embedded_editor_theme_css = ""
         self._embedded_editor_theme_css_mtime = 0.0
@@ -241,10 +242,13 @@ class FamilyGraphWindow(QWidget):
         editor_head_layout.setContentsMargins(6, 4, 6, 4)
         editor_head_layout.setSpacing(6)
         self._editor_title = QLabel("AJpC Note Editor", editor_head)
+        self._editor_devtools_btn = QPushButton("DevTools", editor_head)
+        self._editor_devtools_btn.clicked.connect(self._open_embedded_editor_devtools)
         self._editor_close_btn = QPushButton("Close", editor_head)
         self._editor_close_btn.clicked.connect(self._hide_embedded_editor_panel)
         editor_head_layout.addWidget(self._editor_title)
         editor_head_layout.addStretch(1)
+        editor_head_layout.addWidget(self._editor_devtools_btn)
         editor_head_layout.addWidget(self._editor_close_btn)
 
         self._editor_mount = QWidget(self._editor_panel)
@@ -306,6 +310,11 @@ class FamilyGraphWindow(QWidget):
         try:
             if getattr(self, "_devtools", None) is not None:
                 self._devtools.close()
+        except Exception:
+            pass
+        try:
+            if getattr(self, "_embedded_editor_devtools", None) is not None:
+                self._embedded_editor_devtools.close()
         except Exception:
             pass
         self._cleanup_embedded_editor()
@@ -699,6 +708,12 @@ class FamilyGraphWindow(QWidget):
         return False
 
     def _cleanup_embedded_editor(self) -> None:
+        if self._embedded_editor_devtools is not None:
+            try:
+                self._embedded_editor_devtools.close()
+            except Exception:
+                pass
+            self._embedded_editor_devtools = None
         if self._embedded_editor is not None:
             try:
                 self._embedded_editor.cleanup()
@@ -737,6 +752,61 @@ class FamilyGraphWindow(QWidget):
 
     def _on_devtools_destroyed(self) -> None:
         self._devtools = None
+
+    def _open_embedded_editor_devtools(self) -> None:
+        try:
+            if getattr(self, "_embedded_editor_devtools", None) is not None:
+                try:
+                    self._embedded_editor_devtools.raise_()
+                    self._embedded_editor_devtools.activateWindow()
+                except Exception:
+                    pass
+                return
+            if self._embedded_editor is None and not self._ensure_embedded_editor():
+                logger.dbg("embedded editor devtools unavailable: editor not ready")
+                return
+            target_web = None
+            try:
+                target_web = getattr(self._embedded_editor, "web", None)
+            except Exception:
+                target_web = None
+            if target_web is None:
+                try:
+                    target_web = getattr(self._embedded_editor, "toolbarWeb", None)
+                except Exception:
+                    target_web = None
+            if target_web is None:
+                logger.dbg("embedded editor devtools unavailable: no webview")
+                return
+            page = None
+            try:
+                page = target_web.page()
+            except Exception:
+                page = None
+            if page is None:
+                logger.dbg("embedded editor devtools unavailable: no page")
+                return
+            devtools = QWebEngineView()
+            devtools.setWindowTitle("AJpC Embedded Editor DevTools")
+            try:
+                setWindowIcon(devtools)
+            except Exception:
+                pass
+            devtools.resize(1000, 700)
+            devtools.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            page.setDevToolsPage(devtools.page())
+            devtools.show()
+            self._embedded_editor_devtools = devtools
+            try:
+                devtools.destroyed.connect(self._on_embedded_editor_devtools_destroyed)
+            except Exception:
+                pass
+            logger.dbg("embedded editor devtools open")
+        except Exception:
+            self._embedded_editor_devtools = None
+
+    def _on_embedded_editor_devtools_destroyed(self) -> None:
+        self._embedded_editor_devtools = None
 
     def _on_note_added(self, note) -> None:
         # Queue single note refresh.
