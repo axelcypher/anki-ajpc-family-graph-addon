@@ -1,0 +1,70 @@
+/*! AJPC_EMBED_EDITOR_CSS_START */
+html,
+body {
+  background: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
+
+body {
+  font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif !important;
+}
+
+a {
+  color: #93c5fd !important;
+}
+
+button,
+input,
+select,
+textarea {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #334155 !important;
+  border-radius: 6px !important;
+}
+
+button:hover,
+button:focus-visible {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+}
+
+.toolbar,
+#topbuts,
+.edit_tools,
+.editor-toolbar {
+  background: #111827 !important;
+  border-color: #334155 !important;
+}
+
+.field,
+.fline,
+.fbody,
+.fedit,
+.fhtml,
+[contenteditable="true"] {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.fieldname,
+.field .fname,
+.fname {
+  color: #cbd5e1 !important;
+}
+
+.tags,
+.tagArea,
+#tags {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.cloze,
+mark {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #dbeafe !important;
+}
+/*! AJPC_EMBED_EDITOR_CSS_END */

@@ -81,6 +81,8 @@ from .graph_config import (
 
 ADDON_DIR = os.path.dirname(__file__)
 WEB_DIR = os.path.join(ADDON_DIR, "web")
+EMBED_EDITOR_CSS_START = "AJPC_EMBED_EDITOR_CSS_START"
+EMBED_EDITOR_CSS_END = "AJPC_EMBED_EDITOR_CSS_END"
 
 
 # --- Web assets + HTML template --------------------------------------------
@@ -225,6 +227,8 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_form = None
         self._embedded_editor_root = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
+        self._embedded_editor_theme_css = ""
+        self._embedded_editor_theme_css_mtime = 0.0
 
         editor_layout = QVBoxLayout(self._editor_panel)
         editor_layout.setContentsMargins(12, 12, 12, 12)
@@ -446,15 +450,15 @@ class FamilyGraphWindow(QWidget):
         editor = self._embedded_editor
         if editor is None:
             return
+        css = self._get_embedded_editor_theme_css()
+        if not css:
+            return
+        css_js = json.dumps(css)
         js = (
             "(function(){"
             "try{"
             "var id='ajpc-graph-editor-theme';"
-            "var css='"
-            "html,body{background:#0b1220!important;color:#e2e8f0!important;}"
-            " .field{background:#0f172a!important;border-color:#334155!important;color:#e2e8f0!important;}"
-            " .toolbar{background:#111827!important;border-color:#334155!important;}"
-            "';"
+            f"var css={css_js};"
             "var st=document.getElementById(id);"
             "if(!st){st=document.createElement(\"style\");st.id=id;document.head.appendChild(st);}st.textContent=css;"
             "}catch(_e){}"
@@ -476,6 +480,58 @@ class FamilyGraphWindow(QWidget):
                 wv.eval(js)
             except Exception:
                 continue
+
+    def _get_embedded_editor_theme_css(self) -> str:
+        css_path = os.path.join(WEB_DIR, "graph.css")
+        scss_path = os.path.join(WEB_DIR, "scss", "_graph.editor.scss")
+        try:
+            mtime = float(os.path.getmtime(css_path))
+        except Exception:
+            mtime = 0.0
+        try:
+            scss_mtime = float(os.path.getmtime(scss_path))
+        except Exception:
+            scss_mtime = 0.0
+        source_mtime = max(mtime, scss_mtime)
+        if self._embedded_editor_theme_css and source_mtime > 0 and source_mtime <= float(self._embedded_editor_theme_css_mtime):
+            return self._embedded_editor_theme_css
+        css = ""
+        pattern = (
+            r"/\*!\s*"
+            + re.escape(EMBED_EDITOR_CSS_START)
+            + r"\s*\*/(.*?)/\*!\s*"
+            + re.escape(EMBED_EDITOR_CSS_END)
+            + r"\s*\*/"
+        )
+        try:
+            with open(css_path, "r", encoding="utf-8", errors="ignore") as fh:
+                raw = fh.read()
+            match = re.search(pattern, raw, flags=re.DOTALL)
+            if match:
+                css = str(match.group(1) or "").strip()
+        except Exception:
+            css = ""
+        if not css:
+            try:
+                with open(scss_path, "r", encoding="utf-8", errors="ignore") as fh:
+                    raw = fh.read()
+                match = re.search(pattern, raw, flags=re.DOTALL)
+                if match:
+                    css = str(match.group(1) or "").strip()
+                    logger.dbg("embedded editor theme css loaded from scss source")
+            except Exception:
+                css = ""
+        if not css:
+            css = (
+                "html,body{background:#0b1220!important;color:#e2e8f0!important;}"
+                "button,input,select,textarea{background:#0f172a!important;color:#e2e8f0!important;border-color:#334155!important;}"
+                ".field{background:#0f172a!important;color:#e2e8f0!important;border-color:#334155!important;}"
+                ".toolbar{background:#111827!important;border-color:#334155!important;}"
+            )
+            logger.dbg("embedded editor theme css fallback active")
+        self._embedded_editor_theme_css = css
+        self._embedded_editor_theme_css_mtime = source_mtime
+        return css
 
     def _show_embedded_editor_widgets(self) -> None:
         # Ensure the nested editor widget tree is visible when mounted in overlay mode.
