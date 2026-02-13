@@ -235,7 +235,7 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_footer_devtools_btn = None
         self._editor_panel_rect: dict[str, int | bool] = {"visible": False, "x": 0, "y": 0, "w": 0, "h": 0}
         self._editor_panel_transition_ms = 180
-        self._editor_panel_transition_extra_ms = 300
+        self._editor_panel_transition_extra_ms = 450
         self._editor_panel_anim: QPropertyAnimation | None = None
         self._editor_panel_closing = False
         self._embedded_editor_theme_css = ""
@@ -651,6 +651,10 @@ class FamilyGraphWindow(QWidget):
             match = re.search(pattern, raw, flags=re.DOTALL)
             if match:
                 css = str(match.group(1) or "").strip()
+            if not css:
+                css = self._extract_scoped_rules_from_css(raw, EMBED_EDITOR_CSS_SCOPE)
+                if css:
+                    logger.dbg("embedded editor theme css loaded from graph.css scoped rules")
         except Exception:
             css = ""
         if not css:
@@ -678,6 +682,21 @@ class FamilyGraphWindow(QWidget):
         self._embedded_editor_theme_css = css
         self._embedded_editor_theme_css_mtime = source_mtime
         return css
+
+    def _extract_scoped_rules_from_css(self, raw_css: str, scope: str) -> str:
+        if not raw_css or not scope:
+            return ""
+        out: list[str] = []
+        try:
+            for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", raw_css, flags=re.DOTALL):
+                selector = str(m.group(1) or "")
+                body = str(m.group(2) or "")
+                if scope not in selector:
+                    continue
+                out.append(selector.strip() + "{" + body.strip() + "}")
+        except Exception:
+            return ""
+        return "\n".join(out).strip()
 
     def _unscope_embedded_editor_theme_css(self, css: str) -> str:
         # Allow SCSS to be safely namespaced in graph.css via #editor-anki, then strip
