@@ -607,7 +607,7 @@ function buildNodeLayoutAttrs(node) {
     ajpc_ping_start: -1,
     ajpc_ping_dur: 0,
     ajpc_ping_mode: 0,
-    ajpc_ping_color: "rgba(96,165,250,1)",
+    ajpc_ping_color: "rgba(236,240,245,1)",
     ajpc_ring_mode: 0,
     ajpc_ring_color: "rgba(255,255,255,0)"
   };
@@ -1911,7 +1911,13 @@ function clearNodeFxPingTimers() {
 
 function syncNodeFxAnimationLoop(selectedIndex, contextIndex) {
   if (!STATE.graph || typeof STATE.graph.setNodeFxAnimationState !== "function") return;
-  var hasPersistent = (selectedIndex >= 0) || (contextIndex >= 0);
+  // Keep shader time uniforms advancing while visible note nodes exist,
+  // otherwise note pulse animations freeze once the solver settles.
+  var visibleNotes = STATE.visibleGraphCounts && isFinite(Number(STATE.visibleGraphCounts.notes))
+    ? Number(STATE.visibleGraphCounts.notes)
+    : 0;
+  var hasAmbientPulse = visibleNotes > 0;
+  var hasPersistent = hasAmbientPulse || (selectedIndex >= 0) || (contextIndex >= 0);
   var untilMs = Number(STATE.nodeFxPingUntilMs || 0);
   STATE.graph.setNodeFxAnimationState(hasPersistent, untilMs);
 }
@@ -1968,9 +1974,9 @@ function triggerNodePingByIndex(index, sourceTag) {
 
   var nowMs = performance.now();
   var nowSec = nowMs * 0.001;
-  var durationSec = 0.85;
+  var durationSec = 1.755;
   var durationMs = Math.round(durationSec * 1000);
-  var color = nodeFxBaseColorByIndex(idx, 0.95);
+  var color = [0.925, 0.945, 0.97, 1.0];
 
   STATE.graph.setNodeFxStatesBatch([
     {

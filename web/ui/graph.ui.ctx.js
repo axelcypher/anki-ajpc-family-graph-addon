@@ -479,6 +479,42 @@ function hideContextMenu(suppressStateClear) {
   }
 }
 
+function contextMenuViewportRect() {
+  var vv = (window && window.visualViewport) ? window.visualViewport : null;
+  var vpLeft = vv && isFiniteNumber(Number(vv.offsetLeft)) ? Number(vv.offsetLeft) : 0;
+  var vpTop = vv && isFiniteNumber(Number(vv.offsetTop)) ? Number(vv.offsetTop) : 0;
+  var vpWidth = vv && isFiniteNumber(Number(vv.width)) ? Number(vv.width) : (window.innerWidth || document.documentElement.clientWidth || 1);
+  var vpHeight = vv && isFiniteNumber(Number(vv.height)) ? Number(vv.height) : (window.innerHeight || document.documentElement.clientHeight || 1);
+  var vpRight = vpLeft + vpWidth;
+  var vpBottom = vpTop + vpHeight;
+
+  // Clamp to the graph panel if available, so the menu cannot leave the graph viewport.
+  if (DOM && DOM.graphPanel && typeof DOM.graphPanel.getBoundingClientRect === "function") {
+    var r = DOM.graphPanel.getBoundingClientRect();
+    var pl = Number(r.left);
+    var pt = Number(r.top);
+    var pr = Number(r.right);
+    var pb = Number(r.bottom);
+    if (isFiniteNumber(pl) && isFiniteNumber(pt) && isFiniteNumber(pr) && isFiniteNumber(pb) && pr > pl && pb > pt) {
+      vpLeft = Math.max(vpLeft, pl);
+      vpTop = Math.max(vpTop, pt);
+      vpRight = Math.min(vpRight, pr);
+      vpBottom = Math.min(vpBottom, pb);
+      vpWidth = Math.max(1, vpRight - vpLeft);
+      vpHeight = Math.max(1, vpBottom - vpTop);
+    }
+  }
+
+  return {
+    left: vpLeft,
+    top: vpTop,
+    width: vpWidth,
+    height: vpHeight,
+    right: vpRight,
+    bottom: vpBottom
+  };
+}
+
 function showContextMenu(node, evt) {
   var menu = DOM.ctxMenu;
   if (!menu || !node) return;
@@ -577,14 +613,28 @@ function showContextMenu(node, evt) {
   var e = evt || window.event;
   var x = e && isFiniteNumber(Number(e.clientX)) ? Number(e.clientX) : 0;
   var y = e && isFiniteNumber(Number(e.clientY)) ? Number(e.clientY) : 0;
+
+  var margin = 8;
+  var vr = contextMenuViewportRect();
+  var maxW = Math.max(160, vr.width - (margin * 2));
+  var maxH = Math.max(96, vr.height - (margin * 2));
+  menu.style.minWidth = Math.round(Math.min(220, maxW)) + "px";
+  menu.style.maxWidth = Math.round(maxW) + "px";
+  menu.style.maxHeight = Math.round(maxH) + "px";
+  menu.style.overflowY = "auto";
+  menu.style.overflowX = "hidden";
+
   menu.classList.add("is-visible");
   menu.setAttribute("aria-hidden", "false");
-  var vw = window.innerWidth || 1;
-  var vh = window.innerHeight || 1;
-  var mw = menu.offsetWidth || 220;
-  var mh = menu.offsetHeight || 120;
-  menu.style.left = Math.max(8, Math.min(vw - mw - 8, x)) + "px";
-  menu.style.top = Math.max(8, Math.min(vh - mh - 8, y)) + "px";
+
+  var box = menu.getBoundingClientRect();
+  var mw = isFiniteNumber(Number(box.width)) && Number(box.width) > 0 ? Number(box.width) : (menu.offsetWidth || 220);
+  var mh = isFiniteNumber(Number(box.height)) && Number(box.height) > 0 ? Number(box.height) : (menu.offsetHeight || 120);
+
+  var left = Math.max(vr.left + margin, Math.min(vr.right - mw - margin, x));
+  var top = Math.max(vr.top + margin, Math.min(vr.bottom - mh - margin, y));
+  menu.style.left = Math.round(left) + "px";
+  menu.style.top = Math.round(top) + "px";
 }
 
 window.hideContextMenu = hideContextMenu;
