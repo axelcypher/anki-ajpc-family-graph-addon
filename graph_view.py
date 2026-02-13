@@ -372,7 +372,8 @@ class FamilyGraphWindow(QWidget):
         if mw is None or getattr(mw, "col", None) is None:
             return False
         try:
-            self._embedded_editor_root = QWidget(self._editor_mount)
+            # editcurrent.Ui_Dialog expects a MainWindow-like host (uses setCentralWidget).
+            self._embedded_editor_root = QMainWindow(self._editor_mount)
             self._embedded_editor_form = aqt.forms.editcurrent.Ui_Dialog()
             self._embedded_editor_form.setupUi(self._embedded_editor_root)
             self._editor_mount_layout.addWidget(self._embedded_editor_root, 1)
