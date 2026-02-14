@@ -42,6 +42,9 @@ function applyPayload(payload, fitView) {
 }
 
 function applyDeltaPayload(delta) {
+  if (typeof persistCurrentPositions === "function") {
+    persistCurrentPositions();
+  }
   var patch = (delta && typeof delta === "object") ? delta : {};
   var changedList = Array.isArray(patch.changed_nids) ? patch.changed_nids : [];
   var changed = new Set();
