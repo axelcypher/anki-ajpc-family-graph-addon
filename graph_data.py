@@ -517,6 +517,219 @@ def _note_ids_for_mid(col: Collection, mid: str) -> list[int]:
     return _note_ids_for_query(col, f"mid:{mid}")
 
 
+def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, Any]:
+    cfg = _get_tools_config()
+    if not cfg:
+        return {"changed_nids": [], "nodes": [], "edges": [], "meta": {}}
+
+    uniq_nids: list[int] = []
+    seen_nids: set[int] = set()
+    for raw in changed_nids or []:
+        try:
+            nid = int(raw or 0)
+        except Exception:
+            continue
+        if nid <= 0 or nid in seen_nids:
+            continue
+        seen_nids.add(nid)
+        uniq_nids.append(nid)
+    if not uniq_nids:
+        return {"changed_nids": [], "nodes": [], "edges": [], "meta": {}}
+
+    graph_cfg = load_graph_config()
+    label_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_label_fields") or {})
+    linked_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_linked_fields") or {})
+    tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
+
+    layer_colors = dict(graph_cfg.get("layer_colors") or {})
+    link_colors = dict(graph_cfg.get("link_colors") or {})
+    layer_styles = dict(graph_cfg.get("layer_styles") or {})
+    layer_flow = dict(graph_cfg.get("layer_flow") or {})
+    link_strengths = dict(graph_cfg.get("link_strengths") or {})
+
+    changed_set = set(uniq_nids)
+    touched_nids: set[int] = set(uniq_nids)
+    node_layers: dict[int, set[str]] = {nid: {"notes"} for nid in uniq_nids}
+    provider_layer_map: dict[str, str] = {}
+
+    edges: list[dict[str, Any]] = []
+    edge_seen: set[tuple[str, str, str, str, str]] = set()
+
+    def _add_edge(src: int, dst: int, layer: str, meta: dict[str, Any]) -> None:
+        if src <= 0 or dst <= 0 or src == dst or not layer:
+            return
+        label = str(meta.get("label", "") or "")
+        provider = str(meta.get("provider_id", "") or "")
+        group = str(meta.get("group", "") or "")
+        key = (str(src), str(dst), str(layer), label, provider + "|" + group)
+        if key in edge_seen:
+            return
+        edge_seen.add(key)
+        edges.append(
+            {
+                "source": str(src),
+                "target": str(dst),
+                "layer": str(layer),
+                "meta": dict(meta),
+            }
+        )
+        touched_nids.add(src)
+        touched_nids.add(dst)
+        node_layers.setdefault(src, {"notes"}).add(str(layer))
+        node_layers.setdefault(dst, {"notes"}).add(str(layer))
+
+    def _resolve_note_id(raw_id: int) -> int:
+        try:
+            note = col.get_note(int(raw_id))
+            if note:
+                return int(note.id)
+        except Exception:
+            pass
+        try:
+            card = col.get_card(int(raw_id))
+            if card:
+                return int(card.nid)
+        except Exception:
+            pass
+        return 0
+
+    provider_payload = _get_provider_link_edges_via_main_api(
+        uniq_nids,
+        include_family=False,
+    )
+    provider_edges = provider_payload.get("edges") if isinstance(provider_payload, dict) else []
+    if isinstance(provider_edges, list):
+        for row in provider_edges:
+            if not isinstance(row, dict):
+                continue
+            try:
+                source_nid = int(row.get("source_nid") or 0)
+                target_nid = int(row.get("target_nid") or 0)
+                target_id = int(row.get("target_id") or 0)
+            except Exception:
+                continue
+            if source_nid <= 0 or target_nid <= 0 or source_nid not in changed_set:
+                continue
+            provider_id = str(row.get("provider_id") or "").strip()
+            if not provider_id:
+                continue
+            layer = _provider_layer_id(provider_id)
+            provider_layer_map[layer] = provider_id
+            _add_edge(
+                source_nid,
+                target_nid,
+                layer,
+                {
+                    "provider_id": provider_id,
+                    "provider_category": str(row.get("provider_category") or ""),
+                    "label": str(row.get("label") or ""),
+                    "group": str(row.get("group") or ""),
+                    "target_kind": str(row.get("target_kind") or "nid"),
+                    "target_id": target_id,
+                    "manual": False,
+                },
+            )
+
+    for source_nid in uniq_nids:
+        try:
+            note = col.get_note(int(source_nid))
+        except Exception:
+            continue
+        linked_field = str(linked_fields.get(str(note.mid), "") or "").strip()
+        if not linked_field or linked_field not in note:
+            continue
+        raw = str(note[linked_field] or "")
+        if not raw:
+            continue
+        raw = _strip_html(html.unescape(raw))
+        raw = raw.replace("ï½œ", "|").replace("ï¼»", "[").replace("ï¼½", "]")
+        targets, _invalid = _parse_link_targets(raw)
+        for label, ref_id in targets:
+            target_nid = _resolve_note_id(int(ref_id))
+            if target_nid <= 0:
+                continue
+            _add_edge(
+                source_nid,
+                target_nid,
+                "note_links",
+                {
+                    "label": str(label or ""),
+                    "manual": True,
+                },
+            )
+
+    def _note_extra(note: Any) -> list[dict[str, str]]:
+        out: list[dict[str, str]] = []
+        fields = tooltip_fields.get(str(note.mid)) if isinstance(tooltip_fields, dict) else None
+        if not fields:
+            return out
+        for fname in fields:
+            fname = str(fname or "").strip()
+            if not fname or fname not in note:
+                continue
+            val = _strip_html(str(note[fname] or "")).strip()
+            if not val:
+                continue
+            out.append({"name": fname, "value": val})
+        return out
+
+    nodes: list[dict[str, Any]] = []
+    for nid in sorted(touched_nids):
+        try:
+            note = col.get_note(int(nid))
+        except Exception:
+            continue
+        layers = sorted(node_layers.get(int(nid), {"notes"}))
+        if "notes" not in layers:
+            layers.insert(0, "notes")
+        nodes.append(
+            {
+                "id": str(nid),
+                "label": _note_label(note, label_fields.get(str(note.mid))),
+                "kind": "note",
+                "note_type_id": str(note.mid),
+                "note_type": _note_type_name(col, int(note.mid)),
+                "layers": layers,
+                "extra": _note_extra(note),
+            }
+        )
+
+    if provider_layer_map:
+        for layer, provider_id in provider_layer_map.items():
+            color = _provider_layer_color(provider_id)
+            if not layer_colors.get(layer):
+                layer_colors[layer] = color
+            if not link_colors.get(layer):
+                link_colors[layer] = str(layer_colors.get(layer) or color)
+            if not layer_styles.get(layer):
+                layer_styles[layer] = "dashed"
+            if layer not in layer_flow:
+                layer_flow[layer] = True
+            if layer not in link_strengths:
+                link_strengths[layer] = 1.0
+
+    base_layers = ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"]
+    all_layers = list(base_layers)
+    for layer in sorted(provider_layer_map.keys()):
+        if layer not in all_layers:
+            all_layers.append(layer)
+
+    return {
+        "changed_nids": sorted(int(x) for x in uniq_nids),
+        "nodes": nodes,
+        "edges": edges,
+        "meta": {
+            "layers": all_layers,
+            "provider_layers": dict(provider_layer_map),
+            "layer_colors": layer_colors,
+            "link_colors": link_colors,
+            "layer_styles": layer_styles,
+            "layer_flow": layer_flow,
+            "link_strengths": link_strengths,
+        },
+    }
+
+
 def _build_kanji_maps(
     col: Collection,
     kanji_mid: str,

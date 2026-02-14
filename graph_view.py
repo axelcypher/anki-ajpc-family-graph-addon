@@ -62,6 +62,9 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._refresh)
+        self._delta_timer = QTimer(self)
+        self._delta_timer.setSingleShot(True)
+        self._delta_timer.timeout.connect(self._push_note_delta)
         self._pending_changed_nids: set[int] = set()
         self._note_add_hooks: list[tuple[Any, Any]] = []
 
@@ -172,7 +175,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         if nid:
             self._pending_changed_nids.add(nid)
             logger.dbg("note added", nid)
-            self._schedule_refresh("note added")
+            self._schedule_note_delta_push("note added")
 
     def _on_notes_added(self, notes) -> None:
         count = 0
@@ -186,7 +189,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
                 count += 1
         if count:
             logger.dbg("notes added", count)
-            self._schedule_refresh("notes added")
+            self._schedule_note_delta_push("notes added")
 
 
 def show_tools_graph() -> None:

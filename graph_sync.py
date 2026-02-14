@@ -8,11 +8,64 @@ from aqt.operations import QueryOp
 from aqt.utils import showInfo
 
 from . import logger
-from .graph_data import build_graph
+from .graph_data import build_graph, build_note_delta
 from .graph_web_assets import render_graph_html
 
 
 class GraphSyncMixin:
+    def _schedule_note_delta_push(self, reason: str) -> None:
+        logger.dbg("schedule note delta", reason, "nids=", len(self._pending_changed_nids))
+        try:
+            self._delta_timer.stop()
+        except Exception:
+            pass
+        self._delta_timer.start(220)
+
+    def _push_note_delta(self) -> None:
+        if mw is None or not getattr(mw, "col", None):
+            return
+        if not self._graph_ready:
+            self._load()
+            return
+        if not self._pending_changed_nids:
+            return
+        changed_nids = sorted(int(x) for x in self._pending_changed_nids if int(x) > 0)
+        if not changed_nids:
+            self._pending_changed_nids.clear()
+            return
+        logger.dbg("push note delta", "nids=", len(changed_nids))
+
+        def op(_col):
+            return build_note_delta(_col, changed_nids)
+
+        def on_success(result: dict[str, Any]) -> None:
+            try:
+                for nid in changed_nids:
+                    self._pending_changed_nids.discard(int(nid))
+            except Exception:
+                self._pending_changed_nids.clear()
+            payload_json = json.dumps(result or {}, ensure_ascii=False).replace("</", "<\\/")
+            delta_js = (
+                "(function(){"
+                "const data=" + payload_json + ";"
+                "if(window.ajpcGraphDelta){"
+                "window.ajpcGraphDelta(data);"
+                "if(window.pycmd){pycmd('log:graph delta called');}"
+                "}else if(window.ajpcGraphUpdate){"
+                "window.ajpcGraphUpdate(data);"
+                "if(window.pycmd){pycmd('log:graph update fallback called');}"
+                "}"
+                "})();"
+            )
+            self.web.eval(delta_js)
+            self._flush_pending_focus_in_graph()
+
+        def on_failure(err: Exception) -> None:
+            logger.dbg("note delta push failed", repr(err))
+            self._schedule_refresh("note delta fallback")
+
+        QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
+
     def _request_focus_note_in_graph(self, nid: int) -> None:
         try:
             target_nid = int(nid or 0)
@@ -145,6 +198,10 @@ class GraphSyncMixin:
     def _schedule_refresh(self, reason: str) -> None:
         logger.dbg("schedule refresh", reason)
         try:
+            self._delta_timer.stop()
+        except Exception:
+            pass
+        try:
             self._refresh_timer.stop()
         except Exception:
             pass
@@ -196,7 +253,9 @@ class GraphSyncMixin:
                     nid = None
                 if nid:
                     self._pending_changed_nids.add(nid)
-                self._schedule_refresh("note change")
+                    self._schedule_note_delta_push("note change")
+                else:
+                    self._schedule_refresh("note change (unknown nid)")
                 return
             if getattr(changes, "tag", False) or getattr(changes, "deck", False):
                 self._schedule_refresh("tag/deck change")
