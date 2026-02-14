@@ -22,15 +22,26 @@ class GraphSyncMixin:
         self._delta_timer.start(220)
 
     def _push_note_delta(self) -> None:
+        logger.dbg(
+            "push note delta enter",
+            "ready=",
+            bool(self._graph_ready),
+            "pending=",
+            len(self._pending_changed_nids),
+        )
         if mw is None or not getattr(mw, "col", None):
+            logger.dbg("push note delta skip", "reason=no collection")
             return
         if not self._graph_ready:
+            logger.dbg("push note delta skip", "reason=graph not ready", "action=load")
             self._load()
             return
         if not self._pending_changed_nids:
+            logger.dbg("push note delta skip", "reason=no pending nids")
             return
         changed_nids = sorted(int(x) for x in self._pending_changed_nids if int(x) > 0)
         if not changed_nids:
+            logger.dbg("push note delta skip", "reason=normalized nids empty", "action=clear pending")
             self._pending_changed_nids.clear()
             return
         logger.dbg("push note delta", "nids=", len(changed_nids))
@@ -39,12 +50,24 @@ class GraphSyncMixin:
             return build_note_delta(_col, changed_nids)
 
         def on_success(result: dict[str, Any]) -> None:
+            nodes_count = len(result.get("nodes", []) or []) if isinstance(result, dict) else 0
+            edges_count = len(result.get("edges", []) or []) if isinstance(result, dict) else 0
+            logger.dbg(
+                "note delta success",
+                "changed=",
+                len(changed_nids),
+                "nodes=",
+                nodes_count,
+                "edges=",
+                edges_count,
+            )
             try:
                 for nid in changed_nids:
                     self._pending_changed_nids.discard(int(nid))
             except Exception:
                 self._pending_changed_nids.clear()
             payload_json = json.dumps(result or {}, ensure_ascii=False).replace("</", "<\\/")
+            logger.dbg("note delta dispatch", "bytes=", len(payload_json))
             delta_js = (
                 "(function(){"
                 "const data=" + payload_json + ";"
@@ -54,6 +77,8 @@ class GraphSyncMixin:
                 "}else if(window.ajpcGraphUpdate){"
                 "window.ajpcGraphUpdate(data);"
                 "if(window.pycmd){pycmd('log:graph update fallback called');}"
+                "}else{"
+                "if(window.pycmd){pycmd('log:graph delta no handler');}"
                 "}"
                 "})();"
             )

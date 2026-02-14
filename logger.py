@@ -55,7 +55,7 @@ def _emit(level: str, *args: Any, source: str | None = None) -> None:
         src = str(source or _source_from_stack()).strip() or "core"
         line = " ".join(str(a) for a in args)
         with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(f"[ToolsGraph {src} {lvl} {ts}] {line}\n")
+            f.write(f"[{src} {lvl} {ts}] {line}\n")
     except Exception:
         pass
 
