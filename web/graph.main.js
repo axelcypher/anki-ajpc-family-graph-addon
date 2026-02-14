@@ -14,6 +14,18 @@ function resolveApplyGraphData() {
   return null;
 }
 
+function resolveApplyGraphDelta() {
+  if (window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function") {
+    if (typeof window.GraphAdapter.hasEnginePort === "function" && !window.GraphAdapter.hasEnginePort("applyGraphDeltaData")) {
+      return null;
+    }
+    return function (deltaPatch) {
+      return window.GraphAdapter.callEngine("applyGraphDeltaData", deltaPatch || {});
+    };
+  }
+  return null;
+}
+
 function applyPayload(payload, fitView) {
   STATE.raw = preparePayload(payload);
   if (STATE.depTreeCache && typeof STATE.depTreeCache.clear === "function") STATE.depTreeCache.clear();
@@ -93,11 +105,16 @@ function applyDeltaPayload(delta) {
   STATE.depTreePendingNid = null;
   ensureRuntimeState();
   refreshUiOnly();
-  var applyFn = resolveApplyGraphData();
-  if (!applyFn) {
-    throw new Error("applyGraphData is not defined");
+  var deltaFn = resolveApplyGraphDelta();
+  if (deltaFn) {
+    deltaFn({ changed_nids: changedList.slice() });
+  } else {
+    var applyFn = resolveApplyGraphData();
+    if (!applyFn) {
+      throw new Error("applyGraphData/applyGraphDeltaData is not defined");
+    }
+    applyFn(false);
   }
-  applyFn(false);
   STATE.isFirstRender = false;
   log("engine delta nodes=" + STATE.activeNodes.length + " edges=" + STATE.activeEdges.length);
 }

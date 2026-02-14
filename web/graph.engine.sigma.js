@@ -310,6 +310,34 @@ function edgeCurvByStyle(code, idx) {
   return 0;
 }
 
+function stableMetaSerialize(value) {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) {
+    var arr = [];
+    for (var i = 0; i < value.length; i += 1) arr.push(stableMetaSerialize(value[i]));
+    return "[" + arr.join(",") + "]";
+  }
+  if (typeof value === "object") {
+    var keys = Object.keys(value).sort();
+    var parts = [];
+    for (var k = 0; k < keys.length; k += 1) {
+      var key = keys[k];
+      parts.push(JSON.stringify(key) + ":" + stableMetaSerialize(value[key]));
+    }
+    return "{" + parts.join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function stableEdgeId(edge) {
+  var e = edge && typeof edge === "object" ? edge : {};
+  var src = String(e.source !== undefined && e.source !== null ? e.source : "");
+  var dst = String(e.target !== undefined && e.target !== null ? e.target : "");
+  var layer = String(e.layer || "");
+  var metaSig = stableMetaSerialize(e.meta || {});
+  return "ed:" + src + "|" + dst + "|" + layer + "|" + metaSig;
+}
+
 function trSolver(raw, prev) {
   var p = prev && typeof prev === "object" ? prev : {};
   var s = raw && typeof raw === "object" ? raw : {};
@@ -623,6 +651,161 @@ SigmaGraphCompat.prototype.setNodeLayoutAttributes = function (nodes) {
   }
   this.nodeLayoutAttrsById = out;
   this.dataDirty = true;
+};
+
+SigmaGraphCompat.prototype._nodeAttrsFromArrays = function (idx) {
+  var id = this.idByIndex[idx];
+  var x = Number(this.pointPositions[idx * 2]);
+  var y = Number(this.pointPositions[(idx * 2) + 1]);
+  if (!fin(x) || !fin(y)) {
+    var seed = adapterSeededPos(id);
+    x = Number(seed[0]);
+    y = Number(seed[1]);
+    this.pointPositions[idx * 2] = x;
+    this.pointPositions[(idx * 2) + 1] = y;
+  }
+  var size = Number(this.pointSizes[idx]);
+  var alpha = Number(this.pointColors[(idx * 4) + 3] || 0);
+  var type = this._useCustomNodeTypes ? nodeTypeByCode(this.pointTypeCodes, idx) : "circle";
+  var hidden = !fin(size) || size <= 0 || !fin(alpha) || alpha <= 0.001;
+  if (!fin(size) || size <= 0) size = DNS;
+
+  var attrs = {
+    x: x - off(),
+    y: y - off(),
+    size: size,
+    color: rgba(this.pointColors, idx, DNC),
+    type: type,
+    label: null,
+    hidden: hidden,
+    forceLabel: false,
+    zIndex: idx
+  };
+  var extra = this.nodeLayoutAttrsById && this.nodeLayoutAttrsById.get
+    ? this.nodeLayoutAttrsById.get(String(id))
+    : null;
+  if (extra && typeof extra === "object") {
+    Object.keys(extra).forEach(function (k) { attrs[k] = extra[k]; });
+  }
+  return attrs;
+};
+
+SigmaGraphCompat.prototype._edgeAttrsFromArrays = function (idx) {
+  var width = Number(this.linkWidths[idx]);
+  if (!fin(width) || width <= 0) width = DES;
+  var styleCodeValue = styleCode(this.linkStyleCodes, idx);
+  var edgeType = edgeTypeByStyle(styleCodeValue);
+  var curvature = adapterEdgeCurvByStyle(styleCodeValue, idx);
+  var alphaMultiplier = alphaMul(styleCodeValue);
+  var weight = Number(this.linkStrength[idx]);
+  if (!fin(weight) || weight <= 0) weight = 1;
+  var edgeAlpha = Number(this.linkColors[(idx * 4) + 3] || 0);
+  var hidden = !fin(width) || width <= 0 || !fin(edgeAlpha) || edgeAlpha <= 0.001;
+  var flow = (this.linkFlowMask && this.linkFlowMask.length > idx && this.linkFlowMask[idx]) ? 1 : 0;
+  var bidir = (this.linkBidirMask && this.linkBidirMask.length > idx && this.linkBidirMask[idx]) ? 1 : 0;
+  return {
+    size: width,
+    weight: weight,
+    color: rgbaM(this.linkColors, idx, DEC, alphaMultiplier),
+    type: edgeType,
+    curvature: curvature,
+    label: null,
+    hidden: hidden,
+    ajpc_flow: flow,
+    ajpc_bidir: bidir,
+    forceLabel: false,
+    zIndex: idx
+  };
+};
+
+SigmaGraphCompat.prototype.applyDeltaFromArrays = function (nodes, edges, arrays) {
+  if (!this.graph) return false;
+  var nodeList = Array.isArray(nodes) ? nodes : [];
+  var edgeList = Array.isArray(edges) ? edges : [];
+  var arr = arrays && typeof arrays === "object" ? arrays : null;
+  if (!arr) return false;
+
+  this.idByIndex = Array.isArray(arr.idsByIndex) ? arr.idsByIndex.slice() : [];
+  this.indexById = arr.indexById instanceof Map ? arr.indexById : new Map();
+  this.pointPositions = arr.pointPositions ? arr.pointPositions : new Float32Array(0);
+  this.pointColors = arr.pointColors ? arr.pointColors : new Float32Array(0);
+  this.pointSizes = arr.pointSizes ? arr.pointSizes : new Float32Array(0);
+  this.pointTypeCodes = arr.pointTypeCodes ? arr.pointTypeCodes : new Uint8Array(0);
+  this.linksFlat = arr.links ? arr.links : new Float32Array(0);
+  this.linkColors = arr.linkColors ? arr.linkColors : new Float32Array(0);
+  this.linkWidths = arr.linkWidths ? arr.linkWidths : new Float32Array(0);
+  this.linkStrength = arr.linkStrength ? arr.linkStrength : new Float32Array(0);
+  this.linkDistance = arr.linkDistance ? arr.linkDistance : new Float32Array(0);
+  this.linkStyleCodes = arr.linkStyleCodes ? arr.linkStyleCodes : new Uint8Array(0);
+  this.linkFlowMask = arr.linkFlowMask ? arr.linkFlowMask : new Uint8Array(0);
+  this.linkBidirMask = arr.linkBidirMask ? arr.linkBidirMask : new Uint8Array(0);
+
+  var nextLayoutAttrs = new Map();
+  for (var ni = 0; ni < nodeList.length; ni += 1) {
+    var node = nodeList[ni];
+    if (!node || node.id === undefined || node.id === null) continue;
+    nextLayoutAttrs.set(String(node.id), buildNodeLayoutAttrs(node));
+  }
+  this.nodeLayoutAttrsById = nextLayoutAttrs;
+
+  var graph = this.graph;
+  var desiredNodeIds = new Set(this.idByIndex.map(function (id) { return String(id || ""); }).filter(Boolean));
+  var existingNodeIds = graph.nodes ? graph.nodes() : [];
+  for (var ei = 0; ei < existingNodeIds.length; ei += 1) {
+    var existingNodeId = String(existingNodeIds[ei] || "");
+    if (!existingNodeId) continue;
+    if (!desiredNodeIds.has(existingNodeId) && graph.hasNode(existingNodeId)) {
+      try { graph.dropNode(existingNodeId); } catch (_eNodeDrop) {}
+    }
+  }
+
+  for (var i = 0; i < this.idByIndex.length; i += 1) {
+    var nodeId = String(this.idByIndex[i] || "");
+    if (!nodeId) continue;
+    var nodeAttrs = this._nodeAttrsFromArrays(i);
+    if (graph.hasNode(nodeId)) {
+      graph.mergeNodeAttributes(nodeId, nodeAttrs);
+    } else {
+      try { graph.addNode(nodeId, nodeAttrs); } catch (_eNodeAdd) {}
+    }
+  }
+
+  var desiredEdgeIds = new Set();
+  this.edgeIdByIndex = new Array(edgeList.length);
+  this.edgeIndexById = new Map();
+
+  for (var eidx = 0; eidx < edgeList.length; eidx += 1) {
+    var edge = edgeList[eidx];
+    if (!edge || typeof edge !== "object") continue;
+    var sid = String(edge.source || "");
+    var tid = String(edge.target || "");
+    if (!sid || !tid || sid === tid) continue;
+    if (!graph.hasNode(sid) || !graph.hasNode(tid)) continue;
+    var edgeId = stableEdgeId(edge);
+    var edgeAttrs = this._edgeAttrsFromArrays(eidx);
+    desiredEdgeIds.add(edgeId);
+    if (graph.hasEdge(edgeId)) {
+      graph.mergeEdgeAttributes(edgeId, edgeAttrs);
+    } else {
+      try { graph.addDirectedEdgeWithKey(edgeId, sid, tid, edgeAttrs); } catch (_eEdgeAdd) {}
+    }
+    this.edgeIdByIndex[eidx] = edgeId;
+    this.edgeIndexById.set(edgeId, eidx);
+  }
+
+  var existingEdgeIds = graph.edges ? graph.edges() : [];
+  for (var exi = 0; exi < existingEdgeIds.length; exi += 1) {
+    var existingEdgeId = String(existingEdgeIds[exi] || "");
+    if (!existingEdgeId) continue;
+    if (!desiredEdgeIds.has(existingEdgeId) && graph.hasEdge(existingEdgeId)) {
+      try { graph.dropEdge(existingEdgeId); } catch (_eEdgeDrop) {}
+    }
+  }
+
+  this.dataDirty = false;
+  this.styleDirty = false;
+  if (this.renderer && typeof this.renderer.requestFrame === "function") this.renderer.requestFrame();
+  return true;
 };
 
 SigmaGraphCompat.prototype._sync = function () {
@@ -2256,7 +2439,69 @@ function applyGraphData(fitView) {
   cityEnsureFlowParticlesLoop();
 }
 
+function applyGraphDeltaData(deltaPatch) {
+  ensureGraphInstance();
+  var patch = deltaPatch && typeof deltaPatch === "object" ? deltaPatch : {};
+  var source = {
+    nodes: Array.isArray(STATE.activeNodes) ? STATE.activeNodes : [],
+    edges: Array.isArray(STATE.activeEdges) ? STATE.activeEdges : []
+  };
+  var arrays = cityBuildGraphArrays(source);
+
+  STATE.activeNodes = arrays.nodes;
+  STATE.activeEdges = arrays.edges;
+  STATE.activeIndexById = arrays.indexById;
+  STATE.activeIdsByIndex = arrays.idsByIndex;
+  STATE.focusAdjCache = null;
+
+  STATE.basePointColors = arrays.pointColors ? new Float32Array(arrays.pointColors) : new Float32Array(0);
+  STATE.basePointSizes = arrays.pointSizes ? new Float32Array(arrays.pointSizes) : new Float32Array(0);
+  STATE.baseLinkColors = arrays.linkColors ? new Float32Array(arrays.linkColors) : new Float32Array(0);
+  STATE.runtimeEdgeFlowMask = arrays.linkFlowMask ? new Uint8Array(arrays.linkFlowMask) : new Uint8Array(STATE.activeEdges.length);
+  STATE.runtimeFlowActiveEdgeIndices = [];
+  setFlowShaderRuntime(STATE.layerFlowSpeed);
+  STATE.pointStyleColors = new Float32Array(STATE.basePointColors);
+  stopPointSizeAnimation();
+  STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
+  STATE.lastEdgeCount = STATE.activeEdges.length;
+  STATE.lastNodeCount = STATE.activeNodes.length;
+
+  if (!STATE.activeNodes.length) {
+    if (DOM.graphEmpty) {
+      DOM.graphEmpty.style.display = "block";
+      DOM.graphEmpty.textContent = "No nodes available.";
+    }
+    if (STATE.graph && STATE.graph.graph && typeof STATE.graph.graph.clear === "function") {
+      STATE.graph.graph.clear();
+    }
+    if (STATE.graph && typeof STATE.graph.requestFrame === "function") STATE.graph.requestFrame();
+    cityEnsureFlowParticlesLoop();
+    lg("debug", "delta apply empty graph");
+    return;
+  }
+
+  if (DOM.graphEmpty) DOM.graphEmpty.style.display = "none";
+  if (STATE.graph && typeof STATE.graph.applyDeltaFromArrays === "function") {
+    STATE.graph.applyDeltaFromArrays(STATE.activeNodes, STATE.activeEdges, arrays);
+  } else {
+    applyGraphData(false);
+    return;
+  }
+
+  cityApplyRuntimeUiSettings(false);
+  applyVisualStyles(0.08);
+  if (STATE.graph && typeof STATE.graph.resize === "function") STATE.graph.resize();
+  cityEnsureFlowParticlesLoop();
+  lg(
+    "debug",
+    "delta apply changed=" + String(Array.isArray(patch.changed_nids) ? patch.changed_nids.length : 0)
+      + " nodes=" + String(STATE.activeNodes.length)
+      + " edges=" + String(STATE.activeEdges.length)
+  );
+}
+
 window.applyGraphData = applyGraphData;
+window.applyGraphDeltaData = applyGraphDeltaData;
 window.applyVisualStyles = applyVisualStyles;
 window.applyPhysicsToGraph = applyPhysicsToGraph;
 
@@ -2264,6 +2509,7 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerEnginePort !== "function") return;
   adapter.registerEnginePort("applyGraphData", applyGraphData);
+  adapter.registerEnginePort("applyGraphDeltaData", applyGraphDeltaData);
   adapter.registerEnginePort("applyVisualStyles", applyVisualStyles);
   adapter.registerEnginePort("applyPhysicsToGraph", applyPhysicsToGraph);
   adapter.registerEnginePort("createGraphEngineSigma", createGraphEngineSigma);
