@@ -1072,6 +1072,41 @@ function renderLinkSettings() {
   );
   DOM.linkSettings.appendChild(notesSwatchRow);
 
+  var availableMassLinkerGroups = Array.isArray(STATE.massLinkerGroupsAvailable)
+    ? STATE.massLinkerGroupsAvailable.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : [];
+  var selectedMassLinkerGroups = Array.isArray(STATE.massLinkerGroupHubs)
+    ? STATE.massLinkerGroupHubs.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : [];
+  if (availableMassLinkerGroups.length) {
+    var selectedSet = {};
+    selectedMassLinkerGroups.forEach(function (g) { selectedSet[String(g).toLowerCase()] = true; });
+    var groupRows = availableMassLinkerGroups.map(function (groupName) {
+      var key = String(groupName || "").trim();
+      var keyLow = key.toLowerCase();
+      var checked = !!selectedSet[keyLow];
+      return renderHtmlTemplate(
+        `<label class="line-item">
+          <input type="checkbox" class="ml-group-hub" data-group="{{group}}"{{{checkedAttr}}}>
+          <span>{{group}}</span>
+        </label>`,
+        {
+          group: key,
+          checkedAttr: checked ? " checked" : ""
+        }
+      );
+    }).join("");
+
+    var massLinkerGroupHubRow = document.createElement("div");
+    massLinkerGroupHubRow.className = "control-row";
+    massLinkerGroupHubRow.innerHTML = renderHtmlTemplate(
+      `<div>Mass Linker Group Hubs</div>
+      <div class="stack">{{{rows}}}</div>`,
+      { rows: groupRows }
+    );
+    DOM.linkSettings.appendChild(massLinkerGroupHubRow);
+  }
+
   var metricRow = document.createElement("div");
   metricRow.className = "control-row";
   metricRow.innerHTML = renderHtmlTemplate(
@@ -1254,6 +1289,20 @@ function renderLinkSettings() {
       persistHook("lcol:notes:" + encodeURIComponent(value));
     });
   }
+
+  DOM.linkSettings.querySelectorAll(".ml-group-hub").forEach(function (el) {
+    el.addEventListener("change", function () {
+      var selected = [];
+      DOM.linkSettings.querySelectorAll(".ml-group-hub").forEach(function (cb) {
+        if (!cb.checked) return;
+        var group = String(cb.getAttribute("data-group") || "").trim();
+        if (!group) return;
+        selected.push(group);
+      });
+      STATE.massLinkerGroupHubs = selected;
+      persistHook("mlghubs:" + encodeURIComponent(JSON.stringify(selected)));
+    });
+  });
 
   function applyNeighborScalingRuntime(reheat) {
     var cfg = (typeof normalizeNeighborScaling === "function")

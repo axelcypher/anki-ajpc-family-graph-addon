@@ -840,6 +840,18 @@ def build_graph(col: Collection) -> dict[str, Any]:
     visible_note_types = _normalize_note_type_map(col, graph_cfg.get("note_type_visible") or {})
     note_type_colors = _normalize_note_type_map(col, graph_cfg.get("note_type_colors") or {})
     note_type_hubs = _normalize_note_type_map(col, graph_cfg.get("note_type_hubs") or {})
+    mass_linker_group_hubs_cfg_raw = graph_cfg.get("mass_linker_group_hubs") or []
+    mass_linker_group_hubs_cfg: list[str] = []
+    mass_linker_group_hubs_cfg_keys: set[str] = set()
+    for raw_group in mass_linker_group_hubs_cfg_raw if isinstance(mass_linker_group_hubs_cfg_raw, list) else []:
+        grp = str(raw_group or "").strip()
+        if not grp:
+            continue
+        grp_key = grp.lower()
+        if grp_key in mass_linker_group_hubs_cfg_keys:
+            continue
+        mass_linker_group_hubs_cfg_keys.add(grp_key)
+        mass_linker_group_hubs_cfg.append(grp)
     fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
     family_gate_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
     cs_cfg = cfg.get("card_stages") if isinstance(cfg, dict) else {}
@@ -911,6 +923,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
     provider_layer_map: dict[str, str] = {}
     provider_layer_labels: dict[str, str] = {}
     provider_layer_ids: set[str] = set()
+    mass_linker_groups_available_by_key: dict[str, str] = {}
+    mass_linker_group_members: dict[str, set[int]] = {}
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -1505,6 +1519,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             provider_id = str(row.get("provider_id") or "").strip()
             if not provider_id:
                 continue
+            provider_id_key = provider_id.lower()
             provider_name = _provider_display_name(
                 provider_id, str(row.get("provider_name") or "")
             )
@@ -1512,6 +1527,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
             provider_layer_map[layer] = provider_id
             provider_layer_labels[layer] = provider_name
             provider_layer_ids.add(layer)
+            if provider_id_key == "mass_linker":
+                group_name = str(row.get("group") or "").strip()
+                if group_name:
+                    group_key = group_name.lower()
+                    if group_key not in mass_linker_groups_available_by_key:
+                        mass_linker_groups_available_by_key[group_key] = group_name
+                    if group_key in mass_linker_group_hubs_cfg_keys:
+                        mass_linker_group_members.setdefault(group_key, set()).add(int(target_nid))
 
             source_note = _cached_note(source_nid)
             target_note = _cached_note(target_nid)
@@ -1748,6 +1771,113 @@ def build_graph(col: Collection) -> dict[str, Any]:
                 visible["meta"] = vmeta
                 out_edges.append(visible)
         edges = out_edges
+
+    # Aggregate selected Mass Linker groups into hubs (optional)
+    if mass_linker_group_members:
+        ml_layer = _provider_layer_id("mass_linker")
+        node_group_memberships: dict[str, set[str]] = {}
+        hub_label_map: dict[str, str] = {}
+        for group_key, nids in mass_linker_group_members.items():
+            hub_id = f"mlgroup:{group_key}"
+            hub_label_map[hub_id] = mass_linker_groups_available_by_key.get(group_key, group_key)
+            for nid in nids:
+                node = nodes.get(str(nid))
+                if not node or node.get("kind") != "note":
+                    continue
+                node_group_memberships.setdefault(str(nid), set()).add(hub_id)
+
+        hub_map: dict[str, str] = {}
+        hub_counts: dict[str, int] = {}
+        for nid, hub_ids in node_group_memberships.items():
+            if len(hub_ids) != 1:
+                continue
+            hub_id = next(iter(hub_ids))
+            hub_map[nid] = hub_id
+            hub_counts[hub_id] = hub_counts.get(hub_id, 0) + 1
+            node = nodes.get(nid)
+            if node is not None:
+                hub_entry = hub_members.setdefault(hub_id, {"nodes": [], "edges": []})
+                hub_entry["nodes"].append(node)
+
+        if hub_map:
+            for hub_id, count in hub_counts.items():
+                label = hub_label_map.get(hub_id, hub_id)
+                entry = hub_members.get(hub_id) or {}
+                member_ntids = {
+                    str(n.get("note_type_id"))
+                    for n in (entry.get("nodes") or [])
+                    if n.get("note_type_id")
+                }
+                mid = member_ntids.pop() if len(member_ntids) == 1 else None
+                note_type_name = "Mass Linker Group"
+                if mid:
+                    try:
+                        note_type_name = _note_type_name(col, int(mid))
+                    except Exception:
+                        note_type_name = "Mass Linker Group"
+                ensure_node(
+                    hub_id,
+                    label=label,
+                    kind="note_type_hub",
+                    note_type_id=mid,
+                    note_type=note_type_name,
+                    hub_count=count,
+                )
+                add_layer(hub_id, ml_layer)
+
+            for nid in hub_map.keys():
+                nodes.pop(nid, None)
+
+            new_edges: list[dict[str, Any]] = []
+            seen_hub_edges: set[tuple[str, str, str, str]] = set()
+
+            def _ml_hub_meta_key(meta: Any) -> str:
+                if not isinstance(meta, dict):
+                    return ""
+                keep: dict[str, Any] = {}
+                for k in ("flow_only", "manual", "bidirectional", "kind", "provider_id", "group"):
+                    if k in meta:
+                        keep[k] = meta.get(k)
+                try:
+                    return json.dumps(keep, sort_keys=True, default=str)
+                except Exception:
+                    return str(keep)
+
+            for e in edges:
+                raw_src = str(e.get("source"))
+                raw_dst = str(e.get("target"))
+                src_hub = hub_map.get(raw_src)
+                dst_hub = hub_map.get(raw_dst)
+                if src_hub and dst_hub and src_hub == dst_hub:
+                    hub_entry = hub_members.get(src_hub)
+                    if hub_entry is not None:
+                        hub_entry["edges"].append(e)
+                    continue
+                src = src_hub or raw_src
+                dst = dst_hub or raw_dst
+                if src == dst:
+                    continue
+                meta = e.get("meta") or {}
+                if (
+                    str(src).startswith("notetype:")
+                    or str(dst).startswith("notetype:")
+                    or str(src).startswith("autolink:")
+                    or str(dst).startswith("autolink:")
+                    or str(src).startswith("mlgroup:")
+                    or str(dst).startswith("mlgroup:")
+                ):
+                    meta_key = _ml_hub_meta_key(meta)
+                else:
+                    try:
+                        meta_key = json.dumps(meta, sort_keys=True, default=str)
+                    except Exception:
+                        meta_key = str(meta)
+                key = (src, dst, str(e.get("layer") or ""), meta_key)
+                if key in seen_hub_edges:
+                    continue
+                seen_hub_edges.add(key)
+                new_edges.append({"source": src, "target": dst, "layer": e.get("layer"), "meta": meta})
+            edges = new_edges
 
     # Aggregate autolink tags into hubs (optional)
     if autolink_tags:
@@ -1991,6 +2121,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
     base_layers = ["notes", "priority", "families", "note_links", "examples", "kanji"]
     dynamic_provider_layers = sorted(provider_layer_ids)
     all_layers = base_layers + [x for x in dynamic_provider_layers if x not in base_layers]
+    mass_linker_groups_available = sorted(
+        list(mass_linker_groups_available_by_key.values()),
+        key=lambda x: str(x or "").lower(),
+    )
     return {
         "nodes": list(nodes.values()),
         "edges": edges,
@@ -1999,6 +2133,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "note_types": note_type_meta,
             "provider_layers": dict(provider_layer_map),
             "provider_layer_labels": dict(provider_layer_labels),
+            "mass_linker_groups_available": mass_linker_groups_available,
+            "mass_linker_group_hubs": list(mass_linker_group_hubs_cfg),
             "layer_colors": layer_colors,
             "link_colors": link_colors,
             "layer_enabled": layer_enabled,

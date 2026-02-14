@@ -47,6 +47,7 @@ from .graph_config import (
     set_link_weight,
     set_neighbor_scaling,
     set_node_value,
+    set_mass_linker_group_hubs,
     set_note_type_color,
     set_note_type_label_field,
     set_note_type_linked_field,
@@ -485,6 +486,18 @@ class GraphBridgeHandlersMixin:
                 self._schedule_refresh("show unlinked")
             except Exception:
                 logger.dbg("show unlinked parse failed", message)
+        elif message.startswith("mlghubs:"):
+            try:
+                _prefix, enc = message.split(":", 1)
+                raw = unquote(enc)
+                groups = json.loads(raw) if raw else []
+                if not isinstance(groups, list):
+                    groups = []
+                set_mass_linker_group_hubs(groups)
+                logger.dbg("mass linker group hubs", len(groups))
+                self._schedule_refresh("mass linker group hubs")
+            except Exception:
+                logger.dbg("mass linker group hubs parse failed", message)
         elif message.startswith("fprio:"):
             try:
                 _prefix, val = message.split(":", 1)

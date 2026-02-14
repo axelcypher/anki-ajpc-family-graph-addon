@@ -14,6 +14,7 @@ DEFAULT_CFG: dict[str, Any] = {
     "note_type_visible": {},
     "note_type_colors": {},
     "note_type_hubs": {},
+    "mass_linker_group_hubs": [],
     "layer_enabled": {},
     "layer_colors": {
         "notes": "#3d95e7",
@@ -227,6 +228,21 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     ):
         if key not in cfg or not isinstance(cfg.get(key), dict):
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
+    if not isinstance(cfg.get("mass_linker_group_hubs"), list):
+        cfg["mass_linker_group_hubs"] = list(DEFAULT_CFG.get("mass_linker_group_hubs", []))
+    else:
+        cleaned_hubs: list[str] = []
+        seen_hubs: set[str] = set()
+        for raw in cfg.get("mass_linker_group_hubs") or []:
+            grp = str(raw or "").strip()
+            if not grp:
+                continue
+            key = grp.lower()
+            if key in seen_hubs:
+                continue
+            seen_hubs.add(key)
+            cleaned_hubs.append(grp)
+        cfg["mass_linker_group_hubs"] = cleaned_hubs
     cfg["layer_colors"] = _migrate_layer_map(cfg.get("layer_colors", {}), copy_family_to_notes=True)
     cfg["link_colors"] = _migrate_layer_map(cfg.get("link_colors", {}))
     for layer in ("notes", "priority", "families", "note_links", "examples", "kanji"):
@@ -428,6 +444,23 @@ def set_note_type_hub(mid: str, enabled: bool) -> None:
         cfg["note_type_hubs"][mid] = True
     else:
         cfg["note_type_hubs"].pop(mid, None)
+    save_graph_config(cfg)
+
+
+def set_mass_linker_group_hubs(groups: list[str]) -> None:
+    cfg = load_graph_config()
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw in groups or []:
+        grp = str(raw or "").strip()
+        if not grp:
+            continue
+        key = grp.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(grp)
+    cfg["mass_linker_group_hubs"] = cleaned
     save_graph_config(cfg)
 
 

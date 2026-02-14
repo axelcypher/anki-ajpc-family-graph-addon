@@ -5,6 +5,8 @@ var STATE = {
   raw: { nodes: [], edges: [], meta: {} },
   layers: {},
   providerLayerLabels: {},
+  massLinkerGroupsAvailable: [],
+  massLinkerGroupHubs: [],
   layerColors: {},
   linkColors: {},
   layerStyles: {},

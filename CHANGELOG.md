@@ -10,6 +10,7 @@
 - Renamed the Browser context action to English: `Show in AJpC Graph`.
 - Switched provider-driven links to AJpC Tools API payload (`get_link_provider_edges`) and render them on dynamic per-provider layers (`provider_<id>`), instead of hardcoded Mass-Linker config parsing in graph addon.
 - Added incremental note-delta sync path: note text changes now push node/edge patches into the running graph instead of triggering a full graph rebuild.
+- Added Links-menu setting for Mass Linker group hubs: selectable Mass Linker `group` values can now be collapsed into dedicated hub nodes.
 
 ### Fixes
 - Improved reliability of note focus handoff when the graph window opens from a context action.

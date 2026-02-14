@@ -640,6 +640,14 @@ function ensureRuntimeState() {
 
   STATE.layers = nextLayers;
   STATE.providerLayerLabels = metaProviderLayerLabels;
+  var massLinkerGroupsAvailable = Array.isArray(meta.mass_linker_groups_available)
+    ? meta.mass_linker_groups_available.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : (Array.isArray(STATE.massLinkerGroupsAvailable) ? STATE.massLinkerGroupsAvailable.slice() : []);
+  var massLinkerGroupHubs = Array.isArray(meta.mass_linker_group_hubs)
+    ? meta.mass_linker_group_hubs.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : (Array.isArray(STATE.massLinkerGroupHubs) ? STATE.massLinkerGroupHubs.slice() : []);
+  STATE.massLinkerGroupsAvailable = massLinkerGroupsAvailable;
+  STATE.massLinkerGroupHubs = massLinkerGroupHubs;
   STATE.layerColors = nextLayerColors;
   STATE.linkColors = nextLinkColors;
   STATE.layerStyles = Object.assign({}, metaLayerStyles, normalizeLayerMap(STATE.layerStyles || {}, "edge"));
