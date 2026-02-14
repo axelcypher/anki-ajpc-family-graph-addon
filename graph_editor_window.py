@@ -25,7 +25,7 @@ class GraphNoteEditor(QMainWindow):
         )
         note = self.mw.col.get_note(nid)
         self.editor.set_note(note, focusTo=0)
-        restoreGeom(self, "ajpc_family_graph_editor", default_size=(800, 700))
+        restoreGeom(self, "ajpc_tools_graph_editor", default_size=(800, 700))
         close_button = self.form.buttonBox.button(QDialogButtonBox.StandardButton.Close)
         if close_button is not None:
             close_button.setShortcut(QKeySequence("Ctrl+Return"))
@@ -56,4 +56,4 @@ class GraphNoteEditor(QMainWindow):
             self.editor.cleanup()
         except Exception:
             pass
-        saveGeom(self, "ajpc_family_graph_editor")
+        saveGeom(self, "ajpc_tools_graph_editor")

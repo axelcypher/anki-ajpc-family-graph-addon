@@ -26,7 +26,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
             )
         except Exception:
             pass
-        self.setWindowTitle("Anki - AJpC Family Graph")
+        self.setWindowTitle("Anki - AJpC Tools Graph")
         try:
             setWindowIcon(self)
         except Exception:
@@ -39,7 +39,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
 
         self._init_embedded_editor_panel()
 
-        self.web = AnkiWebView(self, title="ajpc_family_graph")
+        self.web = AnkiWebView(self, title="ajpc_tools_graph")
         try:
             from PyQt6.QtWebEngineCore import QWebEngineSettings
 
@@ -65,7 +65,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         self._pending_changed_nids: set[int] = set()
         self._note_add_hooks: list[tuple[Any, Any]] = []
 
-        restoreGeom(self, "ajpc_family_graph", default_size=(1100, 720))
+        restoreGeom(self, "ajpc_tools_graph", default_size=(1100, 720))
         if self.width() < 300 or self.height() < 200:
             self.resize(1100, 720)
 
@@ -80,7 +80,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         self._bind_note_add_hooks()
 
     def closeEvent(self, event) -> None:
-        saveGeom(self, "ajpc_family_graph")
+        saveGeom(self, "ajpc_tools_graph")
         try:
             self._sync_web_editor_panel_visibility(False)
         except Exception:
@@ -144,7 +144,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
                     pass
                 return
             devtools = QWebEngineView()
-            devtools.setWindowTitle("AJpC Family Graph DevTools")
+            devtools.setWindowTitle("AJpC Tools Graph DevTools")
             try:
                 setWindowIcon(devtools)
             except Exception:
@@ -189,7 +189,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
             self._schedule_refresh("notes added")
 
 
-def show_family_graph() -> None:
-    from .graph_launcher import show_family_graph as _show_family_graph
+def show_tools_graph() -> None:
+    from .graph_launcher import show_tools_graph as _show_tools_graph
 
-    _show_family_graph()
+    _show_tools_graph()

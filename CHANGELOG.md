@@ -1,0 +1,14 @@
+# Changelog
+
+## 1.0.0-beta.1 - 2026-02-14
+
+### Major Updates
+- None.
+
+### Minor Updates
+- Added Browser context menu action to open and focus the selected note in AJpC Graph.
+- Renamed the Browser context action to English: `Show in AJpC Graph`.
+- Switched provider-driven links to AJpC Tools API payload (`get_link_provider_edges`) and render them on dynamic per-provider layers (`provider_<id>`), instead of hardcoded Mass-Linker config parsing in graph addon.
+
+### Fixes
+- Improved reliability of note focus handoff when the graph window opens from a context action.

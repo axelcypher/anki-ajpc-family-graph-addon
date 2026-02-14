@@ -1,6 +1,6 @@
-# AJpC Family Graph
+# AJpC Tools Graph
 
-AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your **Family Gate**, **Example Gate**, **Kanji Gate**, and **Linked Notes (Note Linker)** configuration and renders them as an interactive graph.
+AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your **Family Gate**, **Example Gate**, **Kanji Gate**, and **Linked Notes (Note Linker)** configuration and renders them as an interactive graph.
 
 > **Required:** This add-on only works together with **AJpC Tools**. It pulls data through the Tools add-on API and will not work on its own.
 
@@ -13,6 +13,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - **Example Gate** connects vocab notes to example notes.
 - **Kanji Gate** connects vocab notes to Kanji notes (and optionally parts if enabled).
 - **Linked Notes** shows manual and auto-links (Anki Note Linker style tags/fields).
+- **Link Core providers** are fetched from AJpC Tools as resolved link edges and rendered on **dynamic per-provider layers** (except Family, which keeps its dedicated graph-family pipeline).
 
 ## Open the graph
 - `AJpC -> Show Graph`
@@ -37,6 +38,7 @@ AJpC Family Graph is a visual companion for the AJpC Tools add-on. It reads your
 - Per layer:
   - Line Strength (visual link width)
   - Weight Factor (multiplier applied to layout link distance)
+- Provider-backed link layers are created dynamically (e.g. `provider_mass_linker`) and appear automatically in Link Settings.
 - Chain family levels (hub -> prio chain)
 - Per layer: color, line style, flow on/off
 - Same-priority links toggle + opacity
@@ -77,7 +79,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - Filter by Family ID
   - Connect to selected (Family): adds the selected family to the right-clicked note. If the selected item is a **Family Hub**, the new entry is added with prio 0. If the selected item is a **note**, the new entry is added with prio = (selected note prio + 1).
   - Append link to selected: appends a link into the right-clicked note, pointing to the currently selected note (only if that note type has a Linked Notes field configured)
-- **Browser context menu**: right-click a note row in Anki Browser and use **Im AJpC Graph suchen** to open the graph and focus that note.
+- **Browser context menu**: right-click a note row in Anki Browser and use **Show in AJpC Graph** to open the graph and focus that note.
 - Active selection gets a pulsing ring in node color.
 - Context selection (right-click target) gets a red pulsing ring.
 - Editor button in the active panel toggles the embedded native editor (no extra popup required).

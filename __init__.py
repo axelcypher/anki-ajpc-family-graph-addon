@@ -4,7 +4,7 @@ from aqt import gui_hooks, mw
 from aqt.qt import QAction
 
 from . import logger
-from .graph_launcher import show_family_graph, show_family_graph_for_note
+from .graph_launcher import show_tools_graph, show_tools_graph_for_note
 from .version import __version__  # noqa: F401
 
 
@@ -21,29 +21,29 @@ def _register_exports() -> None:
 def _register_menu() -> None:
     if mw is None:
         return
-    if getattr(mw, "_ajpc_family_graph_registered", False):
+    if getattr(mw, "_ajpc_tools_graph_registered", False):
         return
     api = getattr(mw, "_ajpc_menu_api", None)
     if isinstance(api, dict) and callable(api.get("register")):
         api["register"](
             kind="top",
             label="Show Graph",
-            callback=show_family_graph,
+            callback=show_tools_graph,
             order=30,
         )
-        fallback = getattr(mw, "_ajpc_family_graph_fallback_action", None)
+        fallback = getattr(mw, "_ajpc_tools_graph_fallback_action", None)
         if fallback is not None:
             try:
                 mw.form.menuTools.removeAction(fallback)
             except Exception:
                 pass
-            mw._ajpc_family_graph_fallback_action = None
-        mw._ajpc_family_graph_registered = True
+            mw._ajpc_tools_graph_fallback_action = None
+        mw._ajpc_tools_graph_registered = True
         return
     action = QAction("Show Graph", mw)
-    action.triggered.connect(show_family_graph)
+    action.triggered.connect(show_tools_graph)
     mw.form.menuTools.addAction(action)
-    mw._ajpc_family_graph_fallback_action = action
+    mw._ajpc_tools_graph_fallback_action = action
 
 _register_menu()
 _register_exports()
@@ -78,7 +78,7 @@ def _open_selected_note_in_graph(browser) -> None:
         logger.dbg("browser graph search skipped: no selected note")
         return
     try:
-        show_family_graph_for_note(nid)
+        show_tools_graph_for_note(nid)
         logger.dbg("browser graph search", nid)
     except Exception:
         logger.dbg("browser graph search failed", nid)
@@ -86,7 +86,7 @@ def _open_selected_note_in_graph(browser) -> None:
 
 def _browser_context_menu(browser, menu, *_args) -> None:
     try:
-        action = QAction("Im AJpC Graph suchen", menu)
+        action = QAction("Show in AJpC Graph", menu)
         action.triggered.connect(lambda: _open_selected_note_in_graph(browser))
         menu.addAction(action)
     except Exception:
@@ -96,11 +96,11 @@ def _browser_context_menu(browser, menu, *_args) -> None:
 def _register_browser_context_menu() -> None:
     if mw is None:
         return
-    if getattr(mw, "_ajpc_family_graph_browser_ctx_registered", False):
+    if getattr(mw, "_ajpc_tools_graph_browser_ctx_registered", False):
         return
     try:
         gui_hooks.browser_will_show_context_menu.append(_browser_context_menu)
-        mw._ajpc_family_graph_browser_ctx_registered = True
+        mw._ajpc_tools_graph_browser_ctx_registered = True
         logger.dbg("browser context menu hook registered")
     except Exception:
         logger.dbg("browser context menu hook registration failed")
@@ -114,7 +114,7 @@ gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_browser_contex
 def _register_sidebar_item() -> None:
     if mw is None:
         return
-    if getattr(mw, "_ajpc_family_graph_sidebar_registered", False):
+    if getattr(mw, "_ajpc_tools_graph_sidebar_registered", False):
         return
     try:
         from aqt.browser.sidebar.item import SidebarItem, SidebarItemType
@@ -129,7 +129,7 @@ def _register_sidebar_item() -> None:
         except Exception:
             item = None
         if item and item.item_type == SidebarItemType.CUSTOM and item.name == "Graph":
-            show_family_graph()
+            show_tools_graph()
             return
         return _orig_on_search(self, index)
 
@@ -137,11 +137,11 @@ def _register_sidebar_item() -> None:
         _orig_on_search = SidebarTreeView._on_search  # type: ignore[attr-defined]
     except Exception:
         return
-    if getattr(SidebarTreeView, "_ajpc_family_graph_patched", False):
+    if getattr(SidebarTreeView, "_ajpc_tools_graph_patched", False):
         pass
     else:
         SidebarTreeView._on_search = _on_search  # type: ignore[assignment]
-        SidebarTreeView._ajpc_family_graph_patched = True  # type: ignore[attr-defined]
+        SidebarTreeView._ajpc_tools_graph_patched = True  # type: ignore[attr-defined]
 
     def _add_item(handled, root, stage, _browser):
         if stage != SidebarStage.ROOT:
@@ -157,12 +157,12 @@ def _register_sidebar_item() -> None:
             icon="",
             item_type=SidebarItemType.CUSTOM,
         )
-        item.tooltip = "Open AJpC Family Graph"
+        item.tooltip = "Open AJpC Tools Graph"
         root.add_child(item)
         return handled
 
     gui_hooks.browser_will_build_tree.append(_add_item)
-    mw._ajpc_family_graph_sidebar_registered = True
+    mw._ajpc_tools_graph_sidebar_registered = True
 
 _register_sidebar_item()
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_sidebar_item())
@@ -186,7 +186,7 @@ def _load_graph_icon_svg() -> str:
 def _register_onigiri_sidebar_action() -> None:
     if mw is None:
         return
-    if getattr(mw, "_ajpc_family_graph_onigiri_registered", False):
+    if getattr(mw, "_ajpc_tools_graph_onigiri_registered", False):
         return
     try:
         import Onigiri
@@ -195,21 +195,21 @@ def _register_onigiri_sidebar_action() -> None:
     icon_svg = _load_graph_icon_svg()
     try:
         Onigiri.register_sidebar_action(
-            entry_id="ajpc_family_graph.open_panel",
+            entry_id="ajpc_tools_graph.open_panel",
             label="Graph",
-            command="ajpc_family_graph_open",
+            command="ajpc_tools_graph_open",
             icon_svg=icon_svg,
         )
     except Exception:
         return
-    mw._ajpc_family_graph_onigiri_registered = True
+    mw._ajpc_tools_graph_onigiri_registered = True
 
 def _on_webview_cmd(handled, message, context):
-    if message == "ajpc_family_graph_open":
-        show_family_graph()
+    if message == "ajpc_tools_graph_open":
+        show_tools_graph()
         return (True, None)
     if isinstance(message, str) and message.startswith("embed_editor:"):
-        win = getattr(mw, "_ajpc_family_graph_win", None) if mw is not None else None
+        win = getattr(mw, "_ajpc_tools_graph_win", None) if mw is not None else None
         if win is not None and hasattr(win, "_on_bridge_cmd"):
             try:
                 win._on_bridge_cmd(message)

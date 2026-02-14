@@ -10,10 +10,10 @@ def _show_or_create_window():
         return None
     from .graph_view import FamilyGraphWindow
 
-    win = getattr(mw, "_ajpc_family_graph_win", None)
+    win = getattr(mw, "_ajpc_tools_graph_win", None)
     if win is None or not isinstance(win, FamilyGraphWindow):
         win = FamilyGraphWindow()
-        mw._ajpc_family_graph_win = win
+        mw._ajpc_tools_graph_win = win
     else:
         win.show()
         win.raise_()
@@ -21,11 +21,11 @@ def _show_or_create_window():
     return win
 
 
-def show_family_graph() -> None:
+def show_tools_graph() -> None:
     _show_or_create_window()
 
 
-def show_family_graph_for_note(nid: int) -> None:
+def show_tools_graph_for_note(nid: int) -> None:
     win = _show_or_create_window()
     if win is None:
         return

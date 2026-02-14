@@ -40,10 +40,10 @@ def _open_preview(nid: int) -> None:
         card_id = None
     if not card_id:
         return
-    previewers = getattr(mw, "_ajpc_family_graph_previewers", None)
+    previewers = getattr(mw, "_ajpc_tools_graph_previewers", None)
     if not isinstance(previewers, dict):
         previewers = {}
-        mw._ajpc_family_graph_previewers = previewers
+        mw._ajpc_tools_graph_previewers = previewers
     if card_id in previewers:
         win = previewers[card_id]
         try:
@@ -80,10 +80,10 @@ def _open_preview_card(card_id: int) -> None:
         card = None
     if card is None:
         return
-    previewers = getattr(mw, "_ajpc_family_graph_previewers", None)
+    previewers = getattr(mw, "_ajpc_tools_graph_previewers", None)
     if not isinstance(previewers, dict):
         previewers = {}
-        mw._ajpc_family_graph_previewers = previewers
+        mw._ajpc_tools_graph_previewers = previewers
     if card_id in previewers:
         win = previewers[card_id]
         try:

@@ -12,6 +12,7 @@ from aqt import mw
 from anki.collection import Collection
 
 from . import logger
+from .graph_api_adapter import _get_provider_link_edges_via_main_api
 from .graph_config import load_graph_config
 
 _HTML_RE = re.compile(r"<.*?>", re.DOTALL)
@@ -21,12 +22,41 @@ _LINK_TAG_RE = re.compile(r"\[([^\]|]+)\|\s*([^\]]+?)\s*\]")
 _CLOZE_RE = re.compile(r"\{\{c\d+::(.*?)(?:::(.*?))?\}\}", re.DOTALL)
 _FORCE_NID_TAG_RE = re.compile(r"^force_nid:(\d+)$", re.IGNORECASE)
 _FORCE_NID_VAL_RE = re.compile(r"(\d+)")
+_PROVIDER_LAYER_SAFE_RE = re.compile(r"[^a-z0-9_]+")
 
 MAX_COMPONENT_DEPTH = 5
 MAX_DIRECT_FAMILY_MEMBERS = 80
 
 _FUGASHI_TAGGER = None
 _FUGASHI_READY = False
+
+
+def _provider_layer_id(provider_id: str) -> str:
+    raw = str(provider_id or "").strip().lower()
+    safe = _PROVIDER_LAYER_SAFE_RE.sub("_", raw).strip("_")
+    if not safe:
+        safe = "unknown"
+    return f"provider_{safe}"
+
+
+def _provider_layer_color(provider_id: str) -> str:
+    palette = (
+        "#f97316",
+        "#22c55e",
+        "#38bdf8",
+        "#eab308",
+        "#a78bfa",
+        "#fb7185",
+        "#10b981",
+        "#06b6d4",
+        "#84cc16",
+        "#f43f5e",
+    )
+    seed = 0
+    txt = str(provider_id or "")
+    for idx, ch in enumerate(txt):
+        seed += (idx + 1) * ord(ch)
+    return palette[seed % len(palette)]
 
 
 def _tools_vendor_path() -> str | None:
@@ -609,6 +639,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
     family_hub_edges_chain: list[dict[str, Any]] = []
     hub_members: dict[str, dict[str, Any]] = {}
     autolink_tags: dict[str, set[int]] = {}
+    provider_layer_map: dict[str, str] = {}
+    provider_layer_ids: set[str] = set()
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -1165,109 +1197,83 @@ def build_graph(col: Collection) -> dict[str, Any]:
                             )
                             add_edge(str(nid), str(k_nid), "kanji", kind="vocab", value=ch)
 
-    # Mass Linker
-    linker_rules: dict[str, dict[str, Any]] = {}
-    mass_block = cfg.get("mass_linker", {}) if isinstance(cfg, dict) else {}
-    if isinstance(mass_block, dict) and mass_block.get("enabled"):
-        rules = mass_block.get("rules") or {}
-        if isinstance(rules, dict):
-            for nt_id, rule in rules.items():
-                if not isinstance(rule, dict):
-                    continue
-                mid = _resolve_note_type_id(col, nt_id)
-                if not mid:
-                    continue
-                linker_rules[str(mid)] = rule
-    if linker_rules:
-        logger.dbg("linker rules", len(linker_rules))
-        tmpl_name_cache: dict[str, set[str]] = {}
-        for nt_id, rule in linker_rules.items():
-            tag = str(rule.get("tag") or "").strip()
-            if not tag:
-                continue
-            templates_raw = [str(x).strip() for x in (rule.get("templates") or []) if str(x).strip()]
-            template_names = {t for t in templates_raw if not t.isdigit()}
-            template_ords = {int(t) for t in templates_raw if t.isdigit()}
-            label_field = str(rule.get("label_field") or "").strip()
+    # Provider links via AJpC Tools Graph API.
+    provider_note_ids = sorted(int(n) for n in allowed_nids) if allowed_nids else []
+    provider_payload = _get_provider_link_edges_via_main_api(
+        provider_note_ids,
+        include_family=False,
+    )
+    provider_edges = provider_payload.get("edges") if isinstance(provider_payload, dict) else []
+    if isinstance(provider_edges, list) and provider_edges:
+        logger.dbg("provider links", "edges=", len(provider_edges))
+        note_cache: dict[int, Any] = {}
 
-            target_nids = _note_ids_for_query(col, f"tag:{tag}")
-            if allowed_nids is not None:
-                target_nids = [nid for nid in target_nids if nid in allowed_nids]
-            if not target_nids:
-                continue
-            autolink_tags.setdefault(tag, set()).update(target_nids)
-            target_labels: dict[int, str] = {}
-            for tnid in target_nids:
-                try:
-                    tnote = col.get_note(tnid)
-                except Exception:
-                    continue
-                if label_field and label_field in tnote:
-                    target_labels[tnid] = str(tnote[label_field] or "").strip() or _note_label(tnote)
-                else:
-                    target_labels[tnid] = _note_label(tnote, label_fields.get(str(tnote.mid)))
-                ensure_node(
-                    str(tnid),
-                    label=target_labels[tnid],
-                    kind="note",
-                    note_type_id=str(tnote.mid),
-                    note_type=_note_type_name(col, int(tnote.mid)),
-                    extra=_note_extra(tnote),
-                )
+        def _cached_note(nid: int):
+            if nid in note_cache:
+                return note_cache[nid]
+            try:
+                note_cache[nid] = col.get_note(int(nid))
+            except Exception:
+                note_cache[nid] = None
+            return note_cache[nid]
 
-            for snid in _filter_nids(_note_ids_for_mid(col, str(nt_id))):
-                try:
-                    snote = col.get_note(snid)
-                except Exception:
-                    continue
-                if templates_raw:
-                    matched = False
-                    if template_ords:
-                        try:
-                            for card in snote.cards():
-                                try:
-                                    if int(card.ord) in template_ords:
-                                        matched = True
-                                        break
-                                except Exception:
-                                    continue
-                        except Exception:
-                            pass
-                    if not matched and template_names:
-                        try:
-                            mid_key = str(snote.mid)
-                            tmpl_names = tmpl_name_cache.get(mid_key)
-                            if tmpl_names is None:
-                                model = col.models.get(snote.mid)
-                                tmpl_names = {
-                                    str(t.get("name", ""))
-                                    for t in (model.get("tmpls") or [])
-                                    if t.get("name")
-                                } if model else set()
-                                tmpl_name_cache[mid_key] = tmpl_names
-                            if tmpl_names & template_names:
-                                matched = True
-                        except Exception:
-                            pass
-                    if not matched:
-                        continue
-                ensure_node(
-                    str(snid),
-                    label=_note_label(snote, label_fields.get(str(snote.mid))),
-                    kind="note",
-                    note_type_id=str(snote.mid),
-                    note_type=_note_type_name(col, int(snote.mid)),
-                    extra=_note_extra(snote),
-                )
-                for tnid in target_nids:
-                    add_edge(
-                        str(snid),
-                        str(tnid),
-                        "mass_links",
-                        tag=tag,
-                        label=target_labels.get(tnid, ""),
-                        manual=False,
-                    )
+        for row in provider_edges:
+            if not isinstance(row, dict):
+                continue
+            try:
+                source_nid = int(row.get("source_nid") or 0)
+                target_nid = int(row.get("target_nid") or 0)
+            except Exception:
+                continue
+            if source_nid <= 0 or target_nid <= 0:
+                continue
+            if allowed_nids is not None and (
+                source_nid not in allowed_nids or target_nid not in allowed_nids
+            ):
+                continue
+
+            provider_id = str(row.get("provider_id") or "").strip()
+            if not provider_id:
+                continue
+            layer = _provider_layer_id(provider_id)
+            provider_layer_map[layer] = provider_id
+            provider_layer_ids.add(layer)
+
+            source_note = _cached_note(source_nid)
+            target_note = _cached_note(target_nid)
+            if source_note is None or target_note is None:
+                continue
+
+            ensure_node(
+                str(source_nid),
+                label=_note_label(source_note, label_fields.get(str(source_note.mid))),
+                kind="note",
+                note_type_id=str(source_note.mid),
+                note_type=_note_type_name(col, int(source_note.mid)),
+                extra=_note_extra(source_note),
+            )
+            ensure_node(
+                str(target_nid),
+                label=_note_label(target_note, label_fields.get(str(target_note.mid))),
+                kind="note",
+                note_type_id=str(target_note.mid),
+                note_type=_note_type_name(col, int(target_note.mid)),
+                extra=_note_extra(target_note),
+            )
+            add_layer(str(source_nid), layer)
+            add_layer(str(target_nid), layer)
+            add_edge(
+                str(source_nid),
+                str(target_nid),
+                layer,
+                provider_id=provider_id,
+                provider_category=str(row.get("provider_category") or ""),
+                label=str(row.get("label") or ""),
+                group=str(row.get("group") or ""),
+                target_kind=str(row.get("target_kind") or "nid"),
+                target_id=int(row.get("target_id") or 0),
+                manual=False,
+            )
 
     # Manual linked notes (reference)
     if isinstance(linked_fields, dict) and linked_fields:
@@ -1411,11 +1417,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
             ref_nts = {str(k) for k in linked_fields.keys() if str(k).strip()}
             if ref_nts:
                 _add_unlinked_notes(ref_nts, "note_links")
-
-        if linker_rules:
-            mass_nts = {str(k) for k in linker_rules.keys() if str(k).strip()}
-            if mass_nts:
-                _add_unlinked_notes(mass_nts, "mass_links")
 
     # Collapse duplicate reference edges (manual/auto) into a single visible edge.
     # If both directions exist, keep one visible edge and add a flow-only reverse
@@ -1569,13 +1570,30 @@ def build_graph(col: Collection) -> dict[str, Any]:
             edges = new_edges
 
     if edges:
-        node_layers_from_edges = {"families", "examples", "mass_links", "kanji"}
+        node_layers_from_edges = {"families", "examples", "mass_links", "kanji"} | set(
+            provider_layer_ids
+        )
         for e in edges:
             layer = str(e.get("layer") or "")
             if not layer or layer not in node_layers_from_edges:
                 continue
             add_layer(str(e.get("source")), layer)
             add_layer(str(e.get("target")), layer)
+
+    if provider_layer_ids:
+        for layer in sorted(provider_layer_ids):
+            provider_id = provider_layer_map.get(layer, layer)
+            color = _provider_layer_color(provider_id)
+            if not layer_colors.get(layer):
+                layer_colors[layer] = color
+            if not link_colors.get(layer):
+                link_colors[layer] = str(layer_colors.get(layer) or color)
+            if not layer_styles.get(layer):
+                layer_styles[layer] = "dashed"
+            if layer not in layer_flow:
+                layer_flow[layer] = True
+            if layer not in link_strengths:
+                link_strengths[layer] = 1.0
 
     if edges and not show_unlinked:
         linked_ids = {str(e.get("source")) for e in edges} | {str(e.get("target")) for e in edges}
@@ -1696,12 +1714,16 @@ def build_graph(col: Collection) -> dict[str, Any]:
             deck_names = []
 
     logger.dbg("build_graph done", "nodes=", len(nodes), "edges=", len(edges))
+    base_layers = ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"]
+    dynamic_provider_layers = sorted(provider_layer_ids)
+    all_layers = base_layers + [x for x in dynamic_provider_layers if x not in base_layers]
     return {
         "nodes": list(nodes.values()),
         "edges": edges,
         "meta": {
-            "layers": ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"],
+            "layers": all_layers,
             "note_types": note_type_meta,
+            "provider_layers": dict(provider_layer_map),
             "layer_colors": layer_colors,
             "link_colors": link_colors,
             "layer_enabled": layer_enabled,

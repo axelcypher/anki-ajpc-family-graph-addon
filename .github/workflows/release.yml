@@ -1,4 +1,4 @@
-name: AJpC Family Graph Release (Anki Add-on)
+name: AJpC Tools Graph Release (Anki Add-on)
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
         if: steps.tagcheck.outputs.exists != 'true'
         env:
           ADDON_PACKAGE: ajpc_family-graph
-          ADDON_NAME: AJpC Family Graph - Visualize Card Familys
+          ADDON_NAME: AJpC Tools Graph - Visualize Card Familys
           VERSION: ${{ steps.ver.outputs.version }}
           TAG: ${{ steps.ver.outputs.tag }}
         run: |

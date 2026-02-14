@@ -82,7 +82,7 @@ def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
     if mw is None:
         return
     try:
-        win = getattr(mw, "_ajpc_family_graph_win", None)
+        win = getattr(mw, "_ajpc_tools_graph_win", None)
         show_embedded = getattr(win, "_show_embedded_editor_for_note", None)
         if callable(show_embedded) and show_embedded(int(nid)):
             logger.dbg("ctx editor via embedded panel", nid)
@@ -95,10 +95,10 @@ def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
         logger.dbg("ctx editor api unavailable, fallback local", nid)
     if not prefer_api and _open_editor_via_main_api(nid):
         return
-    editors = getattr(mw, "_ajpc_family_graph_editors", None)
+    editors = getattr(mw, "_ajpc_tools_graph_editors", None)
     if not isinstance(editors, dict):
         editors = {}
-        mw._ajpc_family_graph_editors = editors
+        mw._ajpc_tools_graph_editors = editors
     if nid in editors:
         win = editors[nid]
         try:

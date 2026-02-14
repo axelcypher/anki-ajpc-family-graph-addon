@@ -14,7 +14,7 @@
     "1769741511321": true,
     "1769454350497": true,
     "1769220678917": false,
-    "1769367768468": true,
+    "1769367768468": false,
     "1751376700451": false,
     "1768669162567": true,
     "1768654427037": true
@@ -47,7 +47,7 @@
     "family_hub": "dotted",
     "family": "solid",
     "reference": "dashed",
-    "kanji": "dotted",
+    "kanji": "solid",
     "mass_linker": "dashed",
     "priority": "solid",
     "families": "dotted",
@@ -207,7 +207,7 @@
     "d3_link_distance": 0.0,
     "d3_link_strength": 1.0,
     "d3_link_iterations": 5.0,
-    "d3_warmup_ticks": 0.0,
+    "d3_warmup_ticks": 100.0,
     "d3_cooldown_ticks": 0.0,
     "d3_cooldown_time_ms": 30000.0
   },
@@ -237,13 +237,14 @@
     "note_links": "#f59e0b",
     "examples": "#60a5fa",
     "mass_links": "#f97316",
-    "kanji": "#f87171",
+    "kanji": "rgba(248,113,113,0.200)",
     "notes": "#6e54ff"
   },
   "link_weights": {
     "families": 1.0,
-    "priority": 0.5,
-    "note_links": 2.0
+    "priority": 4.2,
+    "note_links": 2.0,
+    "kanji": 10.0
   },
   "link_weight_modes": {
     "priority": "metric"

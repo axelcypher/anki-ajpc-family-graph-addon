@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 ADDON_DIR = os.path.dirname(__file__)
-LOG_PATH = os.path.join(ADDON_DIR, "ajpc-family-graph.log")
+LOG_PATH = os.path.join(ADDON_DIR, "ajpc-tools-graph.log")
 
 _ENABLED = False
 

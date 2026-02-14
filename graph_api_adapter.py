@@ -44,6 +44,25 @@ def _call_dependency_tree_api_fn(fn: Any, nid: int) -> dict[str, Any]:
     return {}
 
 
+def _call_provider_edges_api_fn(fn: Any, note_ids: list[int], include_family: bool) -> dict[str, Any]:
+    attempts = [
+        ((), {"note_ids": note_ids, "include_family": include_family}),
+        ((), {"nids": note_ids, "include_family": include_family}),
+        ((note_ids,), {"include_family": include_family}),
+        ((note_ids,), {}),
+    ]
+    for args, kwargs in attempts:
+        try:
+            out = fn(*args, **kwargs)
+        except TypeError:
+            continue
+        except Exception:
+            continue
+        if isinstance(out, dict):
+            return out
+    return {}
+
+
 def _get_dependency_tree_via_main_api(nid: int) -> dict[str, Any]:
     if mw is None:
         return {}
@@ -61,6 +80,31 @@ def _get_dependency_tree_via_main_api(nid: int) -> dict[str, Any]:
         out = _call_dependency_tree_api_fn(fn, nid)
         if out:
             logger.dbg("deptree via api", key, nid)
+            return out
+    return {}
+
+
+def _get_provider_link_edges_via_main_api(
+    note_ids: list[int],
+    *,
+    include_family: bool = False,
+) -> dict[str, Any]:
+    if mw is None:
+        return {}
+    api = getattr(mw, "_ajpc_graph_api", None)
+    if not isinstance(api, dict):
+        return {}
+    keys = (
+        "get_link_provider_edges",
+        "get_provider_link_edges",
+    )
+    for key in keys:
+        fn = api.get(key)
+        if not callable(fn):
+            continue
+        out = _call_provider_edges_api_fn(fn, note_ids, include_family)
+        if out:
+            logger.dbg("provider edges via api", key, "nids=", len(note_ids))
             return out
     return {}
 
