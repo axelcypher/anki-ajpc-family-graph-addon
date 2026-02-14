@@ -59,13 +59,27 @@ def _provider_layer_color(provider_id: str) -> str:
     return palette[seed % len(palette)]
 
 
+def _resolve_tools_config_getter():
+    if mw is not None:
+        api = getattr(mw, "_ajpc_graph_api", None)
+        if isinstance(api, dict):
+            getter = api.get("get_config")
+            if callable(getter):
+                return getter
+
+    for mod_name, mod in list(sys.modules.items()):
+        if not mod:
+            continue
+        if "graph_api" not in str(mod_name or ""):
+            continue
+        getter = getattr(mod, "get_graph_config", None)
+        if callable(getter):
+            return getter
+    return None
+
+
 def _tools_vendor_path() -> str | None:
-    if mw is None:
-        return None
-    api = getattr(mw, "_ajpc_graph_api", None)
-    if not isinstance(api, dict):
-        return None
-    getter = api.get("get_config")
+    getter = _resolve_tools_config_getter()
     if not callable(getter):
         return None
     mod_name = str(getattr(getter, "__module__", "") or "").strip()
@@ -83,16 +97,16 @@ def _tools_vendor_path() -> str | None:
 
 
 def _get_tools_config() -> dict[str, Any] | None:
-    if mw is None:
-        return None
-    api = getattr(mw, "_ajpc_graph_api", None)
-    if not isinstance(api, dict):
-        return None
-    getter = api.get("get_config")
+    getter = _resolve_tools_config_getter()
     if not callable(getter):
         return None
     try:
         cfg = getter(reload=True)
+    except TypeError:
+        try:
+            cfg = getter()
+        except Exception:
+            cfg = None
     except Exception:
         try:
             cfg = getter()
