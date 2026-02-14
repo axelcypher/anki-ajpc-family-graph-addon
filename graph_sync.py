@@ -141,6 +141,13 @@ class GraphSyncMixin:
             self.web.eval(init_js)
             self._graph_ready = True
             self._flush_pending_focus_in_graph()
+            try:
+                meta = result.get("meta") if isinstance(result, dict) else {}
+                if isinstance(meta, dict) and str(meta.get("error") or "") == "missing_tools_config":
+                    logger.dbg("graph api missing on first load, scheduling retry refresh")
+                    self._schedule_refresh("await main graph api")
+            except Exception:
+                pass
 
         def on_failure(err: Exception) -> None:
             logger.dbg("graph build failed", repr(err))

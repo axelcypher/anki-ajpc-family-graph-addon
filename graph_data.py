@@ -87,10 +87,9 @@ def _resolve_tools_config_getter():
     for mod_name, mod in list(sys.modules.items()):
         if not mod:
             continue
-        if "graph_api" not in str(mod_name or ""):
-            continue
         getter = getattr(mod, "get_graph_config", None)
-        if callable(getter):
+        marker = getattr(mod, "get_link_provider_edges", None)
+        if callable(getter) and callable(marker):
             return getter
     return None
 
