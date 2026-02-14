@@ -7,6 +7,33 @@ from aqt import mw
 from . import logger
 
 
+def _ensure_graph_api_bound() -> None:
+    if mw is None:
+        return
+    api = getattr(mw, "_ajpc_graph_api", None)
+    if isinstance(api, dict) and callable(api.get("get_config")):
+        return
+    try:
+        import sys
+
+        for _mod_name, _mod in list(sys.modules.items()):
+            if not _mod:
+                continue
+            installer = getattr(_mod, "install_graph_api", None)
+            getter = getattr(_mod, "get_graph_config", None)
+            if not callable(installer) or not callable(getter):
+                continue
+            try:
+                installer()
+            except Exception:
+                continue
+            api = getattr(mw, "_ajpc_graph_api", None)
+            if isinstance(api, dict) and callable(api.get("get_config")):
+                return
+    except Exception:
+        return
+
+
 def _call_editor_api_fn(fn: Any, nid: int) -> bool:
     attempts = [
         ((), {"nid": nid}),
@@ -66,6 +93,7 @@ def _call_provider_edges_api_fn(fn: Any, note_ids: list[int], include_family: bo
 def _get_dependency_tree_via_main_api(nid: int) -> dict[str, Any]:
     if mw is None:
         return {}
+    _ensure_graph_api_bound()
     api = getattr(mw, "_ajpc_graph_api", None)
     if not isinstance(api, dict):
         return {}
@@ -91,6 +119,7 @@ def _get_provider_link_edges_via_main_api(
 ) -> dict[str, Any]:
     if mw is None:
         return {}
+    _ensure_graph_api_bound()
     api = getattr(mw, "_ajpc_graph_api", None)
     if not isinstance(api, dict):
         return {}
@@ -112,6 +141,7 @@ def _get_provider_link_edges_via_main_api(
 def _open_editor_via_main_api(nid: int) -> bool:
     if mw is None:
         return False
+    _ensure_graph_api_bound()
     api = getattr(mw, "_ajpc_graph_api", None)
     if not isinstance(api, dict):
         return False

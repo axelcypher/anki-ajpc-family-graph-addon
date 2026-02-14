@@ -66,6 +66,23 @@ def _resolve_tools_config_getter():
             getter = api.get("get_config")
             if callable(getter):
                 return getter
+        # Self-heal: if main API module is loaded but not bound on mw yet, try binding now.
+        for _mod_name, _mod in list(sys.modules.items()):
+            if not _mod:
+                continue
+            _install = getattr(_mod, "install_graph_api", None)
+            _get_cfg = getattr(_mod, "get_graph_config", None)
+            if not callable(_install) or not callable(_get_cfg):
+                continue
+            try:
+                _install()
+            except Exception:
+                continue
+            api = getattr(mw, "_ajpc_graph_api", None)
+            if isinstance(api, dict):
+                getter = api.get("get_config")
+                if callable(getter):
+                    return getter
 
     for mod_name, mod in list(sys.modules.items()):
         if not mod:
