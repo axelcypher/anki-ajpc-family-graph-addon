@@ -13,6 +13,51 @@ from .graph_web_assets import render_graph_html
 
 
 class GraphSyncMixin:
+    def _request_focus_note_in_graph(self, nid: int) -> None:
+        try:
+            target_nid = int(nid or 0)
+        except Exception:
+            target_nid = 0
+        if target_nid <= 0:
+            return
+        self._pending_focus_nid = target_nid
+        logger.dbg("graph focus requested", target_nid, "ready=", bool(getattr(self, "_graph_ready", False)))
+        self._flush_pending_focus_in_graph()
+
+    def _flush_pending_focus_in_graph(self) -> None:
+        if not getattr(self, "_graph_ready", False):
+            return
+        try:
+            target_nid = int(getattr(self, "_pending_focus_nid", 0) or 0)
+        except Exception:
+            target_nid = 0
+        if target_nid <= 0:
+            return
+        js = (
+            "(function(){"
+            "var nid=" + str(target_nid) + ";"
+            "var attempts=0;"
+            "var maxAttempts=80;"
+            "function tryFocus(){"
+            "attempts+=1;"
+            "var adapter=(window&&window.GraphAdapter)||null;"
+            "if(adapter&&typeof adapter.callEngine==='function'){"
+            "adapter.callEngine('focusNodeById', String(nid), true);"
+            "if(window.pycmd){window.pycmd('log:graph focus nid '+String(nid));}"
+            "return;"
+            "}"
+            "if(attempts<maxAttempts){setTimeout(tryFocus,50);}"
+            "}"
+            "tryFocus();"
+            "})();"
+        )
+        try:
+            self.web.eval(js)
+            self._pending_focus_nid = 0
+            logger.dbg("graph focus dispatched", target_nid)
+        except Exception:
+            logger.dbg("graph focus dispatch failed", target_nid)
+
     def _load(self) -> None:
         if mw is None or not getattr(mw, "col", None):
             showInfo("No collection loaded.")
@@ -42,6 +87,7 @@ class GraphSyncMixin:
             )
             self.web.eval(init_js)
             self._graph_ready = True
+            self._flush_pending_focus_in_graph()
 
         def on_failure(err: Exception) -> None:
             logger.dbg("graph build failed", repr(err))
@@ -89,6 +135,7 @@ class GraphSyncMixin:
                 "})();"
             )
             self.web.eval(update_js)
+            self._flush_pending_focus_in_graph()
 
         def on_failure(err: Exception) -> None:
             logger.dbg("graph refresh failed", repr(err))

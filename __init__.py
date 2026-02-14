@@ -3,7 +3,8 @@ from __future__ import annotations
 from aqt import gui_hooks, mw
 from aqt.qt import QAction
 
-from .graph_launcher import show_family_graph
+from . import logger
+from .graph_launcher import show_family_graph, show_family_graph_for_note
 from .version import __version__  # noqa: F401
 
 
@@ -48,6 +49,65 @@ _register_menu()
 _register_exports()
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_menu())
 gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_exports())
+
+
+# Browser Context Menu Link
+def _selected_nid_from_browser(browser) -> int:
+    try:
+        nids = browser.selected_notes() if browser is not None else []
+        if nids:
+            return int(nids[0])
+    except Exception:
+        pass
+    try:
+        card = getattr(browser, "card", None)
+        if card is not None and getattr(card, "nid", None):
+            return int(card.nid)
+        if card is not None and callable(getattr(card, "note", None)):
+            note = card.note()
+            if note is not None and getattr(note, "id", None):
+                return int(note.id)
+    except Exception:
+        pass
+    return 0
+
+
+def _open_selected_note_in_graph(browser) -> None:
+    nid = _selected_nid_from_browser(browser)
+    if nid <= 0:
+        logger.dbg("browser graph search skipped: no selected note")
+        return
+    try:
+        show_family_graph_for_note(nid)
+        logger.dbg("browser graph search", nid)
+    except Exception:
+        logger.dbg("browser graph search failed", nid)
+
+
+def _browser_context_menu(browser, menu, *_args) -> None:
+    try:
+        action = QAction("Im AJpC Graph suchen", menu)
+        action.triggered.connect(lambda: _open_selected_note_in_graph(browser))
+        menu.addAction(action)
+    except Exception:
+        logger.dbg("browser context menu inject failed")
+
+
+def _register_browser_context_menu() -> None:
+    if mw is None:
+        return
+    if getattr(mw, "_ajpc_family_graph_browser_ctx_registered", False):
+        return
+    try:
+        gui_hooks.browser_will_show_context_menu.append(_browser_context_menu)
+        mw._ajpc_family_graph_browser_ctx_registered = True
+        logger.dbg("browser context menu hook registered")
+    except Exception:
+        logger.dbg("browser context menu hook registration failed")
+
+
+_register_browser_context_menu()
+gui_hooks.profile_did_open.append(lambda *_args, **_kw: _register_browser_context_menu())
 
 
 # Browser Sidebar Link
