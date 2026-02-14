@@ -19,3 +19,5 @@
 - Synced layer visibility both ways between toolbar layer pills and Link Settings.
 - Updated Link Settings card collapse behavior: collapsed follows hidden-by-default, but can now be expanded independently by clicking the layer name/collapse indicator.
 - Delta updates no longer route through full frontend `applyGraphData()` rebuild; note edits/new notes now use a dedicated incremental engine delta path that patches graph nodes/edges in-place.
+- Fixed partial delta-node merge so unchanged node fields are preserved instead of being overwritten by sparse patch payloads.
+- Fixed full-build vs delta edge-key mismatch by using stable edge IDs in full graph builds, preventing mass edge churn/freeze behavior on first delta apply.

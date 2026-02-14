@@ -71,16 +71,33 @@ function applyDeltaPayload(delta) {
     if (!id) return;
     nodeById.set(id, normalizeNode(node));
   });
+  var patchNodesRaw = Array.isArray(patch.nodes) ? patch.nodes : [];
+  var patchNodeById = new Map();
+  patchNodesRaw.forEach(function (rawNode) {
+    if (!rawNode || typeof rawNode !== "object") return;
+    var id = String(rawNode.id || "");
+    if (!id) return;
+    patchNodeById.set(id, rawNode);
+  });
   if (changed.size) {
     changed.forEach(function (id) {
-      nodeById.delete(String(id));
+      var key = String(id || "");
+      if (!key) return;
+      if (!patchNodeById.has(key)) {
+        nodeById.delete(key);
+      }
     });
   }
-  var patchNodes = Array.isArray(patch.nodes) ? patch.nodes.map(normalizeNode) : [];
-  patchNodes.forEach(function (node) {
-    var id = String(node.id || "");
-    if (!id) return;
-    nodeById.set(id, node);
+  patchNodeById.forEach(function (rawNode, id) {
+    var prev = nodeById.get(id) || {};
+    var merged = Object.assign({}, prev, rawNode);
+    if (!Object.prototype.hasOwnProperty.call(rawNode, "layers") && Object.prototype.hasOwnProperty.call(prev, "layers")) {
+      merged.layers = Array.isArray(prev.layers) ? prev.layers.slice() : prev.layers;
+    }
+    if (!Object.prototype.hasOwnProperty.call(rawNode, "extra") && Object.prototype.hasOwnProperty.call(prev, "extra")) {
+      merged.extra = Array.isArray(prev.extra) ? prev.extra.slice() : prev.extra;
+    }
+    nodeById.set(id, normalizeNode(merged));
   });
   raw.nodes = Array.from(nodeById.values());
 
@@ -107,7 +124,7 @@ function applyDeltaPayload(delta) {
   refreshUiOnly();
   var deltaFn = resolveApplyGraphDelta();
   if (deltaFn) {
-    deltaFn({ changed_nids: changedList.slice() });
+    deltaFn(patch);
   } else {
     var applyFn = resolveApplyGraphData();
     if (!applyFn) {

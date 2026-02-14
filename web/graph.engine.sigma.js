@@ -457,6 +457,7 @@ function SigmaGraphCompat(container, config) {
   this.edgeIdByIndex = [];
   this.edgeIndexById = new Map();
   this.nodeLayoutAttrsById = new Map();
+  this.edgeDataByIndex = [];
   this.selectedIndices = [];
 
   this.dataDirty = true;
@@ -650,6 +651,11 @@ SigmaGraphCompat.prototype.setNodeLayoutAttributes = function (nodes) {
     out.set(String(node.id), buildNodeLayoutAttrs(node));
   }
   this.nodeLayoutAttrsById = out;
+  this.dataDirty = true;
+};
+
+SigmaGraphCompat.prototype.setEdgeDataList = function (edges) {
+  this.edgeDataByIndex = Array.isArray(edges) ? edges.slice() : [];
   this.dataDirty = true;
 };
 
@@ -2369,6 +2375,9 @@ function applyGraphData(fitView) {
   if (STATE.graph && typeof STATE.graph.setNodeLayoutAttributes === "function") {
     STATE.graph.setNodeLayoutAttributes(STATE.activeNodes);
   }
+  if (STATE.graph && typeof STATE.graph.setEdgeDataList === "function") {
+    STATE.graph.setEdgeDataList(STATE.activeEdges);
+  }
   if (!STATE.activeNodes.length) {
     clearNodeFxState();
     if (DOM.graphEmpty) {
@@ -2481,6 +2490,9 @@ function applyGraphDeltaData(deltaPatch) {
   }
 
   if (DOM.graphEmpty) DOM.graphEmpty.style.display = "none";
+  if (STATE.graph && typeof STATE.graph.setEdgeDataList === "function") {
+    STATE.graph.setEdgeDataList(STATE.activeEdges);
+  }
   if (STATE.graph && typeof STATE.graph.applyDeltaFromArrays === "function") {
     STATE.graph.applyDeltaFromArrays(STATE.activeNodes, STATE.activeEdges, arrays);
   } else {

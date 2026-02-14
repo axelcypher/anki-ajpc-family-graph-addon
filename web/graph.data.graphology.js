@@ -33,6 +33,34 @@ function adapterEdgeCurvByStyle(code, idx) {
   return isFinite(out) ? out : 0;
 }
 
+function stableMetaSerialize(value) {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) {
+    var arr = [];
+    for (var i = 0; i < value.length; i += 1) arr.push(stableMetaSerialize(value[i]));
+    return "[" + arr.join(",") + "]";
+  }
+  if (typeof value === "object") {
+    var keys = Object.keys(value).sort();
+    var parts = [];
+    for (var k = 0; k < keys.length; k += 1) {
+      var key = keys[k];
+      parts.push(JSON.stringify(key) + ":" + stableMetaSerialize(value[key]));
+    }
+    return "{" + parts.join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function stableEdgeIdFromRecord(edge) {
+  var e = edge && typeof edge === "object" ? edge : {};
+  var src = String(e.source !== undefined && e.source !== null ? e.source : "");
+  var dst = String(e.target !== undefined && e.target !== null ? e.target : "");
+  var layer = String(e.layer || "");
+  var metaSig = stableMetaSerialize(e.meta || {});
+  return "ed:" + src + "|" + dst + "|" + layer + "|" + metaSig;
+}
+
 function ajpcCreateSeedGraph() {
   var api = window && window.graphology ? window.graphology : null;
   if (!api) return null;
@@ -275,7 +303,8 @@ AjpcGraphDataGraphology.prototype.buildGraph = function () {
     var tid = owner.idByIndex[t];
     if (!sid || !tid) continue;
 
-    var edgeId = "e:" + e;
+    var edgeRecord = (owner.edgeDataByIndex && owner.edgeDataByIndex.length > e) ? owner.edgeDataByIndex[e] : null;
+    var edgeId = edgeRecord ? stableEdgeIdFromRecord(edgeRecord) : ("e:" + e);
     var width = Number(owner.linkWidths[e]);
     if (!fin(width) || width <= 0) width = DES;
 
