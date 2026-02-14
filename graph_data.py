@@ -59,6 +59,19 @@ def _provider_layer_color(provider_id: str) -> str:
     return palette[seed % len(palette)]
 
 
+def _provider_display_name(provider_id: str, provider_name: str = "") -> str:
+    name = str(provider_name or "").strip()
+    if name:
+        return name
+    raw = str(provider_id or "").strip()
+    if not raw:
+        return "Unknown"
+    parts = [p for p in re.split(r"[^A-Za-z0-9]+", raw) if p]
+    if not parts:
+        return raw
+    return " ".join(p[:1].upper() + p[1:] for p in parts)
+
+
 def _resolve_tools_config_getter():
     if mw is not None:
         api = getattr(mw, "_ajpc_graph_api", None)
@@ -588,6 +601,7 @@ def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, 
     touched_nids: set[int] = set(uniq_nids)
     node_layers: dict[int, set[str]] = {nid: {"notes"} for nid in uniq_nids}
     provider_layer_map: dict[str, str] = {}
+    provider_layer_labels: dict[str, str] = {}
 
     edges: list[dict[str, Any]] = []
     edge_seen: set[tuple[str, str, str, str, str]] = set()
@@ -650,8 +664,12 @@ def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, 
             provider_id = str(row.get("provider_id") or "").strip()
             if not provider_id:
                 continue
+            provider_name = _provider_display_name(
+                provider_id, str(row.get("provider_name") or "")
+            )
             layer = _provider_layer_id(provider_id)
             provider_layer_map[layer] = provider_id
+            provider_layer_labels[layer] = provider_name
             _add_edge(
                 source_nid,
                 target_nid,
@@ -758,6 +776,7 @@ def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, 
         "meta": {
             "layers": all_layers,
             "provider_layers": dict(provider_layer_map),
+            "provider_layer_labels": dict(provider_layer_labels),
             "layer_colors": layer_colors,
             "link_colors": link_colors,
             "layer_styles": layer_styles,
@@ -890,6 +909,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
     hub_members: dict[str, dict[str, Any]] = {}
     autolink_tags: dict[str, set[int]] = {}
     provider_layer_map: dict[str, str] = {}
+    provider_layer_labels: dict[str, str] = {}
     provider_layer_ids: set[str] = set()
 
     allowed_nids: set[int] | None = None
@@ -1485,8 +1505,12 @@ def build_graph(col: Collection) -> dict[str, Any]:
             provider_id = str(row.get("provider_id") or "").strip()
             if not provider_id:
                 continue
+            provider_name = _provider_display_name(
+                provider_id, str(row.get("provider_name") or "")
+            )
             layer = _provider_layer_id(provider_id)
             provider_layer_map[layer] = provider_id
+            provider_layer_labels[layer] = provider_name
             provider_layer_ids.add(layer)
 
             source_note = _cached_note(source_nid)
@@ -1974,6 +1998,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "layers": all_layers,
             "note_types": note_type_meta,
             "provider_layers": dict(provider_layer_map),
+            "provider_layer_labels": dict(provider_layer_labels),
             "layer_colors": layer_colors,
             "link_colors": link_colors,
             "layer_enabled": layer_enabled,

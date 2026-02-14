@@ -593,6 +593,7 @@ function ensureRuntimeState() {
   var data = STATE.raw;
   var meta = data.meta || {};
   var metaLayerEnabled = normalizeLayerMap(meta.layer_enabled || {}, "edge");
+  var metaProviderLayerLabels = normalizeLayerMap(meta.provider_layer_labels || {}, "edge");
   var metaLayerColors = normalizeLayerMap(meta.layer_colors || {}, "edge");
   var metaLinkColors = normalizeLayerMap(meta.link_colors || {}, "edge");
   var metaLayerStyles = normalizeLayerMap(meta.layer_styles || {}, "edge");
@@ -638,6 +639,7 @@ function ensureRuntimeState() {
   });
 
   STATE.layers = nextLayers;
+  STATE.providerLayerLabels = metaProviderLayerLabels;
   STATE.layerColors = nextLayerColors;
   STATE.linkColors = nextLinkColors;
   STATE.layerStyles = Object.assign({}, metaLayerStyles, normalizeLayerMap(STATE.layerStyles || {}, "edge"));

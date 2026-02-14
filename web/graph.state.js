@@ -4,6 +4,7 @@ var STATE = {
   graph: null,
   raw: { nodes: [], edges: [], meta: {} },
   layers: {},
+  providerLayerLabels: {},
   layerColors: {},
   linkColors: {},
   layerStyles: {},

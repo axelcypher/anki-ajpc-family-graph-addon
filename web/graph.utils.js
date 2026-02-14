@@ -92,9 +92,22 @@ function renderHtmlTemplate(template, data) {
 }
 
 function humanizeLayer(layer) {
-  var raw = String(layer || "").replace(/_/g, " ").trim();
-  if (!raw) return "unknown";
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
+  var key = String(layer || "").trim();
+  if (!key) return "Unknown";
+  if (
+    typeof STATE === "object"
+    && STATE
+    && STATE.providerLayerLabels
+    && Object.prototype.hasOwnProperty.call(STATE.providerLayerLabels, key)
+  ) {
+    var mapped = String(STATE.providerLayerLabels[key] || "").trim();
+    if (mapped) return mapped;
+  }
+  var raw = key.replace(/^provider_/i, "").replace(/_/g, " ").trim();
+  if (!raw) return "Unknown";
+  return raw.replace(/\w\S*/g, function (word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
 }
 
 function fallbackLayerColor(layer) {
