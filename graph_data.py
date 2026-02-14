@@ -65,6 +65,7 @@ def _resolve_tools_config_getter():
         if isinstance(api, dict):
             getter = api.get("get_config")
             if callable(getter):
+                logger.dbg("tools config getter: from mw._ajpc_graph_api")
                 return getter
         # Self-heal: if main API module is loaded but not bound on mw yet, try binding now.
         for _mod_name, _mod in list(sys.modules.items()):
@@ -82,6 +83,7 @@ def _resolve_tools_config_getter():
             if isinstance(api, dict):
                 getter = api.get("get_config")
                 if callable(getter):
+                    logger.dbg("tools config getter: recovered via install_graph_api()")
                     return getter
 
     for mod_name, mod in list(sys.modules.items()):
@@ -90,7 +92,9 @@ def _resolve_tools_config_getter():
         getter = getattr(mod, "get_graph_config", None)
         marker = getattr(mod, "get_link_provider_edges", None)
         if callable(getter) and callable(marker):
+            logger.dbg("tools config getter: from module", str(mod_name))
             return getter
+    logger.dbg("tools config getter: unavailable")
     return None
 
 
@@ -115,18 +119,24 @@ def _tools_vendor_path() -> str | None:
 def _get_tools_config() -> dict[str, Any] | None:
     getter = _resolve_tools_config_getter()
     if not callable(getter):
+        logger.dbg("tools config: getter not callable")
         return None
     try:
         cfg = getter(reload=True)
+        logger.dbg("tools config: getter(reload=True) ok", type(cfg).__name__)
     except TypeError:
         try:
             cfg = getter()
+            logger.dbg("tools config: getter() after TypeError ok", type(cfg).__name__)
         except Exception:
+            logger.dbg("tools config: getter() after TypeError failed")
             cfg = None
     except Exception:
         try:
             cfg = getter()
+            logger.dbg("tools config: getter() fallback ok", type(cfg).__name__)
         except Exception:
+            logger.dbg("tools config: getter() fallback failed")
             cfg = None
     if isinstance(cfg, dict):
         logger.set_enabled(bool(cfg.get("debug_enabled", True)))
