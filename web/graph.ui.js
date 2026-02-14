@@ -739,6 +739,7 @@ function renderLayerControls() {
         var key = String(input.getAttribute("data-layer") || "");
         STATE.layers[key] = !!input.checked;
         renderLayerControls();
+        renderLinkSettings();
         applyUiSettingsNoRebuild(true);
         persistHook("lenabled:" + key + ":" + (input.checked ? "1" : "0"));
       });
@@ -950,6 +951,20 @@ function renderLinkSettings() {
   var layers = orderedLayerKeys(Object.keys(STATE.layers)).filter(function (layer) {
     return String(layer || "") !== "notes";
   });
+  if (!STATE.linkLayerExpanded || typeof STATE.linkLayerExpanded !== "object") {
+    STATE.linkLayerExpanded = {};
+  }
+  var availableMassLinkerGroups = Array.isArray(STATE.massLinkerGroupsAvailable)
+    ? STATE.massLinkerGroupsAvailable.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : [];
+  var selectedMassLinkerGroups = Array.isArray(STATE.massLinkerGroupHubs)
+    ? STATE.massLinkerGroupHubs.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
+    : [];
+  var selectedMassLinkerSet = {};
+  selectedMassLinkerGroups.forEach(function (group) {
+    selectedMassLinkerSet[String(group).toLowerCase()] = true;
+  });
+
   layers.forEach(function (layer) {
     var rawColor = String((STATE.linkColors && STATE.linkColors[layer]) || fallbackLayerColor(layer) || "");
     var parsedColor = parseColor(rawColor, 0.58);
@@ -957,21 +972,51 @@ function renderLinkSettings() {
     var alpha = clamp(Number(parsedColor[3]), 0, 1);
     if (!isFiniteNumber(alpha)) alpha = 0.58;
     var visible = !!STATE.layers[layer];
+    var expanded = Object.prototype.hasOwnProperty.call(STATE.linkLayerExpanded, layer)
+      ? !!STATE.linkLayerExpanded[layer]
+      : visible;
     var style = String(STATE.layerStyles[layer] || "solid");
     var weightValue = Number(STATE.linkWeights && STATE.linkWeights[layer]);
     if (!isFiniteNumber(weightValue)) weightValue = 1;
     var lineStrengthValue = Number(STATE.linkStrengths && STATE.linkStrengths[layer]);
     if (!isFiniteNumber(lineStrengthValue) || lineStrengthValue < 0) lineStrengthValue = 1;
+    var extraSettingsHtml = "";
+    if (String(layer) === "provider_mass_linker" && availableMassLinkerGroups.length) {
+      var groupRows = availableMassLinkerGroups.map(function (groupName) {
+        var key = String(groupName || "").trim();
+        if (!key) return "";
+        return renderHtmlTemplate(
+          `<label class="line-item ln-ml-group-row">
+            <input type="checkbox" class="ml-group-hub" data-group="{{group}}"{{{checkedAttr}}}>
+            <span>{{group}}</span>
+          </label>`,
+          {
+            group: key,
+            checkedAttr: selectedMassLinkerSet[key.toLowerCase()] ? " checked" : ""
+          }
+        );
+      }).join("");
+      extraSettingsHtml = renderHtmlTemplate(
+        `<div class="link-fields-bottom ln-ml-group-hubs">
+          <label>Group Hubs</label>
+          <div class="stack ln-ml-group-list">{{{rows}}}</div>
+        </div>`,
+        { rows: groupRows }
+      );
+    }
 
     var row = document.createElement("div");
-    row.className = "link-type-card" + (visible ? "" : " is-collapsed");
+    row.className = "link-type-card" + (expanded ? "" : " is-collapsed");
     row.innerHTML = renderHtmlTemplate(
       `<div class="link-type-head">
-        <div class="link-type-name">{{label}}</div>
-        <label class="line-item"{{{visibleHintAttr}}}>
-          <input type="checkbox" class="ln-visible" data-layer="{{layer}}"{{{visibleAttr}}}{{{visibleHintAttr}}}>
-          <span{{{visibleHintAttr}}}>Visible</span>
-        </label>
+        <div class="link-type-name" data-layer-toggle="{{layer}}">{{label}}</div>
+        <div class="link-type-head-right">
+          <span class="ln-collapse-indicator" data-layer-toggle="{{layer}}" aria-expanded="{{expandedAria}}"{{{collapseHintAttr}}}></span>
+          <label class="line-item"{{{visibleHintAttr}}}>
+            <input type="checkbox" class="ln-visible" data-layer="{{layer}}"{{{visibleAttr}}}{{{visibleHintAttr}}}>
+            <span{{{visibleHintAttr}}}>Visible</span>
+          </label>
+        </div>
       </div>
       <div class="link-type-body"><div class="link-type-body-inner"><div class="field-grid link-field-grid">
         <div class="link-fields-left">
@@ -983,11 +1028,14 @@ function renderLinkSettings() {
           <label{{{lineStrengthHintAttr}}}>Line Strength<input type="number" step="0.05" min="0" max="10" class="ln-line-strength" data-layer="{{layer}}" value="{{lineStrength}}"{{{lineStrengthHintAttr}}}></label>
         </div>
         <div class="link-fields-bottom"><label{{{weightHintAttr}}}>Weight Factor<input type="number" step="0.05" min="0" max="10" class="ln-weight" data-layer="{{layer}}" value="{{weight}}"{{{weightHintAttr}}}></label></div>
+        {{{extraSettingsHtml}}}
       </div>
       </div></div>`,
       {
         label: humanizeLayer(layer),
         layer: layer,
+        expandedAria: expanded ? "true" : "false",
+        collapseHintAttr: titleAttr("Expand/collapse layer settings"),
         visibleAttr: visible ? " checked" : "",
         visibleHintAttr: titleAttr(linkSettingHint("visible")),
         colorHintAttr: titleAttr(linkSettingHint("color")),
@@ -1003,7 +1051,8 @@ function renderLinkSettings() {
           mkOption("dashed", "Dashed", style === "dashed"),
           mkOption("dotted", "Dotted", style === "dotted")
         ].join(""),
-        weight: weightValue.toFixed(2)
+        weight: weightValue.toFixed(2),
+        extraSettingsHtml: extraSettingsHtml
       }
     );
     DOM.linkLayerList.appendChild(row);
@@ -1071,41 +1120,6 @@ function renderLinkSettings() {
     }
   );
   DOM.linkSettings.appendChild(notesSwatchRow);
-
-  var availableMassLinkerGroups = Array.isArray(STATE.massLinkerGroupsAvailable)
-    ? STATE.massLinkerGroupsAvailable.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
-    : [];
-  var selectedMassLinkerGroups = Array.isArray(STATE.massLinkerGroupHubs)
-    ? STATE.massLinkerGroupHubs.map(function (x) { return String(x || "").trim(); }).filter(Boolean)
-    : [];
-  if (availableMassLinkerGroups.length) {
-    var selectedSet = {};
-    selectedMassLinkerGroups.forEach(function (g) { selectedSet[String(g).toLowerCase()] = true; });
-    var groupRows = availableMassLinkerGroups.map(function (groupName) {
-      var key = String(groupName || "").trim();
-      var keyLow = key.toLowerCase();
-      var checked = !!selectedSet[keyLow];
-      return renderHtmlTemplate(
-        `<label class="line-item">
-          <input type="checkbox" class="ml-group-hub" data-group="{{group}}"{{{checkedAttr}}}>
-          <span>{{group}}</span>
-        </label>`,
-        {
-          group: key,
-          checkedAttr: checked ? " checked" : ""
-        }
-      );
-    }).join("");
-
-    var massLinkerGroupHubRow = document.createElement("div");
-    massLinkerGroupHubRow.className = "control-row";
-    massLinkerGroupHubRow.innerHTML = renderHtmlTemplate(
-      `<div>Mass Linker Group Hubs</div>
-      <div class="stack">{{{rows}}}</div>`,
-      { rows: groupRows }
-    );
-    DOM.linkSettings.appendChild(massLinkerGroupHubRow);
-  }
 
   var metricRow = document.createElement("div");
   metricRow.className = "control-row";
@@ -1176,11 +1190,27 @@ function renderLinkSettings() {
       var layer = String(el.getAttribute("data-layer") || "");
       var checked = !!el.checked;
       STATE.layers[layer] = checked;
-      var card = el.closest ? el.closest(".link-type-card") : null;
-      if (card) card.classList.toggle("is-collapsed", !checked);
       renderLayerControls();
       applyUiSettingsNoRebuild(true);
       persistHook("lenabled:" + layer + ":" + (checked ? "1" : "0"));
+    });
+  });
+
+  DOM.linkLayerList.querySelectorAll("[data-layer-toggle]").forEach(function (el) {
+    el.addEventListener("click", function (evt) {
+      if (!evt) return;
+      var target = evt.target && evt.target.closest ? evt.target.closest("input, label.line-item") : null;
+      if (target) return;
+      var layer = String(el.getAttribute("data-layer-toggle") || "");
+      if (!layer) return;
+      var card = el.closest ? el.closest(".link-type-card") : null;
+      if (!card) return;
+      var currentlyCollapsed = card.classList.contains("is-collapsed");
+      var nextExpanded = currentlyCollapsed;
+      STATE.linkLayerExpanded[layer] = !!nextExpanded;
+      card.classList.toggle("is-collapsed", !nextExpanded);
+      var indicator = card.querySelector(".ln-collapse-indicator");
+      if (indicator) indicator.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
     });
   });
 
@@ -1290,10 +1320,10 @@ function renderLinkSettings() {
     });
   }
 
-  DOM.linkSettings.querySelectorAll(".ml-group-hub").forEach(function (el) {
+  DOM.linkLayerList.querySelectorAll(".ml-group-hub").forEach(function (el) {
     el.addEventListener("change", function () {
       var selected = [];
-      DOM.linkSettings.querySelectorAll(".ml-group-hub").forEach(function (cb) {
+      DOM.linkLayerList.querySelectorAll(".ml-group-hub").forEach(function (cb) {
         if (!cb.checked) return;
         var group = String(cb.getAttribute("data-group") || "").trim();
         if (!group) return;

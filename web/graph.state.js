@@ -15,6 +15,7 @@ var STATE = {
   linkDistances: {},
   linkWeights: {},
   linkWeightModes: {},
+  linkLayerExpanded: {},
   neighborScaling: { mode: "none", directed: "undirected", weights: {} },
   layerFlowSpeed: 0.35,
   layerFlowSpacingMul: 18,

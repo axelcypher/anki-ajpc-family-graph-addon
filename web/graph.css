@@ -873,6 +873,30 @@ input[type=checkbox]:checked::before {
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .link-type-name {
   font-size: 13px;
   font-weight: 700;
+  cursor: pointer;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .link-type-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .ln-collapse-indicator {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 14px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .ln-collapse-indicator::before {
+  content: "";
+  width: 0.8em;
+  height: 0.5em;
+  background: var(--accent-100);
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transform: rotate(90deg);
+  transform-origin: 50% 50%;
+  transition: transform 0.16s ease;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-body {
   display: grid;
@@ -891,6 +915,9 @@ input[type=checkbox]:checked::before {
   grid-template-rows: 0fr;
   opacity: 0;
   pointer-events: none;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card:not(.is-collapsed) .link-type-head .ln-collapse-indicator::before {
+  transform: rotate(0deg);
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid {
   display: flex;
@@ -924,6 +951,20 @@ input[type=checkbox]:checked::before {
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-bottom {
   flex: 0 0 100%;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs {
+  display: grid;
+  gap: 6px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list {
+  display: grid;
+  gap: 4px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list .ln-ml-group-row {
+  border: 1px solid var(--border-100);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  padding: 5px 6px;
 }
 #settings-panel .settings-scroll .settings-block #engine-list .control-row,
 #settings-panel .settings-scroll .settings-block #solver-list .control-row,

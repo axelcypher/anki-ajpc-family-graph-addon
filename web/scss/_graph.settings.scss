@@ -238,6 +238,33 @@
             .link-type-name {
               font-size: 13px;
               font-weight: 700;
+              cursor: pointer;
+            }
+
+            .link-type-head-right {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            }
+
+            .ln-collapse-indicator {
+              width: 14px;
+              height: 14px;
+              cursor: pointer;
+              display: inline-grid;
+              place-items: center;
+              flex: 0 0 14px;
+
+              &::before {
+                content: "";
+                width: 0.8em;
+                height: 0.5em;
+                background: var(--accent-100);
+                clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+                transform: rotate(90deg);
+                transform-origin: 50% 50%;
+                transition: transform .16s ease;
+              }
             }
           }
 
@@ -262,6 +289,14 @@
               grid-template-rows: 0fr;
               opacity: 0;
               pointer-events: none;
+            }
+          }
+
+          &:not(.is-collapsed) {
+            .link-type-head {
+              .ln-collapse-indicator::before {
+                transform: rotate(0deg);
+              }
             }
           }
 
@@ -303,6 +338,22 @@
 
             .link-fields-bottom {
               flex: 0 0 100%;
+            }
+
+            .ln-ml-group-hubs {
+              display: grid;
+              gap: 6px;
+
+              .ln-ml-group-list {
+                display: grid;
+                gap: 4px;
+
+                .ln-ml-group-row {
+                  @include mixins.row-chip(
+                    $background: var(--bg-panel),
+                  );
+                }
+              }
             }
           }
         }
