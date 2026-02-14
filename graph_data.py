@@ -121,22 +121,19 @@ def _get_tools_config() -> dict[str, Any] | None:
     if not callable(getter):
         logger.dbg("tools config: getter not callable")
         return None
-    try:
-        cfg = getter(reload=True)
-        logger.dbg("tools config: getter(reload=True) ok", type(cfg).__name__)
-    except TypeError:
+    attempts = (
+        ("getter(reload=False)", lambda: getter(reload=False)),
+        ("getter(reload=True)", lambda: getter(reload=True)),
+        ("getter()", lambda: getter()),
+    )
+    cfg = None
+    for label, invoke in attempts:
         try:
-            cfg = getter()
-            logger.dbg("tools config: getter() after TypeError ok", type(cfg).__name__)
-        except Exception:
-            logger.dbg("tools config: getter() after TypeError failed")
-            cfg = None
-    except Exception:
-        try:
-            cfg = getter()
-            logger.dbg("tools config: getter() fallback ok", type(cfg).__name__)
-        except Exception:
-            logger.dbg("tools config: getter() fallback failed")
+            cfg = invoke()
+            logger.dbg("tools config:", label, "ok", type(cfg).__name__)
+            break
+        except Exception as exc:
+            logger.dbg("tools config:", label, "failed", repr(exc))
             cfg = None
     if isinstance(cfg, dict):
         logger.set_enabled(bool(cfg.get("debug_enabled", True)))
