@@ -405,13 +405,13 @@ function normalizeLayerKey(layer, context) {
   if (!key) return "";
   key = key.replace(/[\s-]+/g, "_");
   if (key === "familyhub") key = "family_hub";
-  if (key === "masslinker") key = "mass_linker";
+  if (key === "masslinker") key = "provider_mass_linker";
   if (key === "notelinks" || key === "note_link") key = "note_links";
   if (key === "familygate") key = "family";
   if (key === "family_hub") return "families";
   if (key === "reference") return "note_links";
   if (key === "example") return "examples";
-  if (key === "mass_linker") return "mass_links";
+  if (key === "mass_linker") return "provider_mass_linker";
   if (key === "family") {
     if (context === "node") return "notes";
     return "priority";
@@ -743,7 +743,7 @@ function normalizeNeighborScaling(input) {
 }
 
 function isNodeOnlyLayer(layer) {
-  return layer === "notes" || layer === "examples" || layer === "mass_links" || layer === "kanji";
+  return layer === "notes" || layer === "examples" || layer === "kanji";
 }
 
 function nodeHasNodeOnlyLayer(node) {

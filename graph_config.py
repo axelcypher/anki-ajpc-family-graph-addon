@@ -21,7 +21,6 @@ DEFAULT_CFG: dict[str, Any] = {
         "families": "#34d399",
         "note_links": "#f59e0b",
         "examples": "#60a5fa",
-        "mass_links": "#f97316",
         "kanji": "#f87171",
     },
     "link_colors": {
@@ -30,7 +29,6 @@ DEFAULT_CFG: dict[str, Any] = {
         "families": "#34d399",
         "note_links": "#f59e0b",
         "examples": "#60a5fa",
-        "mass_links": "#f97316",
         "kanji": "#f87171",
     },
     "family_same_prio_edges": False,
@@ -39,14 +37,12 @@ DEFAULT_CFG: dict[str, Any] = {
         "priority": "solid",
         "families": "dotted",
         "note_links": "dashed",
-        "mass_links": "dashed",
         "kanji": "solid",
     },
     "layer_flow": {
         "priority": True,
         "families": False,
         "note_links": True,
-        "mass_links": True,
         "kanji": True,
         "examples": True,
     },
@@ -54,7 +50,6 @@ DEFAULT_CFG: dict[str, Any] = {
         "priority": 1.0,
         "families": 1.0,
         "note_links": 1.0,
-        "mass_links": 1.0,
         "examples": 1.0,
         "kanji": 1.0,
         "kanji_component": 1.0,
@@ -110,7 +105,6 @@ DEFAULT_CFG: dict[str, Any] = {
             "priority": 1.4,
             "families": 0.7,
             "note_links": 0.9,
-            "mass_links": 0.4,
             "examples": 1.0,
             "kanji": 0.2,
             "kanji_component": 0.0,
@@ -168,7 +162,7 @@ _LAYER_MIGRATE = {
     "family_hub": "families",
     "reference": "note_links",
     "example": "examples",
-    "mass_linker": "mass_links",
+    "mass_linker": "provider_mass_linker",
 }
 
 
@@ -235,7 +229,7 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
             cfg[key] = DEFAULT_CFG.get(key, {}).copy()
     cfg["layer_colors"] = _migrate_layer_map(cfg.get("layer_colors", {}), copy_family_to_notes=True)
     cfg["link_colors"] = _migrate_layer_map(cfg.get("link_colors", {}))
-    for layer in ("notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"):
+    for layer in ("notes", "priority", "families", "note_links", "examples", "kanji"):
         if layer in cfg["link_colors"]:
             continue
         from_layer = cfg["layer_colors"].get(layer)
@@ -252,6 +246,17 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
     cfg["link_weights"] = _migrate_layer_map(cfg.get("link_weights", {}))
     cfg["link_weight_modes"] = _migrate_layer_map(cfg.get("link_weight_modes", {}))
     cfg["link_distances"] = _migrate_layer_map(cfg.get("link_distances", {}))
+    # Remove legacy static Mass Linker layer keys; provider layers are dynamic now.
+    for legacy_key in ("mass_links",):
+        cfg["layer_enabled"].pop(legacy_key, None)
+        cfg["layer_colors"].pop(legacy_key, None)
+        cfg["link_colors"].pop(legacy_key, None)
+        cfg["layer_styles"].pop(legacy_key, None)
+        cfg["layer_flow"].pop(legacy_key, None)
+        cfg["link_strengths"].pop(legacy_key, None)
+        cfg["link_weights"].pop(legacy_key, None)
+        cfg["link_weight_modes"].pop(legacy_key, None)
+        cfg["link_distances"].pop(legacy_key, None)
     cfg["solver"] = _merge_section_defaults(cfg.get("solver"), DEFAULT_CFG.get("solver", {}))
     cfg["engine"] = _merge_section_defaults(cfg.get("engine"), DEFAULT_CFG.get("engine", {}))
     cfg["renderer"] = _merge_section_defaults(cfg.get("renderer"), DEFAULT_CFG.get("renderer", {}))
@@ -278,6 +283,7 @@ def _normalize(cfg: dict[str, Any]) -> dict[str, Any]:
             weights[key] = float(val)
         else:
             weights[key] = float(default)
+    weights.pop("mass_links", None)
     cfg["neighbor_scaling"] = {"mode": mode, "directed": directed, "weights": weights}
     if not isinstance(cfg.get("family_same_prio_edges"), bool):
         cfg["family_same_prio_edges"] = False

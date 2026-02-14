@@ -595,7 +595,7 @@ function buildNodeLayoutAttrs(node) {
     grp_layers_count: layers.length,
     grp_has_priority: bool01(nodeHasLayer(n, "priority")),
     grp_has_note_links: bool01(nodeHasLayer(n, "note_links")),
-    grp_has_mass_links: bool01(nodeHasLayer(n, "mass_links")),
+    grp_has_mass_links: bool01(nodeHasLayer(n, "provider_mass_linker")),
     grp_has_families: bool01(nodeHasLayer(n, "families")),
     grp_has_examples: bool01(nodeHasLayer(n, "examples")),
     grp_has_kanji: bool01(nodeHasLayer(n, "kanji")),

@@ -763,7 +763,7 @@ def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, 
             if layer not in link_strengths:
                 link_strengths[layer] = 1.0
 
-    base_layers = ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"]
+    base_layers = ["notes", "priority", "families", "note_links", "examples", "kanji"]
     all_layers = list(base_layers)
     for layer in sorted(provider_layer_map.keys()):
         if layer not in all_layers:
@@ -1844,7 +1844,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             edges = new_edges
 
     if edges:
-        node_layers_from_edges = {"families", "examples", "mass_links", "kanji"} | set(
+        node_layers_from_edges = {"families", "examples", "kanji"} | set(
             provider_layer_ids
         )
         for e in edges:
@@ -1988,7 +1988,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
             deck_names = []
 
     logger.dbg("build_graph done", "nodes=", len(nodes), "edges=", len(edges))
-    base_layers = ["notes", "priority", "families", "note_links", "examples", "mass_links", "kanji"]
+    base_layers = ["notes", "priority", "families", "note_links", "examples", "kanji"]
     dynamic_provider_layers = sorted(provider_layer_ids)
     all_layers = base_layers + [x for x in dynamic_provider_layers if x not in base_layers]
     return {

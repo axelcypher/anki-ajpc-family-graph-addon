@@ -13,3 +13,4 @@
 
 ### Fixes
 - Improved reliability of note focus handoff when the graph window opens from a context action.
+- Removed legacy static `mass_links` layer handling in graph addon config/runtime; provider links now resolve only via API-driven dynamic provider layers.

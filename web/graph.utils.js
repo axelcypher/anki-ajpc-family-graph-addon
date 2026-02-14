@@ -6,7 +6,6 @@ var LAYER_ORDER = Object.freeze([
   "families",
   "note_links",
   "examples",
-  "mass_links",
   "kanji"
 ]);
 
@@ -116,13 +115,11 @@ function fallbackLayerColor(layer) {
   if (key === "priority") return "#6ee7b7";
   if (key === "families") return "#34d399";
   if (key === "note_links") return "#f59e0b";
-  if (key === "mass_links") return "#f97316";
   if (key === "examples") return "#60a5fa";
   if (key === "kanji") return "#f87171";
   if (key === "family") return "#6ee7b7";
   if (key === "family_hub") return "#34d399";
   if (key === "reference") return "#f59e0b";
-  if (key === "mass_linker") return "#f97316";
   if (key === "example") return "#60a5fa";
   return "#94a3b8";
 }
