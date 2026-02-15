@@ -26,7 +26,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
-- **Live note changes**: note edits are pushed as incremental graph deltas (no full graph rebuild for plain note text edits).
+- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases.
 
 ### Settings panel
 **Note Settings**
@@ -92,7 +92,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - All actions are visual only, except the context actions that explicitly write to your notes.
 
 ## Frontend architecture (dev)
-- Runtime entry points: `window.ajpcGraphInit(data)` and `window.ajpcGraphUpdate(data)`.
+- Runtime entry points:
+  - `window.ajpcGraphInit(data)`
+  - `window.ajpcGraphUpdate(data)`
+  - `window.ajpcGraphDelta(slice)`
 - Frontend runtime is split into prefixed modules under `web/graph.*.js`:
   - `graph.state.js`, `graph.bridge.js`, `graph.adapter.js`, `graph.utils.js`, `graph.payload.js`
   - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
@@ -102,6 +105,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
 - Engine runtime implementation is in `web/graph.engine.sigma.js`.
+- Delta runtime is split into:
+  - Python slice builder `build_note_delta_slice(...)` (`graph_data.py`)
+  - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.payload.js`)
+  - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.sigma.js`)
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.

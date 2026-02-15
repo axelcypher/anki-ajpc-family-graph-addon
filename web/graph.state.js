@@ -36,6 +36,8 @@ var STATE = {
   layerStats: {},
   positionCache: new Map(),
   isFirstRender: true,
+  lastAppliedDeltaRev: 0,
+  deltaRecoveryInProgress: false,
   selectedNodeId: null,
   selectedPointIndex: null,
   contextNodeId: null,

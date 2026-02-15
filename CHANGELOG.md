@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased - 2026-02-15
+
+### Major Updates
+- None.
+
+### Minor Updates
+- Added a new end-to-end delta pipeline for note changes:
+  - Python subgraph slice builder: `build_note_delta_slice(...)` (`graph_data.py`)
+  - Python rev/order dispatch queue: `_enqueue_note_delta` / `_dispatch_note_delta` (`graph_sync.py`)
+  - JS unified mod pipeline for full+delta slices (`web/graph.payload.js`)
+  - JS diff/state patch ops (`node_add/node_update/node_drop`, `edge_upsert/edge_drop`)
+  - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/graph.engine.sigma.js`)
+- Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
+
+### Fixes
+- Fixed right-click/context stability after note edits by remapping runtime index/state on delta apply instead of forcing full engine rebuild.
+- Fixed immediate styling of newly upserted links by running full edge-mod pipeline before diff and applying Graphology patch + runtime style pass in the same delta tick.
+- Fixed bidirectional note-link duplication in delta slices by coalescing opposite note-link directions into one visual edge (+ reverse flow-only edge metadata path).
+- Fixed flow animation startup for active selection after delta by reapplying visual/runtime flow masks immediately after patch.
+
 ## 1.0.0-beta.1 - 2026-02-14
 
 ### Major Updates

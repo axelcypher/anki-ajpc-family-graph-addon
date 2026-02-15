@@ -680,8 +680,7 @@ class GraphBridgeHandlersMixin:
                         if _append_family_to_note(target_nid, fid, prio, family_field, sep, default_prio):
                             changed = True
                     if changed:
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx connect")
+                        self._enqueue_note_delta([target_nid], "ctx connect")
                         logger.dbg("ctx connect", target_nid, fids)
                     else:
                         logger.dbg("ctx connect no-op", target_nid, fids)
@@ -741,8 +740,7 @@ class GraphBridgeHandlersMixin:
                         if _remove_family_from_note(target_nid, fid, family_field, sep, default_prio):
                             changed = True
                     if changed:
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx disconnect")
+                        self._enqueue_note_delta([target_nid], "ctx disconnect")
                         logger.dbg("ctx disconnect", target_nid, fids)
                     else:
                         logger.dbg("ctx disconnect no-op", target_nid, fids)
@@ -764,8 +762,7 @@ class GraphBridgeHandlersMixin:
                         logger.dbg("ctx link bad ids", payload)
                         return None
                     if _append_link_to_note(target_nid, source_nid, label):
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx link")
+                        self._enqueue_note_delta([target_nid], "ctx link")
                         logger.dbg("ctx link", target_nid, source_nid)
                     else:
                         logger.dbg("ctx link no-op", target_nid, source_nid)
@@ -787,8 +784,7 @@ class GraphBridgeHandlersMixin:
                         logger.dbg("ctx link_active bad ids", payload)
                         return None
                     if _append_link_to_note(target_nid, source_nid, label):
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx link active")
+                        self._enqueue_note_delta([target_nid], "ctx link active")
                         logger.dbg("ctx link active", target_nid, source_nid)
                     else:
                         logger.dbg("ctx link active no-op", target_nid, source_nid)
@@ -812,13 +808,11 @@ class GraphBridgeHandlersMixin:
                         return None
                     changed = False
                     if _append_link_to_note(target_nid, source_nid, source_label):
-                        self._pending_changed_nids.add(target_nid)
                         changed = True
                     if _append_link_to_note(source_nid, target_nid, target_label):
-                        self._pending_changed_nids.add(source_nid)
                         changed = True
                     if changed:
-                        self._schedule_refresh("ctx link both")
+                        self._enqueue_note_delta([source_nid, target_nid], "ctx link both")
                         logger.dbg("ctx link both", source_nid, target_nid)
                     else:
                         logger.dbg("ctx link both no-op", source_nid, target_nid)
@@ -839,8 +833,7 @@ class GraphBridgeHandlersMixin:
                         logger.dbg("ctx unlink bad ids", payload)
                         return None
                     if _remove_link_from_note(target_nid, source_nid):
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx unlink")
+                        self._enqueue_note_delta([target_nid], "ctx unlink")
                         logger.dbg("ctx unlink", target_nid, source_nid)
                     else:
                         logger.dbg("ctx unlink no-op", target_nid, source_nid)
@@ -861,8 +854,7 @@ class GraphBridgeHandlersMixin:
                         logger.dbg("ctx unlink active bad ids", payload)
                         return None
                     if _remove_link_from_note(target_nid, source_nid):
-                        self._pending_changed_nids.add(target_nid)
-                        self._schedule_refresh("ctx unlink active")
+                        self._enqueue_note_delta([target_nid], "ctx unlink active")
                         logger.dbg("ctx unlink active", target_nid, source_nid)
                     else:
                         logger.dbg("ctx unlink active no-op", target_nid, source_nid)
@@ -884,13 +876,11 @@ class GraphBridgeHandlersMixin:
                         return None
                     changed = False
                     if _remove_link_from_note(target_nid, source_nid):
-                        self._pending_changed_nids.add(target_nid)
                         changed = True
                     if _remove_link_from_note(source_nid, target_nid):
-                        self._pending_changed_nids.add(source_nid)
                         changed = True
                     if changed:
-                        self._schedule_refresh("ctx unlink both")
+                        self._enqueue_note_delta([source_nid, target_nid], "ctx unlink both")
                         logger.dbg("ctx unlink both", source_nid, target_nid)
                     else:
                         logger.dbg("ctx unlink both no-op", source_nid, target_nid)

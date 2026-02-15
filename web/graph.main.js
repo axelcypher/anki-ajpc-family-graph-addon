@@ -2,34 +2,107 @@
 
 log("graph.main.js modular");
 
-function resolveApplyGraphData() {
-  if (window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function") {
-    if (typeof window.GraphAdapter.hasEnginePort === "function" && !window.GraphAdapter.hasEnginePort("applyGraphData")) {
-      return null;
-    }
-    return function (fitView) {
-      return window.GraphAdapter.callEngine("applyGraphData", fitView);
-    };
-  }
-  return null;
+function adapterCallEngine(name) {
+  if (!(window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function")) return undefined;
+  return window.GraphAdapter.callEngine.apply(window.GraphAdapter, arguments);
 }
 
-function resolveApplyGraphDelta() {
-  if (window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function") {
-    if (typeof window.GraphAdapter.hasEnginePort === "function" && !window.GraphAdapter.hasEnginePort("applyGraphDeltaData")) {
-      return null;
+function hasEnginePort(name) {
+  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+}
+
+function resolveApplyGraphData() {
+  if (!hasEnginePort("applyGraphData")) return null;
+  return function (fitView) {
+    return adapterCallEngine("applyGraphData", fitView);
+  };
+}
+
+function resolveApplyGraphDeltaOps() {
+  if (!hasEnginePort("applyGraphDeltaOps")) return null;
+  return function (ops, arrays, options) {
+    return adapterCallEngine("applyGraphDeltaOps", ops, arrays, options);
+  };
+}
+
+function resolveApplyVisualStyles() {
+  if (!hasEnginePort("applyVisualStyles")) return null;
+  return function (renderAlpha) {
+    return adapterCallEngine("applyVisualStyles", renderAlpha);
+  };
+}
+
+function opsCount(ops) {
+  var src = ops && typeof ops === "object" ? ops : {};
+  return {
+    node_add: Array.isArray(src.node_add) ? src.node_add.length : 0,
+    node_update: Array.isArray(src.node_update) ? src.node_update.length : 0,
+    node_drop: Array.isArray(src.node_drop) ? src.node_drop.length : 0,
+    edge_upsert: Array.isArray(src.edge_upsert) ? src.edge_upsert.length : 0,
+    edge_drop: Array.isArray(src.edge_drop) ? src.edge_drop.length : 0
+  };
+}
+
+function remapSelectionAndHover() {
+  var indexById = (STATE.activeIndexById && typeof STATE.activeIndexById.get === "function") ? STATE.activeIndexById : new Map();
+
+  if (STATE.selectedNodeId !== null && STATE.selectedNodeId !== undefined) {
+    var selectedIdx = indexById.get(String(STATE.selectedNodeId));
+    if (selectedIdx === undefined) {
+      STATE.selectedNodeId = null;
+      STATE.selectedPointIndex = null;
+    } else {
+      STATE.selectedPointIndex = Number(selectedIdx);
     }
-    return function (deltaPatch) {
-      return window.GraphAdapter.callEngine("applyGraphDeltaData", deltaPatch || {});
-    };
+  } else {
+    STATE.selectedPointIndex = null;
   }
-  return null;
+
+  if (STATE.contextNodeId !== null && STATE.contextNodeId !== undefined) {
+    var contextIdx = indexById.get(String(STATE.contextNodeId));
+    if (contextIdx === undefined) {
+      STATE.contextNodeId = null;
+      STATE.contextPointIndex = null;
+    } else {
+      STATE.contextPointIndex = Number(contextIdx);
+    }
+  } else {
+    STATE.contextPointIndex = null;
+  }
+
+  if (STATE.hoveredPointIndex !== null && STATE.hoveredPointIndex !== undefined) {
+    var hp = Number(STATE.hoveredPointIndex);
+    if (!isFinite(hp) || hp < 0 || hp >= STATE.activeNodes.length) STATE.hoveredPointIndex = null;
+  }
+  if (STATE.hoveredLinkIndex !== null && STATE.hoveredLinkIndex !== undefined) {
+    var he = Number(STATE.hoveredLinkIndex);
+    if (!isFinite(he) || he < 0 || he >= STATE.activeEdges.length) STATE.hoveredLinkIndex = null;
+  }
+}
+
+function requestDeltaRecovery(reason) {
+  var why = String(reason || "unknown");
+  log("delta recovery reason=" + why);
+  if (STATE.deltaRecoveryInProgress) return;
+  STATE.deltaRecoveryInProgress = true;
+  if (window.pycmd) {
+    window.pycmd("log:delta recovery " + why);
+    window.pycmd("refresh");
+  } else {
+    var applyFn = resolveApplyGraphData();
+    if (applyFn) applyFn(false);
+  }
 }
 
 function applyPayload(payload, fitView) {
   STATE.raw = preparePayload(payload);
+  if (!STATE.raw.meta || typeof STATE.raw.meta !== "object") STATE.raw.meta = {};
   if (STATE.depTreeCache && typeof STATE.depTreeCache.clear === "function") STATE.depTreeCache.clear();
   STATE.depTreePendingNid = null;
+  var fullRev = Number(STATE.raw.meta.delta_rev);
+  if (isFinite(fullRev) && fullRev > 0) STATE.lastAppliedDeltaRev = fullRev;
+  else STATE.lastAppliedDeltaRev = 0;
+  STATE.deltaRecoveryInProgress = false;
   ensureRuntimeState();
   refreshUiOnly();
   var applyFn = resolveApplyGraphData();
@@ -41,102 +114,80 @@ function applyPayload(payload, fitView) {
   log("engine render nodes=" + STATE.activeNodes.length + " edges=" + STATE.activeEdges.length);
 }
 
-function applyDeltaPayload(delta) {
-  if (typeof persistCurrentPositions === "function") {
-    persistCurrentPositions();
-  }
-  var patch = (delta && typeof delta === "object") ? delta : {};
-  var changedList = Array.isArray(patch.changed_nids) ? patch.changed_nids : [];
-  var changed = new Set();
-  changedList.forEach(function (nid) {
-    var key = String(nid || "").trim();
-    if (key) changed.add(key);
-  });
-
-  var raw = (STATE.raw && typeof STATE.raw === "object") ? STATE.raw : { nodes: [], edges: [], meta: {} };
-  if (!Array.isArray(raw.nodes)) raw.nodes = [];
-  if (!Array.isArray(raw.edges)) raw.edges = [];
-  if (!raw.meta || typeof raw.meta !== "object") raw.meta = {};
-
-  var nextEdges = raw.edges.filter(function (edge) {
-    if (!edge || typeof edge !== "object") return false;
-    if (!changed.size) return true;
-    var src = String(edge.source || "");
-    return !changed.has(src);
-  });
-  var patchEdges = Array.isArray(patch.edges) ? patch.edges.map(normalizeEdge) : [];
-  raw.edges = dedupeEdges(nextEdges.concat(patchEdges));
-
-  var nodeById = new Map();
-  raw.nodes.forEach(function (node) {
-    if (!node || typeof node !== "object") return;
-    var id = String(node.id || "");
-    if (!id) return;
-    nodeById.set(id, normalizeNode(node));
-  });
-  var patchNodesRaw = Array.isArray(patch.nodes) ? patch.nodes : [];
-  var patchNodeById = new Map();
-  patchNodesRaw.forEach(function (rawNode) {
-    if (!rawNode || typeof rawNode !== "object") return;
-    var id = String(rawNode.id || "");
-    if (!id) return;
-    patchNodeById.set(id, rawNode);
-  });
-  if (changed.size) {
-    changed.forEach(function (id) {
-      var key = String(id || "");
-      if (!key) return;
-      if (!patchNodeById.has(key)) {
-        nodeById.delete(key);
-      }
-    });
-  }
-  patchNodeById.forEach(function (rawNode, id) {
-    var prev = nodeById.get(id) || {};
-    var merged = Object.assign({}, prev, rawNode);
-    if (!Object.prototype.hasOwnProperty.call(rawNode, "layers") && Object.prototype.hasOwnProperty.call(prev, "layers")) {
-      merged.layers = Array.isArray(prev.layers) ? prev.layers.slice() : prev.layers;
-    }
-    if (!Object.prototype.hasOwnProperty.call(rawNode, "extra") && Object.prototype.hasOwnProperty.call(prev, "extra")) {
-      merged.extra = Array.isArray(prev.extra) ? prev.extra.slice() : prev.extra;
-    }
-    nodeById.set(id, normalizeNode(merged));
-  });
-  raw.nodes = Array.from(nodeById.values());
-
-  if (patch.meta && typeof patch.meta === "object") {
-    raw.meta = Object.assign({}, raw.meta, patch.meta);
-    if (Array.isArray(raw.meta.layers)) {
-      var layerSet = new Set();
-      raw.meta.layers.forEach(function (layer) {
-        var key = normalizeLayerKey(layer, "edge");
-        if (key) layerSet.add(key);
-      });
-      raw.edges.forEach(function (edge) {
-        var key = normalizeLayerKey(edge.layer, "edge");
-        if (key) layerSet.add(key);
-      });
-      raw.meta.layers = orderedLayerKeys(Array.from(layerSet.values()));
-    }
+function applyDeltaPayload(payload) {
+  if (!DOM.graph) wireDom();
+  var incomingRev = Number(payload && payload.rev);
+  if (!isFinite(incomingRev) || incomingRev <= 0) {
+    log("delta dropped invalid rev");
+    return;
   }
 
-  STATE.raw = raw;
-  if (STATE.depTreeCache && typeof STATE.depTreeCache.clear === "function") STATE.depTreeCache.clear();
-  STATE.depTreePendingNid = null;
-  ensureRuntimeState();
-  refreshUiOnly();
-  var deltaFn = resolveApplyGraphDelta();
-  if (deltaFn) {
-    deltaFn(patch);
-  } else {
-    var applyFn = resolveApplyGraphData();
-    if (!applyFn) {
-      throw new Error("applyGraphData/applyGraphDeltaData is not defined");
-    }
-    applyFn(false);
+  var lastRev = Number(STATE.lastAppliedDeltaRev || 0);
+  if (incomingRev <= lastRev) {
+    log("delta dropped stale rev=" + String(incomingRev) + " last=" + String(lastRev));
+    return;
   }
-  STATE.isFirstRender = false;
-  log("engine delta nodes=" + STATE.activeNodes.length + " edges=" + STATE.activeEdges.length);
+  if (lastRev > 0 && incomingRev > (lastRev + 1)) {
+    requestDeltaRecovery("rev gap " + String(lastRev) + "->" + String(incomingRev));
+    return;
+  }
+
+  var applyDeltaOpsFn = resolveApplyGraphDeltaOps();
+  if (!applyDeltaOpsFn) {
+    requestDeltaRecovery("missing engine delta port");
+    return;
+  }
+
+  try {
+    if (typeof persistCurrentPositions === "function") persistCurrentPositions();
+    var slice = prepareDeltaSlice(payload || {});
+    var ops = buildDeltaOps(slice);
+    var counts = opsCount(ops);
+    log(
+      "delta incoming rev=" + String(incomingRev)
+      + " ops="
+      + JSON.stringify(counts)
+    );
+
+    applyDeltaOpsToState(ops, slice);
+    if (!STATE.raw.meta || typeof STATE.raw.meta !== "object") STATE.raw.meta = {};
+    STATE.raw.meta.delta_rev = incomingRev;
+    if (STATE.depTreeCache && typeof STATE.depTreeCache.clear === "function") STATE.depTreeCache.clear();
+    STATE.depTreePendingNid = null;
+
+    ensureRuntimeState();
+    refreshUiOnly();
+
+    var source = {
+      nodes: Array.isArray(STATE.raw.nodes) ? STATE.raw.nodes : [],
+      edges: Array.isArray(STATE.raw.edges) ? STATE.raw.edges : []
+    };
+    var arrays = buildGraphArrays(source);
+    STATE.activeNodes = arrays.nodes;
+    STATE.activeEdges = arrays.edges;
+    STATE.activeIndexById = arrays.indexById;
+    STATE.activeIdsByIndex = arrays.idsByIndex;
+    STATE.focusAdjCache = null;
+    remapSelectionAndHover();
+
+    applyDeltaOpsFn(ops, arrays, { preserve_layout: true });
+    applyRuntimeUiSettings(false);
+
+    var applyStyles = resolveApplyVisualStyles();
+    if (applyStyles) applyStyles(0.08);
+
+    STATE.lastAppliedDeltaRev = incomingRev;
+    STATE.deltaRecoveryInProgress = false;
+    log(
+      "delta applied rev=" + String(incomingRev)
+      + " applied_ops=" + JSON.stringify(counts)
+      + " nodes=" + String(STATE.activeNodes.length)
+      + " edges=" + String(STATE.activeEdges.length)
+    );
+  } catch (err) {
+    log("delta failed " + String(err && err.message ? err.message : err));
+    requestDeltaRecovery("delta exception");
+  }
 }
 
 function boot(payload) {
@@ -159,14 +210,8 @@ window.ajpcGraphUpdate = function (data) {
   boot(data || {});
 };
 
-window.ajpcGraphDelta = function (delta) {
-  if (!DOM.graph) wireDom();
-  try {
-    applyDeltaPayload(delta || {});
-  } catch (err) {
-    log("engine delta failed " + String(err && err.message ? err.message : err));
-    boot(delta || {});
-  }
+window.ajpcGraphDelta = function (data) {
+  applyDeltaPayload(data || {});
 };
 
 if (document.readyState === "loading") {

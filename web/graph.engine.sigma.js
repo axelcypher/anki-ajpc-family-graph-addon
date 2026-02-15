@@ -330,6 +330,8 @@ function stableMetaSerialize(value) {
 }
 
 function stableEdgeId(edge) {
+  var viaCity = adapterCallCity("stableEdgeKey", edge);
+  if (typeof viaCity === "string" && viaCity.trim()) return viaCity;
   var e = edge && typeof edge === "object" ? edge : {};
   var src = String(e.source !== undefined && e.source !== null ? e.source : "");
   var dst = String(e.target !== undefined && e.target !== null ? e.target : "");
@@ -724,96 +726,6 @@ SigmaGraphCompat.prototype._edgeAttrsFromArrays = function (idx) {
   };
 };
 
-SigmaGraphCompat.prototype.applyDeltaFromArrays = function (nodes, edges, arrays) {
-  if (!this.graph) return false;
-  var nodeList = Array.isArray(nodes) ? nodes : [];
-  var edgeList = Array.isArray(edges) ? edges : [];
-  var arr = arrays && typeof arrays === "object" ? arrays : null;
-  if (!arr) return false;
-
-  this.idByIndex = Array.isArray(arr.idsByIndex) ? arr.idsByIndex.slice() : [];
-  this.indexById = arr.indexById instanceof Map ? arr.indexById : new Map();
-  this.pointPositions = arr.pointPositions ? arr.pointPositions : new Float32Array(0);
-  this.pointColors = arr.pointColors ? arr.pointColors : new Float32Array(0);
-  this.pointSizes = arr.pointSizes ? arr.pointSizes : new Float32Array(0);
-  this.pointTypeCodes = arr.pointTypeCodes ? arr.pointTypeCodes : new Uint8Array(0);
-  this.linksFlat = arr.links ? arr.links : new Float32Array(0);
-  this.linkColors = arr.linkColors ? arr.linkColors : new Float32Array(0);
-  this.linkWidths = arr.linkWidths ? arr.linkWidths : new Float32Array(0);
-  this.linkStrength = arr.linkStrength ? arr.linkStrength : new Float32Array(0);
-  this.linkDistance = arr.linkDistance ? arr.linkDistance : new Float32Array(0);
-  this.linkStyleCodes = arr.linkStyleCodes ? arr.linkStyleCodes : new Uint8Array(0);
-  this.linkFlowMask = arr.linkFlowMask ? arr.linkFlowMask : new Uint8Array(0);
-  this.linkBidirMask = arr.linkBidirMask ? arr.linkBidirMask : new Uint8Array(0);
-
-  var nextLayoutAttrs = new Map();
-  for (var ni = 0; ni < nodeList.length; ni += 1) {
-    var node = nodeList[ni];
-    if (!node || node.id === undefined || node.id === null) continue;
-    nextLayoutAttrs.set(String(node.id), buildNodeLayoutAttrs(node));
-  }
-  this.nodeLayoutAttrsById = nextLayoutAttrs;
-
-  var graph = this.graph;
-  var desiredNodeIds = new Set(this.idByIndex.map(function (id) { return String(id || ""); }).filter(Boolean));
-  var existingNodeIds = graph.nodes ? graph.nodes() : [];
-  for (var ei = 0; ei < existingNodeIds.length; ei += 1) {
-    var existingNodeId = String(existingNodeIds[ei] || "");
-    if (!existingNodeId) continue;
-    if (!desiredNodeIds.has(existingNodeId) && graph.hasNode(existingNodeId)) {
-      try { graph.dropNode(existingNodeId); } catch (_eNodeDrop) {}
-    }
-  }
-
-  for (var i = 0; i < this.idByIndex.length; i += 1) {
-    var nodeId = String(this.idByIndex[i] || "");
-    if (!nodeId) continue;
-    var nodeAttrs = this._nodeAttrsFromArrays(i);
-    if (graph.hasNode(nodeId)) {
-      graph.mergeNodeAttributes(nodeId, nodeAttrs);
-    } else {
-      try { graph.addNode(nodeId, nodeAttrs); } catch (_eNodeAdd) {}
-    }
-  }
-
-  var desiredEdgeIds = new Set();
-  this.edgeIdByIndex = new Array(edgeList.length);
-  this.edgeIndexById = new Map();
-
-  for (var eidx = 0; eidx < edgeList.length; eidx += 1) {
-    var edge = edgeList[eidx];
-    if (!edge || typeof edge !== "object") continue;
-    var sid = String(edge.source || "");
-    var tid = String(edge.target || "");
-    if (!sid || !tid || sid === tid) continue;
-    if (!graph.hasNode(sid) || !graph.hasNode(tid)) continue;
-    var edgeId = stableEdgeId(edge);
-    var edgeAttrs = this._edgeAttrsFromArrays(eidx);
-    desiredEdgeIds.add(edgeId);
-    if (graph.hasEdge(edgeId)) {
-      graph.mergeEdgeAttributes(edgeId, edgeAttrs);
-    } else {
-      try { graph.addDirectedEdgeWithKey(edgeId, sid, tid, edgeAttrs); } catch (_eEdgeAdd) {}
-    }
-    this.edgeIdByIndex[eidx] = edgeId;
-    this.edgeIndexById.set(edgeId, eidx);
-  }
-
-  var existingEdgeIds = graph.edges ? graph.edges() : [];
-  for (var exi = 0; exi < existingEdgeIds.length; exi += 1) {
-    var existingEdgeId = String(existingEdgeIds[exi] || "");
-    if (!existingEdgeId) continue;
-    if (!desiredEdgeIds.has(existingEdgeId) && graph.hasEdge(existingEdgeId)) {
-      try { graph.dropEdge(existingEdgeId); } catch (_eEdgeDrop) {}
-    }
-  }
-
-  this.dataDirty = false;
-  this.styleDirty = false;
-  if (this.renderer && typeof this.renderer.requestFrame === "function") this.renderer.requestFrame();
-  return true;
-};
-
 SigmaGraphCompat.prototype._sync = function () {
   if (!this.renderer || !this.graph) return;
   if (!this.dataDirty && !this.styleDirty) return;
@@ -977,6 +889,283 @@ SigmaGraphCompat.prototype.setPointTypeCodes = function (arr) { this.pointTypeCo
 SigmaGraphCompat.prototype.setLinkColors = function (arr) { this.linkColors = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkWidths = function (arr) { this.linkWidths = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
 SigmaGraphCompat.prototype.setLinkArrows = function (arr) { this.linkArrows = (arr && arr.length) ? arr : new Float32Array(0); this.styleDirty = true; };
+
+function graphUpdateNodeAttrsStrict(graph, nodeId, attrs, preserveLayout) {
+  if (!graph || !nodeId || !attrs || typeof attrs !== "object") return;
+  var patch = Object.assign({}, attrs);
+  if (preserveLayout) {
+    delete patch.x;
+    delete patch.y;
+    delete patch.vx;
+    delete patch.vy;
+  }
+  if (typeof graph.updateNodeAttributes === "function") {
+    graph.updateNodeAttributes(nodeId, function (current) {
+      var next = current && typeof current === "object" ? Object.assign({}, current) : {};
+      Object.keys(patch).forEach(function (k) { next[k] = patch[k]; });
+      return next;
+    });
+    return;
+  }
+  Object.keys(patch).forEach(function (key) {
+    var value = patch[key];
+    if (value === undefined) return;
+    if (value === null) {
+      if (typeof graph.removeNodeAttribute === "function") graph.removeNodeAttribute(nodeId, key);
+      else if (typeof graph.setNodeAttribute === "function") graph.setNodeAttribute(nodeId, key, null);
+      return;
+    }
+    if (typeof graph.setNodeAttribute === "function") {
+      graph.setNodeAttribute(nodeId, key, value);
+      return;
+    }
+    if (typeof graph.mergeNodeAttributes === "function") {
+      var obj = {};
+      obj[key] = value;
+      graph.mergeNodeAttributes(nodeId, obj);
+    }
+  });
+}
+
+function graphUpdateEdgeAttrsStrict(graph, edgeId, attrs) {
+  if (!graph || !edgeId || !attrs || typeof attrs !== "object") return;
+  if (typeof graph.updateEdgeAttributes === "function") {
+    graph.updateEdgeAttributes(edgeId, function (current) {
+      var next = current && typeof current === "object" ? Object.assign({}, current) : {};
+      Object.keys(attrs).forEach(function (k) { next[k] = attrs[k]; });
+      return next;
+    });
+    return;
+  }
+  Object.keys(attrs).forEach(function (key) {
+    var value = attrs[key];
+    if (value === undefined) return;
+    if (value === null) {
+      if (typeof graph.removeEdgeAttribute === "function") graph.removeEdgeAttribute(edgeId, key);
+      else if (typeof graph.setEdgeAttribute === "function") graph.setEdgeAttribute(edgeId, key, null);
+      return;
+    }
+    if (typeof graph.setEdgeAttribute === "function") {
+      graph.setEdgeAttribute(edgeId, key, value);
+      return;
+    }
+    if (typeof graph.mergeEdgeAttributes === "function") {
+      var obj = {};
+      obj[key] = value;
+      graph.mergeEdgeAttributes(edgeId, obj);
+    }
+  });
+}
+
+function graphEdgeMatchesEndpoints(graph, edgeId, source, target) {
+  if (!graph || !edgeId) return false;
+  var src = null;
+  var dst = null;
+  try {
+    if (typeof graph.source === "function") src = graph.source(edgeId);
+  } catch (_e0) {}
+  try {
+    if (typeof graph.target === "function") dst = graph.target(edgeId);
+  } catch (_e1) {}
+  if ((src === null || src === undefined || dst === null || dst === undefined) && typeof graph.extremities === "function") {
+    try {
+      var ends = graph.extremities(edgeId);
+      if (Array.isArray(ends) && ends.length >= 2) {
+        src = ends[0];
+        dst = ends[1];
+      }
+    } catch (_e2) {}
+  }
+  return String(src === undefined || src === null ? "" : src) === String(source || "")
+    && String(dst === undefined || dst === null ? "" : dst) === String(target || "");
+}
+
+SigmaGraphCompat.prototype._collectSelectedNodeIds = function () {
+  var out = [];
+  var seen = new Set();
+  for (var i = 0; i < this.selectedIndices.length; i += 1) {
+    var idx = Number(this.selectedIndices[i]);
+    if (!isFinite(idx) || idx < 0 || idx >= this.idByIndex.length) continue;
+    var id = String(this.idByIndex[idx] || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+};
+
+SigmaGraphCompat.prototype._restoreSelectedNodeIds = function (ids) {
+  var out = [];
+  var seen = new Set();
+  var list = Array.isArray(ids) ? ids : [];
+  for (var i = 0; i < list.length; i += 1) {
+    var id = String(list[i] || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    var idx = this.indexById.get(id);
+    if (idx === undefined) continue;
+    out.push(Number(idx));
+  }
+  this.selectedIndices = out;
+};
+
+SigmaGraphCompat.prototype._applyArraysNoRebuild = function (arrays) {
+  var src = arrays && typeof arrays === "object" ? arrays : {};
+  var ids = Array.isArray(src.idsByIndex) ? src.idsByIndex.map(function (v) { return String(v || ""); }) : [];
+  this.idByIndex = ids.slice();
+  this.indexById = new Map();
+  for (var i = 0; i < ids.length; i += 1) {
+    this.indexById.set(String(ids[i]), i);
+  }
+
+  this.pointPositions = Array.prototype.slice.call(src.pointPositions || []);
+  this.pointColors = src.pointColors ? new Float32Array(src.pointColors) : new Float32Array(0);
+  this.pointSizes = src.pointSizes ? new Float32Array(src.pointSizes) : new Float32Array(0);
+  this.pointTypeCodes = src.pointTypeCodes ? new Uint8Array(src.pointTypeCodes) : new Uint8Array(0);
+
+  this.linksFlat = src.links ? new Float32Array(src.links) : new Float32Array(0);
+  this.linkColors = src.linkColors ? new Float32Array(src.linkColors) : new Float32Array(0);
+  this.linkWidths = src.linkWidths ? new Float32Array(src.linkWidths) : new Float32Array(0);
+  this.linkStrength = src.linkStrength ? new Float32Array(src.linkStrength) : new Float32Array(0);
+  this.linkDistance = src.linkDistance ? new Float32Array(src.linkDistance) : new Float32Array(0);
+  this.linkStyleCodes = src.linkStyleCodes ? new Uint8Array(src.linkStyleCodes) : new Uint8Array(0);
+  this.linkFlowMask = src.linkFlowMask ? new Uint8Array(src.linkFlowMask) : new Uint8Array(0);
+  this.linkBidirMask = src.linkBidirMask ? new Uint8Array(src.linkBidirMask) : new Uint8Array(0);
+
+  this.edgeDataByIndex = Array.isArray(src.edges) ? src.edges.slice() : [];
+  this.edgeIdByIndex = new Array(this.edgeDataByIndex.length);
+  this.edgeIndexById = new Map();
+  for (var e = 0; e < this.edgeDataByIndex.length; e += 1) {
+    var edge = this.edgeDataByIndex[e];
+    var edgeId = stableEdgeId(edge);
+    this.edgeIdByIndex[e] = edgeId;
+    this.edgeIndexById.set(edgeId, e);
+  }
+
+  var layoutMap = new Map();
+  var nodeList = Array.isArray(src.nodes) ? src.nodes : [];
+  for (var n = 0; n < nodeList.length; n += 1) {
+    var node = nodeList[n];
+    if (!node || node.id === undefined || node.id === null) continue;
+    layoutMap.set(String(node.id), buildNodeLayoutAttrs(node));
+  }
+  this.nodeLayoutAttrsById = layoutMap;
+  this.dataDirty = false;
+  this.styleDirty = false;
+};
+
+SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
+  if (!this.graph) return false;
+  var graph = this.graph;
+  var cfg = options && typeof options === "object" ? options : {};
+  var preserveLayout = cfg.preserve_layout !== false;
+  var selectedIds = this._collectSelectedNodeIds();
+
+  this._applyArraysNoRebuild(arrays);
+
+  var edgeDrop = Array.isArray(ops && ops.edge_drop) ? ops.edge_drop : [];
+  for (var i = 0; i < edgeDrop.length; i += 1) {
+    var dropKey = String(edgeDrop[i] || "");
+    if (!dropKey) continue;
+    if (graph.hasEdge(dropKey)) graph.dropEdge(dropKey);
+  }
+
+  var nodeDrop = Array.isArray(ops && ops.node_drop) ? ops.node_drop : [];
+  for (i = 0; i < nodeDrop.length; i += 1) {
+    var dropNodeId = String(nodeDrop[i] || "");
+    if (!dropNodeId) continue;
+    if (graph.hasNode(dropNodeId)) graph.dropNode(dropNodeId);
+  }
+
+  var nodeAdd = Array.isArray(ops && ops.node_add) ? ops.node_add : [];
+  for (i = 0; i < nodeAdd.length; i += 1) {
+    var addEntry = nodeAdd[i];
+    if (!addEntry || addEntry.id === undefined || addEntry.id === null) continue;
+    var addNodeId = String(addEntry.id || "");
+    if (!addNodeId) continue;
+    var addIdx = this.indexById.get(addNodeId);
+    var addAttrs = (addIdx !== undefined) ? this._nodeAttrsFromArrays(Number(addIdx)) : null;
+    if (!addAttrs || typeof addAttrs !== "object") {
+      addAttrs = {
+        x: 0,
+        y: 0,
+        size: DNS,
+        color: DNC,
+        type: "circle",
+        hidden: false,
+        zIndex: (addIdx !== undefined) ? Number(addIdx) : 0
+      };
+    }
+    if (graph.hasNode(addNodeId)) {
+      graphUpdateNodeAttrsStrict(graph, addNodeId, addAttrs, false);
+    } else {
+      graph.addNode(addNodeId, addAttrs);
+    }
+  }
+
+  var nodeUpdate = Array.isArray(ops && ops.node_update) ? ops.node_update : [];
+  for (i = 0; i < nodeUpdate.length; i += 1) {
+    var updEntry = nodeUpdate[i];
+    if (!updEntry || updEntry.id === undefined || updEntry.id === null) continue;
+    var updNodeId = String(updEntry.id || "");
+    if (!updNodeId || !graph.hasNode(updNodeId)) continue;
+    var updIdx = this.indexById.get(updNodeId);
+    if (updIdx === undefined) continue;
+    var updAttrs = this._nodeAttrsFromArrays(Number(updIdx));
+    graphUpdateNodeAttrsStrict(graph, updNodeId, updAttrs, preserveLayout);
+  }
+
+  var edgeUpsert = Array.isArray(ops && ops.edge_upsert) ? ops.edge_upsert : [];
+  for (i = 0; i < edgeUpsert.length; i += 1) {
+    var upsertEntry = edgeUpsert[i];
+    if (!upsertEntry) continue;
+    var edgeKey = String(upsertEntry.key || "");
+    var source = String(upsertEntry.source || "");
+    var target = String(upsertEntry.target || "");
+    if (!edgeKey || !source || !target) continue;
+    if (!graph.hasNode(source) || !graph.hasNode(target)) continue;
+
+    var edgeIdx = this.edgeIndexById.get(edgeKey);
+    var edgeAttrs = (edgeIdx !== undefined) ? this._edgeAttrsFromArrays(Number(edgeIdx)) : null;
+    if (!edgeAttrs || typeof edgeAttrs !== "object") {
+      edgeAttrs = {
+        size: DES,
+        weight: 1,
+        color: DEC,
+        type: edgeTypeCurve(),
+        curvature: 0,
+        hidden: false,
+        ajpc_flow: 0,
+        ajpc_bidir: 0
+      };
+    }
+
+    if (graph.hasEdge(edgeKey)) {
+      if (!graphEdgeMatchesEndpoints(graph, edgeKey, source, target)) {
+        throw new Error("delta edge key collision: " + edgeKey);
+      }
+      graphUpdateEdgeAttrsStrict(graph, edgeKey, edgeAttrs);
+      continue;
+    }
+
+    if (typeof graph.mergeEdgeWithKey === "function") {
+      graph.mergeEdgeWithKey(edgeKey, source, target, edgeAttrs);
+    } else if (typeof graph.addDirectedEdgeWithKey === "function") {
+      graph.addDirectedEdgeWithKey(edgeKey, source, target, edgeAttrs);
+    } else if (typeof graph.mergeEdge === "function") {
+      graph.mergeEdge(source, target, edgeAttrs);
+    } else {
+      throw new Error("graphology edge upsert unsupported");
+    }
+  }
+
+  this._restoreSelectedNodeIds(selectedIds);
+  this.dataDirty = false;
+  this.styleDirty = false;
+  if (this.renderer) this.renderer.requestFrame();
+  return true;
+};
+
 SigmaGraphCompat.prototype.patchPointStylesBatch = function (patches, syncArrays) {
   var list = Array.isArray(patches) ? patches : [];
   if (!this.graph || !list.length) return false;
@@ -2448,72 +2637,21 @@ function applyGraphData(fitView) {
   cityEnsureFlowParticlesLoop();
 }
 
-function applyGraphDeltaData(deltaPatch) {
+function applyGraphDeltaOps(ops, arrays, options) {
   ensureGraphInstance();
-  var patch = deltaPatch && typeof deltaPatch === "object" ? deltaPatch : {};
-  var source = {
-    nodes: Array.isArray(STATE.activeNodes) ? STATE.activeNodes : [],
-    edges: Array.isArray(STATE.activeEdges) ? STATE.activeEdges : []
-  };
-  var arrays = cityBuildGraphArrays(source);
-
-  STATE.activeNodes = arrays.nodes;
-  STATE.activeEdges = arrays.edges;
-  STATE.activeIndexById = arrays.indexById;
-  STATE.activeIdsByIndex = arrays.idsByIndex;
-  STATE.focusAdjCache = null;
-
-  STATE.basePointColors = arrays.pointColors ? new Float32Array(arrays.pointColors) : new Float32Array(0);
-  STATE.basePointSizes = arrays.pointSizes ? new Float32Array(arrays.pointSizes) : new Float32Array(0);
-  STATE.baseLinkColors = arrays.linkColors ? new Float32Array(arrays.linkColors) : new Float32Array(0);
-  STATE.runtimeEdgeFlowMask = arrays.linkFlowMask ? new Uint8Array(arrays.linkFlowMask) : new Uint8Array(STATE.activeEdges.length);
-  STATE.runtimeFlowActiveEdgeIndices = [];
-  setFlowShaderRuntime(STATE.layerFlowSpeed);
-  STATE.pointStyleColors = new Float32Array(STATE.basePointColors);
-  stopPointSizeAnimation();
-  STATE.pointStyleSizes = new Float32Array(STATE.basePointSizes);
-  STATE.lastEdgeCount = STATE.activeEdges.length;
-  STATE.lastNodeCount = STATE.activeNodes.length;
-
-  if (!STATE.activeNodes.length) {
-    if (DOM.graphEmpty) {
-      DOM.graphEmpty.style.display = "block";
-      DOM.graphEmpty.textContent = "No nodes available.";
-    }
-    if (STATE.graph && STATE.graph.graph && typeof STATE.graph.graph.clear === "function") {
-      STATE.graph.graph.clear();
-    }
-    if (STATE.graph && typeof STATE.graph.requestFrame === "function") STATE.graph.requestFrame();
-    cityEnsureFlowParticlesLoop();
-    lg("debug", "delta apply empty graph");
-    return;
+  applyPhysicsToGraph();
+  if (!STATE.graph || typeof STATE.graph.applyDeltaOps !== "function") {
+    throw new Error("applyDeltaOps is not available");
   }
-
-  if (DOM.graphEmpty) DOM.graphEmpty.style.display = "none";
-  if (STATE.graph && typeof STATE.graph.setEdgeDataList === "function") {
-    STATE.graph.setEdgeDataList(STATE.activeEdges);
-  }
-  if (STATE.graph && typeof STATE.graph.applyDeltaFromArrays === "function") {
-    STATE.graph.applyDeltaFromArrays(STATE.activeNodes, STATE.activeEdges, arrays);
-  } else {
-    applyGraphData(false);
-    return;
-  }
-
-  cityApplyRuntimeUiSettings(false);
-  applyVisualStyles(0.08);
+  var changed = STATE.graph.applyDeltaOps(ops || {}, arrays || {}, options || {});
+  if (!changed) return false;
   if (STATE.graph && typeof STATE.graph.resize === "function") STATE.graph.resize();
   cityEnsureFlowParticlesLoop();
-  lg(
-    "debug",
-    "delta apply changed=" + String(Array.isArray(patch.changed_nids) ? patch.changed_nids.length : 0)
-      + " nodes=" + String(STATE.activeNodes.length)
-      + " edges=" + String(STATE.activeEdges.length)
-  );
+  return true;
 }
 
 window.applyGraphData = applyGraphData;
-window.applyGraphDeltaData = applyGraphDeltaData;
+window.applyGraphDeltaOps = applyGraphDeltaOps;
 window.applyVisualStyles = applyVisualStyles;
 window.applyPhysicsToGraph = applyPhysicsToGraph;
 
@@ -2521,7 +2659,7 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerEnginePort !== "function") return;
   adapter.registerEnginePort("applyGraphData", applyGraphData);
-  adapter.registerEnginePort("applyGraphDeltaData", applyGraphDeltaData);
+  adapter.registerEnginePort("applyGraphDeltaOps", applyGraphDeltaOps);
   adapter.registerEnginePort("applyVisualStyles", applyVisualStyles);
   adapter.registerEnginePort("applyPhysicsToGraph", applyPhysicsToGraph);
   adapter.registerEnginePort("createGraphEngineSigma", createGraphEngineSigma);

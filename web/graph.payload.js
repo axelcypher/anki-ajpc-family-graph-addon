@@ -516,13 +516,8 @@ function dedupeEdges(edges) {
 
   edges.forEach(function (edge) {
     if (!edge.source || !edge.target) return;
-    var metaKey = "";
-    try {
-      metaKey = JSON.stringify(edge.meta || {});
-    } catch (_e) {
-      metaKey = "";
-    }
-    var key = edge.source + "|" + edge.target + "|" + edge.layer + "|" + metaKey;
+    var key = stableEdgeKey(edge);
+    if (!key) return;
     if (seen.has(key)) return;
     seen.add(key);
     out.push(edge);
@@ -531,19 +526,487 @@ function dedupeEdges(edges) {
   return out;
 }
 
+function stableEdgeMetaSerialize(value) {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) {
+    var arr = [];
+    for (var i = 0; i < value.length; i += 1) {
+      arr.push(stableEdgeMetaSerialize(value[i]));
+    }
+    return "[" + arr.join(",") + "]";
+  }
+  if (typeof value === "object") {
+    var keys = Object.keys(value).sort();
+    var parts = [];
+    for (var k = 0; k < keys.length; k += 1) {
+      var key = keys[k];
+      parts.push(JSON.stringify(String(key)) + ":" + stableEdgeMetaSerialize(value[key]));
+    }
+    return "{" + parts.join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function stableEdgeKey(edge) {
+  var e = edge && typeof edge === "object" ? edge : {};
+  var source = String(e.source !== undefined && e.source !== null ? e.source : "");
+  var target = String(e.target !== undefined && e.target !== null ? e.target : "");
+  var layer = String(e.layer || "");
+  var metaSig = stableEdgeMetaSerialize(e.meta || {});
+  return "ed:" + source + "|" + target + "|" + layer + "|" + metaSig;
+}
+
+function coalesceNoteLinkBidirectional(edges) {
+  var seen = new Set();
+  var linkGroups = new Map();
+  var passthrough = [];
+
+  edges.forEach(function (edge) {
+    if (!edge || !edge.source || !edge.target) return;
+    if (String(edge.layer || "") !== "note_links") {
+      passthrough.push(edge);
+      return;
+    }
+    var source = String(edge.source || "");
+    var target = String(edge.target || "");
+    var a = source < target ? source : target;
+    var b = source < target ? target : source;
+    var meta = edge.meta && typeof edge.meta === "object" ? edge.meta : {};
+    var manual = !!meta.manual;
+    var bucketKey = a + "|" + b + "|" + (manual ? "1" : "0");
+    var bucket = linkGroups.get(bucketKey);
+    if (!bucket) {
+      bucket = { a: a, b: b, manual: manual, ab: [], ba: [] };
+      linkGroups.set(bucketKey, bucket);
+    }
+    if (source === a && target === b) bucket.ab.push(edge);
+    else bucket.ba.push(edge);
+  });
+
+  var out = [];
+  passthrough.forEach(function (edge) {
+    var key = stableEdgeKey(edge);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(edge);
+  });
+
+  function pickVisible(list) {
+    if (!Array.isArray(list) || !list.length) return null;
+    for (var i = 0; i < list.length; i += 1) {
+      var candidate = list[i];
+      var meta = candidate && candidate.meta && typeof candidate.meta === "object" ? candidate.meta : {};
+      if (!meta.flow_only) return candidate;
+    }
+    return list[0];
+  }
+
+  linkGroups.forEach(function (group) {
+    var visAB = pickVisible(group.ab);
+    var visBA = pickVisible(group.ba);
+    var representative = visAB || visBA;
+    if (!representative) return;
+
+    var baseMeta = Object.assign({}, representative.meta && typeof representative.meta === "object" ? representative.meta : {});
+    delete baseMeta.flow_only;
+    baseMeta.manual = !!group.manual;
+    if (visAB && visBA) baseMeta.bidirectional = true;
+    if (!(visAB && visBA)) delete baseMeta.bidirectional;
+
+    var visibleEdge = {
+      source: String(representative.source || ""),
+      target: String(representative.target || ""),
+      layer: "note_links",
+      meta: baseMeta
+    };
+    var visibleKey = stableEdgeKey(visibleEdge);
+    if (visibleKey && !seen.has(visibleKey)) {
+      seen.add(visibleKey);
+      out.push(visibleEdge);
+    }
+
+    if (visAB && visBA) {
+      var reverseMeta = Object.assign({}, baseMeta, { flow_only: true, bidirectional: true });
+      var reverseEdge = {
+        source: String(visibleEdge.target || ""),
+        target: String(visibleEdge.source || ""),
+        layer: "note_links",
+        meta: reverseMeta
+      };
+      var reverseKey = stableEdgeKey(reverseEdge);
+      if (reverseKey && !seen.has(reverseKey)) {
+        seen.add(reverseKey);
+        out.push(reverseEdge);
+      }
+    }
+  });
+
+  return out;
+}
+
+function applyNodeMods(data, _cfg, _runtimeCtx) {
+  var src = Array.isArray(data && data.nodes_raw) ? data.nodes_raw : (Array.isArray(data && data.nodes) ? data.nodes : []);
+  var nodes = src.map(normalizeNode);
+  return Object.assign({}, data || {}, { nodes: nodes });
+}
+
+function applyLayerProviderMods(data, _cfg, _runtimeCtx) {
+  var srcMeta = (data && data.meta && typeof data.meta === "object") ? data.meta : {};
+  var meta = Object.assign({}, srcMeta);
+  var fromLayerLabels = normalizeLayerMap(meta.layer_labels || {}, "edge");
+  var fromProviderLabels = normalizeLayerMap(meta.provider_layer_labels || {}, "edge");
+  var fromProviderLayers = normalizeLayerMap(meta.provider_layers || {}, "edge");
+  if (!Object.keys(fromProviderLabels).length && Object.keys(fromLayerLabels).length) {
+    meta.provider_layer_labels = Object.assign({}, fromLayerLabels);
+  } else {
+    meta.provider_layer_labels = Object.assign({}, fromProviderLabels);
+  }
+  if (!Object.keys(fromLayerLabels).length && Object.keys(fromProviderLabels).length) {
+    meta.layer_labels = Object.assign({}, fromProviderLabels);
+  } else {
+    meta.layer_labels = Object.assign({}, fromLayerLabels);
+  }
+  meta.provider_layers = Object.assign({}, fromProviderLayers);
+  return Object.assign({}, data || {}, { meta: meta });
+}
+
+function applyHubGroupingMods(data, _cfg, _runtimeCtx) {
+  var nodes = Array.isArray(data && data.nodes) ? data.nodes.slice() : [];
+  var edges = Array.isArray(data && data.edges) ? data.edges.slice() : [];
+  var byId = new Map();
+  nodes.forEach(function (node) {
+    if (!node || !node.id) return;
+    byId.set(String(node.id), node);
+  });
+  edges.forEach(function (edge) {
+    if (!edge || String(edge.layer || "") !== "families") return;
+    var source = String(edge.source || "");
+    var target = String(edge.target || "");
+    if (source && byId.has(source)) {
+      var sourceNode = byId.get(source);
+      if (sourceNode && Array.isArray(sourceNode.layers) && sourceNode.layers.indexOf("families") < 0) {
+        sourceNode.layers.push("families");
+      }
+    }
+    if (target && byId.has(target)) {
+      var targetNode = byId.get(target);
+      if (targetNode && Array.isArray(targetNode.layers) && targetNode.layers.indexOf("families") < 0) {
+        targetNode.layers.push("families");
+      }
+    }
+  });
+  return Object.assign({}, data || {}, { nodes: nodes, edges: edges });
+}
+
+function applyEdgeMods(data, _cfg, _runtimeCtx) {
+  var src = Array.isArray(data && data.edges_raw) ? data.edges_raw : (Array.isArray(data && data.edges) ? data.edges : []);
+  var edges = src.map(normalizeEdge);
+  edges = dedupeEdges(edges);
+  edges = coalesceNoteLinkBidirectional(edges);
+  return Object.assign({}, data || {}, { edges: edges });
+}
+
+function applyDerivedVisualMods(data, _cfg, _runtimeCtx) {
+  var nodes = Array.isArray(data && data.nodes) ? data.nodes.slice() : [];
+  var edges = Array.isArray(data && data.edges) ? data.edges.slice() : [];
+  return Object.assign({}, data || {}, { nodes: nodes, edges: edges });
+}
+
+function runGraphMods(data, cfg, runtimeCtx) {
+  var step1 = applyNodeMods(data, cfg, runtimeCtx);
+  var step2 = applyLayerProviderMods(step1, cfg, runtimeCtx);
+  var step3 = applyEdgeMods(step2, cfg, runtimeCtx);
+  var step4 = applyHubGroupingMods(step3, cfg, runtimeCtx);
+  return applyDerivedVisualMods(step4, cfg, runtimeCtx);
+}
+
 function preparePayload(payload) {
   var raw = payload && typeof payload === "object" ? payload : {};
   var meta = raw.meta && typeof raw.meta === "object" ? raw.meta : {};
-
-  var baseNodes = Array.isArray(raw.nodes) ? raw.nodes.map(normalizeNode) : [];
-  var baseEdges = Array.isArray(raw.edges) ? raw.edges.map(normalizeEdge) : [];
+  var baseNodes = Array.isArray(raw.nodes) ? raw.nodes.slice() : [];
+  var baseEdges = Array.isArray(raw.edges) ? raw.edges.slice() : [];
   var extraEdges = mergeExtraEdgeSets(meta);
+  var modded = runGraphMods({
+    nodes_raw: baseNodes,
+    edges_raw: baseEdges.concat(extraEdges),
+    meta: meta
+  }, {}, { mode: "full" });
 
   return {
-    nodes: baseNodes,
-    edges: dedupeEdges(baseEdges.concat(extraEdges)),
-    meta: meta
+    nodes: Array.isArray(modded.nodes) ? modded.nodes : [],
+    edges: dedupeEdges(Array.isArray(modded.edges) ? modded.edges : []),
+    meta: (modded.meta && typeof modded.meta === "object") ? modded.meta : {}
   };
+}
+
+function normalizeNidList(values) {
+  if (!Array.isArray(values)) return [];
+  var out = [];
+  var seen = new Set();
+  values.forEach(function (raw) {
+    var id = String(raw === undefined || raw === null ? "" : raw).trim();
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push(id);
+  });
+  return out;
+}
+
+function prepareDeltaSlice(payload) {
+  var raw = payload && typeof payload === "object" ? payload : {};
+  var rawMeta = raw.meta && typeof raw.meta === "object" ? raw.meta : {};
+  var nodesRaw = Array.isArray(raw.nodes_raw) ? raw.nodes_raw.slice() : [];
+  var edgesRaw = Array.isArray(raw.edges_raw) ? raw.edges_raw.slice() : [];
+  var modded = runGraphMods({
+    nodes_raw: nodesRaw,
+    edges_raw: edgesRaw,
+    meta: rawMeta
+  }, {}, { mode: "delta" });
+  var changed = normalizeNidList(raw.changed_nids);
+  var expanded = normalizeNidList(raw.expanded_nids);
+  var touched = new Set(changed.concat(expanded));
+  var edges = dedupeEdges(Array.isArray(modded.edges) ? modded.edges : []);
+  edges.forEach(function (edge) {
+    if (!edge) return;
+    if (edge.source !== undefined && edge.source !== null) touched.add(String(edge.source));
+    if (edge.target !== undefined && edge.target !== null) touched.add(String(edge.target));
+  });
+  return {
+    rev: Number(raw.rev) || 0,
+    reason: String(raw.reason || ""),
+    changed_nids: changed,
+    expanded_nids: expanded,
+    touched_ids: Array.from(touched.values()),
+    nodes: Array.isArray(modded.nodes) ? modded.nodes : [],
+    edges: edges,
+    meta: (modded.meta && typeof modded.meta === "object") ? modded.meta : {}
+  };
+}
+
+function indexNodesById(nodes) {
+  var out = new Map();
+  (Array.isArray(nodes) ? nodes : []).forEach(function (node) {
+    if (!node || node.id === undefined || node.id === null) return;
+    out.set(String(node.id), node);
+  });
+  return out;
+}
+
+function indexEdgesByKey(edges) {
+  var out = new Map();
+  (Array.isArray(edges) ? edges : []).forEach(function (edge) {
+    if (!edge) return;
+    var key = stableEdgeKey(edge);
+    if (!key) return;
+    out.set(key, edge);
+  });
+  return out;
+}
+
+function valueSignature(value) {
+  return stableEdgeMetaSerialize(value);
+}
+
+function diffNodeAttrs(prevNode, nextNode) {
+  var prev = prevNode && typeof prevNode === "object" ? prevNode : {};
+  var next = nextNode && typeof nextNode === "object" ? nextNode : {};
+  var keys = new Set(Object.keys(prev).concat(Object.keys(next)));
+  var changed = {};
+  keys.forEach(function (key) {
+    if (key === "id") return;
+    var hasPrev = Object.prototype.hasOwnProperty.call(prev, key);
+    var hasNext = Object.prototype.hasOwnProperty.call(next, key);
+    if (!hasNext && hasPrev) {
+      changed[key] = null;
+      return;
+    }
+    if (!hasNext) return;
+    var prevSig = hasPrev ? valueSignature(prev[key]) : "__missing__";
+    var nextSig = valueSignature(next[key]);
+    if (prevSig !== nextSig) changed[key] = next[key];
+  });
+  return changed;
+}
+
+function edgeRecordEquals(prevEdge, nextEdge) {
+  var prev = prevEdge && typeof prevEdge === "object" ? prevEdge : {};
+  var next = nextEdge && typeof nextEdge === "object" ? nextEdge : {};
+  if (String(prev.source || "") !== String(next.source || "")) return false;
+  if (String(prev.target || "") !== String(next.target || "")) return false;
+  if (String(prev.layer || "") !== String(next.layer || "")) return false;
+  return valueSignature(prev.meta || {}) === valueSignature(next.meta || {});
+}
+
+function buildDeltaOps(slice) {
+  var data = slice && typeof slice === "object" ? slice : {};
+  var touched = new Set(normalizeNidList(data.touched_ids));
+  normalizeNidList(data.changed_nids).forEach(function (id) { touched.add(id); });
+  normalizeNidList(data.expanded_nids).forEach(function (id) { touched.add(id); });
+
+  var currentNodes = indexNodesById((STATE && STATE.raw && Array.isArray(STATE.raw.nodes)) ? STATE.raw.nodes : []);
+  var currentEdges = indexEdgesByKey((STATE && STATE.raw && Array.isArray(STATE.raw.edges)) ? STATE.raw.edges : []);
+  var nextNodes = indexNodesById(Array.isArray(data.nodes) ? data.nodes : []);
+  var nextEdges = indexEdgesByKey(Array.isArray(data.edges) ? data.edges : []);
+
+  var ops = {
+    rev: Number(data.rev) || 0,
+    node_add: [],
+    node_update: [],
+    node_drop: [],
+    edge_upsert: [],
+    edge_drop: []
+  };
+
+  touched.forEach(function (id) {
+    var prev = currentNodes.get(String(id));
+    var next = nextNodes.get(String(id));
+    if (!prev && next) {
+      ops.node_add.push({ id: String(id), attrs: next });
+      return;
+    }
+    if (prev && !next) {
+      ops.node_drop.push(String(id));
+      return;
+    }
+    if (!prev || !next) return;
+    var changedAttrs = diffNodeAttrs(prev, next);
+    if (Object.keys(changedAttrs).length) {
+      ops.node_update.push({ id: String(id), changed_attrs: changedAttrs });
+    }
+  });
+
+  var touchedEdgeKeys = new Set();
+  currentEdges.forEach(function (edge, key) {
+    if (!edge) return;
+    var src = String(edge.source || "");
+    var dst = String(edge.target || "");
+    if (touched.has(src) || touched.has(dst)) touchedEdgeKeys.add(key);
+  });
+  nextEdges.forEach(function (edge, key) {
+    if (!edge) return;
+    var src = String(edge.source || "");
+    var dst = String(edge.target || "");
+    if (touched.has(src) || touched.has(dst)) touchedEdgeKeys.add(key);
+  });
+
+  touchedEdgeKeys.forEach(function (key) {
+    var prev = currentEdges.get(key);
+    var next = nextEdges.get(key);
+    if (!prev && next) {
+      ops.edge_upsert.push({
+        key: key,
+        source: String(next.source || ""),
+        target: String(next.target || ""),
+        attrs: { layer: String(next.layer || ""), meta: next.meta && typeof next.meta === "object" ? next.meta : {} }
+      });
+      return;
+    }
+    if (prev && !next) {
+      ops.edge_drop.push(String(key));
+      return;
+    }
+    if (!prev || !next) return;
+    if (!edgeRecordEquals(prev, next)) {
+      ops.edge_upsert.push({
+        key: key,
+        source: String(next.source || ""),
+        target: String(next.target || ""),
+        attrs: { layer: String(next.layer || ""), meta: next.meta && typeof next.meta === "object" ? next.meta : {} }
+      });
+    }
+  });
+
+  return ops;
+}
+
+function applyDeltaOpsToState(ops, slice) {
+  var raw = (STATE && STATE.raw && typeof STATE.raw === "object") ? STATE.raw : { nodes: [], edges: [], meta: {} };
+  if (!Array.isArray(raw.nodes)) raw.nodes = [];
+  if (!Array.isArray(raw.edges)) raw.edges = [];
+  if (!raw.meta || typeof raw.meta !== "object") raw.meta = {};
+
+  var data = slice && typeof slice === "object" ? slice : {};
+  var meta = data.meta && typeof data.meta === "object" ? data.meta : {};
+  if (meta.provider_layers && typeof meta.provider_layers === "object") {
+    var existingProviders = (raw.meta.provider_layers && typeof raw.meta.provider_layers === "object") ? raw.meta.provider_layers : {};
+    raw.meta.provider_layers = Object.assign({}, existingProviders, meta.provider_layers);
+  }
+  if (meta.provider_layer_labels && typeof meta.provider_layer_labels === "object") {
+    var existingProviderLabels = (raw.meta.provider_layer_labels && typeof raw.meta.provider_layer_labels === "object")
+      ? raw.meta.provider_layer_labels
+      : {};
+    raw.meta.provider_layer_labels = Object.assign({}, existingProviderLabels, meta.provider_layer_labels);
+  }
+  if (meta.layer_labels && typeof meta.layer_labels === "object") {
+    var existingLayerLabels = (raw.meta.layer_labels && typeof raw.meta.layer_labels === "object") ? raw.meta.layer_labels : {};
+    raw.meta.layer_labels = Object.assign({}, existingLayerLabels, meta.layer_labels);
+  }
+  if (Object.prototype.hasOwnProperty.call(meta, "delta_rev")) raw.meta.delta_rev = Number(meta.delta_rev) || 0;
+
+  var nodeMap = indexNodesById(raw.nodes);
+  var edgeMap = indexEdgesByKey(raw.edges);
+  var droppedNodes = new Set();
+
+  (Array.isArray(ops && ops.node_drop) ? ops.node_drop : []).forEach(function (id) {
+    var key = String(id || "");
+    if (!key) return;
+    droppedNodes.add(key);
+    nodeMap.delete(key);
+  });
+
+  (Array.isArray(ops && ops.node_add) ? ops.node_add : []).forEach(function (entry) {
+    if (!entry || entry.id === undefined || entry.id === null) return;
+    var key = String(entry.id);
+    var attrs = entry.attrs && typeof entry.attrs === "object" ? entry.attrs : {};
+    nodeMap.set(key, Object.assign({}, attrs, { id: key }));
+  });
+
+  (Array.isArray(ops && ops.node_update) ? ops.node_update : []).forEach(function (entry) {
+    if (!entry || entry.id === undefined || entry.id === null) return;
+    var key = String(entry.id);
+    var base = nodeMap.get(key);
+    if (!base) return;
+    var changed = entry.changed_attrs && typeof entry.changed_attrs === "object" ? entry.changed_attrs : {};
+    var next = Object.assign({}, base);
+    Object.keys(changed).forEach(function (attr) {
+      if (changed[attr] === null) delete next[attr];
+      else next[attr] = changed[attr];
+    });
+    next.id = key;
+    nodeMap.set(key, next);
+  });
+
+  if (droppedNodes.size) {
+    edgeMap.forEach(function (edge, key) {
+      if (!edge) return;
+      var src = String(edge.source || "");
+      var dst = String(edge.target || "");
+      if (droppedNodes.has(src) || droppedNodes.has(dst)) edgeMap.delete(key);
+    });
+  }
+
+  (Array.isArray(ops && ops.edge_drop) ? ops.edge_drop : []).forEach(function (key) {
+    edgeMap.delete(String(key || ""));
+  });
+
+  (Array.isArray(ops && ops.edge_upsert) ? ops.edge_upsert : []).forEach(function (entry) {
+    if (!entry) return;
+    var source = String(entry.source || "");
+    var target = String(entry.target || "");
+    if (!source || !target) return;
+    var attrs = entry.attrs && typeof entry.attrs === "object" ? entry.attrs : {};
+    var edge = {
+      source: source,
+      target: target,
+      layer: normalizeLayerKey(attrs.layer, "edge"),
+      meta: attrs.meta && typeof attrs.meta === "object" ? attrs.meta : {}
+    };
+    edgeMap.set(String(entry.key || stableEdgeKey(edge)), edge);
+  });
+
+  raw.nodes = Array.from(nodeMap.values());
+  raw.edges = Array.from(edgeMap.values());
+  STATE.raw = raw;
 }
 
 function collectLayers(data) {
@@ -1924,6 +2387,15 @@ window.applyRuntimeUiSettings = applyRuntimeUiSettings;
   adapter.registerCityPort("collectLinkSettings", collectLinkSettings);
   adapter.registerCityPort("linkSettingsFromMeta", linkSettingsFromMeta);
   adapter.registerCityPort("syncLinkSettingsFromMeta", syncLinkSettingsFromMeta);
+  adapter.registerCityPort("stableEdgeKey", stableEdgeKey);
+  adapter.registerCityPort("applyNodeMods", applyNodeMods);
+  adapter.registerCityPort("applyEdgeMods", applyEdgeMods);
+  adapter.registerCityPort("applyLayerProviderMods", applyLayerProviderMods);
+  adapter.registerCityPort("applyHubGroupingMods", applyHubGroupingMods);
+  adapter.registerCityPort("applyDerivedVisualMods", applyDerivedVisualMods);
+  adapter.registerCityPort("prepareDeltaSlice", prepareDeltaSlice);
+  adapter.registerCityPort("buildDeltaOps", buildDeltaOps);
+  adapter.registerCityPort("applyDeltaOpsToState", applyDeltaOpsToState);
   adapter.registerCityPort("AjpcNodeBaseSize", ajpcNodeBaseSize);
   adapter.registerCityPort("buildGraphArrays", buildGraphArrays);
   adapter.registerCityPort("applyRuntimeUiSettings", applyRuntimeUiSettings);

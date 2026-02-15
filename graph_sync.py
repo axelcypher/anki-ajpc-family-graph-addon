@@ -8,89 +8,11 @@ from aqt.operations import QueryOp
 from aqt.utils import showInfo
 
 from . import logger
-from .graph_data import build_graph, build_note_delta
+from .graph_data import build_graph, build_note_delta_slice
 from .graph_web_assets import render_graph_html
 
 
 class GraphSyncMixin:
-    def _schedule_note_delta_push(self, reason: str) -> None:
-        logger.dbg("schedule note delta", reason, "nids=", len(self._pending_changed_nids))
-        try:
-            self._delta_timer.stop()
-        except Exception:
-            pass
-        self._delta_timer.start(220)
-
-    def _push_note_delta(self) -> None:
-        logger.dbg(
-            "push note delta enter",
-            "ready=",
-            bool(self._graph_ready),
-            "pending=",
-            len(self._pending_changed_nids),
-        )
-        if mw is None or not getattr(mw, "col", None):
-            logger.dbg("push note delta skip", "reason=no collection")
-            return
-        if not self._graph_ready:
-            logger.dbg("push note delta skip", "reason=graph not ready", "action=load")
-            self._load()
-            return
-        if not self._pending_changed_nids:
-            logger.dbg("push note delta skip", "reason=no pending nids")
-            return
-        changed_nids = sorted(int(x) for x in self._pending_changed_nids if int(x) > 0)
-        if not changed_nids:
-            logger.dbg("push note delta skip", "reason=normalized nids empty", "action=clear pending")
-            self._pending_changed_nids.clear()
-            return
-        logger.dbg("push note delta", "nids=", len(changed_nids))
-
-        def op(_col):
-            return build_note_delta(_col, changed_nids)
-
-        def on_success(result: dict[str, Any]) -> None:
-            nodes_count = len(result.get("nodes", []) or []) if isinstance(result, dict) else 0
-            edges_count = len(result.get("edges", []) or []) if isinstance(result, dict) else 0
-            logger.dbg(
-                "note delta success",
-                "changed=",
-                len(changed_nids),
-                "nodes=",
-                nodes_count,
-                "edges=",
-                edges_count,
-            )
-            try:
-                for nid in changed_nids:
-                    self._pending_changed_nids.discard(int(nid))
-            except Exception:
-                self._pending_changed_nids.clear()
-            payload_json = json.dumps(result or {}, ensure_ascii=False).replace("</", "<\\/")
-            logger.dbg("note delta dispatch", "bytes=", len(payload_json))
-            delta_js = (
-                "(function(){"
-                "const data=" + payload_json + ";"
-                "if(window.ajpcGraphDelta){"
-                "window.ajpcGraphDelta(data);"
-                "if(window.pycmd){pycmd('log:graph delta called');}"
-                "}else if(window.ajpcGraphUpdate){"
-                "window.ajpcGraphUpdate(data);"
-                "if(window.pycmd){pycmd('log:graph update fallback called');}"
-                "}else{"
-                "if(window.pycmd){pycmd('log:graph delta no handler');}"
-                "}"
-                "})();"
-            )
-            self.web.eval(delta_js)
-            self._flush_pending_focus_in_graph()
-
-        def on_failure(err: Exception) -> None:
-            logger.dbg("note delta push failed", repr(err))
-            self._schedule_refresh("note delta fallback")
-
-        QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
-
     def _request_focus_note_in_graph(self, nid: int) -> None:
         try:
             target_nid = int(nid or 0)
@@ -147,6 +69,12 @@ class GraphSyncMixin:
 
         def on_success(result: dict[str, Any]) -> None:
             logger.dbg("graph build success", "nodes=", len(result.get("nodes", [])), "edges=", len(result.get("edges", [])))
+            if isinstance(result, dict):
+                meta = result.get("meta")
+                if not isinstance(meta, dict):
+                    meta = {}
+                    result["meta"] = meta
+                meta["delta_rev"] = int(getattr(self, "_delta_rev", 0) or 0)
             html = render_graph_html(result)
             self.web.stdHtml(html)
             payload_json = json.dumps(result, ensure_ascii=False).replace("</", "<\\/")
@@ -199,13 +127,12 @@ class GraphSyncMixin:
                 "edges=",
                 len(result.get("edges", [])),
             )
-            if self._pending_changed_nids:
-                result.setdefault("meta", {})
-                try:
-                    result["meta"]["changed_nids"] = list(self._pending_changed_nids)
-                except Exception:
-                    pass
-                self._pending_changed_nids.clear()
+            if isinstance(result, dict):
+                meta = result.get("meta")
+                if not isinstance(meta, dict):
+                    meta = {}
+                    result["meta"] = meta
+                meta["delta_rev"] = int(getattr(self, "_delta_rev", 0) or 0)
             payload_json = json.dumps(result, ensure_ascii=False).replace("</", "<\\/")
             update_js = (
                 "(function(){"
@@ -230,14 +157,124 @@ class GraphSyncMixin:
     def _schedule_refresh(self, reason: str) -> None:
         logger.dbg("schedule refresh", reason)
         try:
-            self._delta_timer.stop()
-        except Exception:
-            pass
-        try:
             self._refresh_timer.stop()
         except Exception:
             pass
         self._refresh_timer.start(350)
+
+    def _next_delta_rev(self) -> int:
+        try:
+            current = int(getattr(self, "_delta_rev", 0) or 0)
+        except Exception:
+            current = 0
+        current += 1
+        self._delta_rev = current
+        return current
+
+    def _enqueue_note_delta(self, nids: list[int], reason: str) -> None:
+        pending = getattr(self, "_pending_delta_nids", None)
+        if not isinstance(pending, set):
+            pending = set()
+            self._pending_delta_nids = pending
+        for raw in nids or []:
+            try:
+                nid = int(raw or 0)
+            except Exception:
+                nid = 0
+            if nid > 0:
+                pending.add(nid)
+        if not pending:
+            return
+        self._pending_delta_reason = str(reason or "note change")
+        logger.dbg("queue delta", "reason=", self._pending_delta_reason, "nids=", sorted(pending))
+        if not getattr(self, "_graph_ready", False):
+            self._schedule_refresh("delta queued before graph ready")
+            return
+        if bool(getattr(self, "_delta_inflight", False)):
+            return
+        try:
+            self._delta_timer.stop()
+        except Exception:
+            pass
+        self._delta_timer.start(120)
+
+    def _dispatch_note_delta(self) -> None:
+        if not getattr(self, "_graph_ready", False):
+            return
+        if bool(getattr(self, "_delta_inflight", False)):
+            return
+        pending = getattr(self, "_pending_delta_nids", None)
+        if not isinstance(pending, set) or not pending:
+            return
+        changed = sorted(int(x) for x in pending if int(x) > 0)
+        if not changed:
+            self._pending_delta_nids = set()
+            return
+        self._pending_delta_nids = set()
+        reason = str(getattr(self, "_pending_delta_reason", "note change") or "note change")
+        rev = self._next_delta_rev()
+        self._delta_inflight = True
+        logger.dbg("dispatch delta", "rev=", rev, "reason=", reason, "changed=", changed)
+
+        def op(_col):
+            return build_note_delta_slice(
+                _col,
+                changed_nids=changed,
+                reason=reason,
+                rev=rev,
+            )
+
+        def on_success(result: dict[str, Any]) -> None:
+            self._delta_inflight = False
+            try:
+                meta = (result or {}).get("meta") if isinstance(result, dict) else {}
+            except Exception:
+                meta = {}
+            if isinstance(meta, dict) and str(meta.get("error") or "") == "missing_tools_config":
+                logger.dbg("delta skipped: missing tools config, scheduling refresh")
+                self._schedule_refresh("await main graph api")
+                return
+            try:
+                payload_json = json.dumps(result or {}, ensure_ascii=False).replace("</", "<\\/")
+            except Exception:
+                payload_json = "{}"
+            try:
+                js = (
+                    "(function(){"
+                    "const data=" + payload_json + ";"
+                    "if(window.ajpcGraphDelta){"
+                    "window.ajpcGraphDelta(data);"
+                    "}else if(window.pycmd){"
+                    "window.pycmd('refresh');"
+                    "}"
+                    "})();"
+                )
+                self.web.eval(js)
+                logger.dbg(
+                    "delta sent",
+                    "rev=",
+                    int((result or {}).get("rev") or rev),
+                    "nodes=",
+                    len((result or {}).get("nodes_raw") or []),
+                    "edges=",
+                    len((result or {}).get("edges_raw") or []),
+                )
+            except Exception as exc:
+                logger.dbg("delta dispatch eval failed", repr(exc))
+                self._schedule_refresh("delta eval failed")
+            if getattr(self, "_pending_delta_nids", None):
+                try:
+                    self._delta_timer.stop()
+                except Exception:
+                    pass
+                self._delta_timer.start(90)
+
+        def on_failure(err: Exception) -> None:
+            self._delta_inflight = False
+            logger.dbg("delta build failed", repr(err))
+            self._schedule_refresh("delta build failed")
+
+        QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
 
     def _sync_embedded_editor_on_operation(self, changes, handler) -> None:
         editor = self._embedded_editor
@@ -271,23 +308,33 @@ class GraphSyncMixin:
             if not self._graph_ready:
                 return
             if getattr(changes, "note", False) or getattr(changes, "note_text", False):
-                nid = None
                 try:
                     if handler is not None:
                         cand = getattr(handler, "note", None)
                         if cand is not None and getattr(cand, "id", None):
-                            nid = int(cand.id)
+                            self._request_focus_note_in_graph(int(cand.id))
                         elif getattr(handler, "note_id", None):
-                            nid = int(getattr(handler, "note_id"))
+                            self._request_focus_note_in_graph(int(getattr(handler, "note_id")))
                         elif getattr(handler, "nid", None):
-                            nid = int(getattr(handler, "nid"))
+                            self._request_focus_note_in_graph(int(getattr(handler, "nid")))
                 except Exception:
-                    nid = None
-                if nid:
-                    self._pending_changed_nids.add(nid)
-                    self._schedule_note_delta_push("note change")
+                    pass
+                note_ids: list[int] = []
+                try:
+                    if handler is not None:
+                        cand = getattr(handler, "note", None)
+                        if cand is not None and getattr(cand, "id", None):
+                            note_ids.append(int(cand.id))
+                        elif getattr(handler, "note_id", None):
+                            note_ids.append(int(getattr(handler, "note_id")))
+                        elif getattr(handler, "nid", None):
+                            note_ids.append(int(getattr(handler, "nid")))
+                except Exception:
+                    pass
+                if note_ids:
+                    self._enqueue_note_delta(note_ids, "note change")
                 else:
-                    self._schedule_refresh("note change (unknown nid)")
+                    self._schedule_refresh("note change unknown nid")
                 return
             if getattr(changes, "tag", False) or getattr(changes, "deck", False):
                 self._schedule_refresh("tag/deck change")

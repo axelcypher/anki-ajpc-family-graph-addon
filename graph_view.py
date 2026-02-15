@@ -64,8 +64,11 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         self._refresh_timer.timeout.connect(self._refresh)
         self._delta_timer = QTimer(self)
         self._delta_timer.setSingleShot(True)
-        self._delta_timer.timeout.connect(self._push_note_delta)
-        self._pending_changed_nids: set[int] = set()
+        self._delta_timer.timeout.connect(self._dispatch_note_delta)
+        self._delta_inflight = False
+        self._delta_rev = 0
+        self._pending_delta_nids: set[int] = set()
+        self._pending_delta_reason = ""
         self._note_add_hooks: list[tuple[Any, Any]] = []
 
         restoreGeom(self, "ajpc_tools_graph", default_size=(1100, 720))
@@ -93,6 +96,10 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         except Exception:
             pass
         self._unbind_note_add_hooks()
+        try:
+            self._delta_timer.stop()
+        except Exception:
+            pass
         try:
             if getattr(self, "_devtools", None) is not None:
                 self._devtools.close()
@@ -173,23 +180,34 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         except Exception:
             nid = 0
         if nid:
-            self._pending_changed_nids.add(nid)
             logger.dbg("note added", nid)
-            self._schedule_note_delta_push("note added")
+            self._request_focus_note_in_graph(nid)
+            self._enqueue_note_delta([nid], "note added")
 
     def _on_notes_added(self, notes) -> None:
         count = 0
+        last_nid = 0
         for note in notes or []:
             try:
                 nid = int(getattr(note, "id", 0) or 0)
             except Exception:
                 nid = 0
             if nid:
-                self._pending_changed_nids.add(nid)
                 count += 1
+                last_nid = nid
         if count:
             logger.dbg("notes added", count)
-            self._schedule_note_delta_push("notes added")
+            if last_nid:
+                self._request_focus_note_in_graph(last_nid)
+            nids: list[int] = []
+            for note in notes or []:
+                try:
+                    nid = int(getattr(note, "id", 0) or 0)
+                except Exception:
+                    nid = 0
+                if nid > 0:
+                    nids.append(nid)
+            self._enqueue_note_delta(nids, "notes added")
 
 
 def show_tools_graph() -> None:

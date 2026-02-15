@@ -6,7 +6,7 @@ import os
 import re
 import sys
 import unicodedata
-from typing import Any, Iterable
+from typing import Any
 
 from aqt import mw
 from anki.collection import Collection
@@ -567,225 +567,6 @@ def _note_ids_for_mid(col: Collection, mid: str) -> list[int]:
     return _note_ids_for_query(col, f"mid:{mid}")
 
 
-def build_note_delta(col: Collection, changed_nids: Iterable[int]) -> dict[str, Any]:
-    cfg = _get_tools_config()
-    if not cfg:
-        return {"changed_nids": [], "nodes": [], "edges": [], "meta": {}}
-
-    uniq_nids: list[int] = []
-    seen_nids: set[int] = set()
-    for raw in changed_nids or []:
-        try:
-            nid = int(raw or 0)
-        except Exception:
-            continue
-        if nid <= 0 or nid in seen_nids:
-            continue
-        seen_nids.add(nid)
-        uniq_nids.append(nid)
-    if not uniq_nids:
-        return {"changed_nids": [], "nodes": [], "edges": [], "meta": {}}
-
-    graph_cfg = load_graph_config()
-    label_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_label_fields") or {})
-    linked_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_linked_fields") or {})
-    tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
-
-    layer_colors = dict(graph_cfg.get("layer_colors") or {})
-    link_colors = dict(graph_cfg.get("link_colors") or {})
-    layer_styles = dict(graph_cfg.get("layer_styles") or {})
-    layer_flow = dict(graph_cfg.get("layer_flow") or {})
-    link_strengths = dict(graph_cfg.get("link_strengths") or {})
-
-    changed_set = set(uniq_nids)
-    touched_nids: set[int] = set(uniq_nids)
-    node_layers: dict[int, set[str]] = {nid: {"notes"} for nid in uniq_nids}
-    provider_layer_map: dict[str, str] = {}
-    provider_layer_labels: dict[str, str] = {}
-
-    edges: list[dict[str, Any]] = []
-    edge_seen: set[tuple[str, str, str, str, str]] = set()
-
-    def _add_edge(src: int, dst: int, layer: str, meta: dict[str, Any]) -> None:
-        if src <= 0 or dst <= 0 or src == dst or not layer:
-            return
-        label = str(meta.get("label", "") or "")
-        provider = str(meta.get("provider_id", "") or "")
-        group = str(meta.get("group", "") or "")
-        key = (str(src), str(dst), str(layer), label, provider + "|" + group)
-        if key in edge_seen:
-            return
-        edge_seen.add(key)
-        edges.append(
-            {
-                "source": str(src),
-                "target": str(dst),
-                "layer": str(layer),
-                "meta": dict(meta),
-            }
-        )
-        touched_nids.add(src)
-        touched_nids.add(dst)
-        node_layers.setdefault(src, {"notes"}).add(str(layer))
-        node_layers.setdefault(dst, {"notes"}).add(str(layer))
-
-    def _resolve_note_id(raw_id: int) -> int:
-        try:
-            note = col.get_note(int(raw_id))
-            if note:
-                return int(note.id)
-        except Exception:
-            pass
-        try:
-            card = col.get_card(int(raw_id))
-            if card:
-                return int(card.nid)
-        except Exception:
-            pass
-        return 0
-
-    provider_payload = _get_provider_link_edges_via_main_api(
-        uniq_nids,
-        include_family=False,
-    )
-    provider_edges = provider_payload.get("edges") if isinstance(provider_payload, dict) else []
-    if isinstance(provider_edges, list):
-        for row in provider_edges:
-            if not isinstance(row, dict):
-                continue
-            try:
-                source_nid = int(row.get("source_nid") or 0)
-                target_nid = int(row.get("target_nid") or 0)
-                target_id = int(row.get("target_id") or 0)
-            except Exception:
-                continue
-            if source_nid <= 0 or target_nid <= 0 or source_nid not in changed_set:
-                continue
-            provider_id = str(row.get("provider_id") or "").strip()
-            if not provider_id:
-                continue
-            provider_name = _provider_display_name(
-                provider_id, str(row.get("provider_name") or "")
-            )
-            layer = _provider_layer_id(provider_id)
-            provider_layer_map[layer] = provider_id
-            provider_layer_labels[layer] = provider_name
-            _add_edge(
-                source_nid,
-                target_nid,
-                layer,
-                {
-                    "provider_id": provider_id,
-                    "provider_category": str(row.get("provider_category") or ""),
-                    "label": str(row.get("label") or ""),
-                    "group": str(row.get("group") or ""),
-                    "target_kind": str(row.get("target_kind") or "nid"),
-                    "target_id": target_id,
-                    "manual": False,
-                },
-            )
-
-    for source_nid in uniq_nids:
-        try:
-            note = col.get_note(int(source_nid))
-        except Exception:
-            continue
-        linked_field = str(linked_fields.get(str(note.mid), "") or "").strip()
-        if not linked_field or linked_field not in note:
-            continue
-        raw = str(note[linked_field] or "")
-        if not raw:
-            continue
-        raw = _strip_html(html.unescape(raw))
-        raw = raw.replace("ï½œ", "|").replace("ï¼»", "[").replace("ï¼½", "]")
-        targets, _invalid = _parse_link_targets(raw)
-        for label, ref_id in targets:
-            target_nid = _resolve_note_id(int(ref_id))
-            if target_nid <= 0:
-                continue
-            _add_edge(
-                source_nid,
-                target_nid,
-                "note_links",
-                {
-                    "label": str(label or ""),
-                    "manual": True,
-                },
-            )
-
-    def _note_extra(note: Any) -> list[dict[str, str]]:
-        out: list[dict[str, str]] = []
-        fields = tooltip_fields.get(str(note.mid)) if isinstance(tooltip_fields, dict) else None
-        if not fields:
-            return out
-        for fname in fields:
-            fname = str(fname or "").strip()
-            if not fname or fname not in note:
-                continue
-            val = _strip_html(str(note[fname] or "")).strip()
-            if not val:
-                continue
-            out.append({"name": fname, "value": val})
-        return out
-
-    nodes: list[dict[str, Any]] = []
-    for nid in sorted(touched_nids):
-        try:
-            note = col.get_note(int(nid))
-        except Exception:
-            continue
-        layers = sorted(node_layers.get(int(nid), {"notes"}))
-        if "notes" not in layers:
-            layers.insert(0, "notes")
-        nodes.append(
-            {
-                "id": str(nid),
-                "label": _note_label(note, label_fields.get(str(note.mid))),
-                "kind": "note",
-                "note_type_id": str(note.mid),
-                "note_type": _note_type_name(col, int(note.mid)),
-                "layers": layers,
-                "extra": _note_extra(note),
-            }
-        )
-
-    if provider_layer_map:
-        for layer, provider_id in provider_layer_map.items():
-            color = _provider_layer_color(provider_id)
-            if not layer_colors.get(layer):
-                layer_colors[layer] = color
-            if not link_colors.get(layer):
-                link_colors[layer] = str(layer_colors.get(layer) or color)
-            if not layer_styles.get(layer):
-                layer_styles[layer] = "dashed"
-            if layer not in layer_flow:
-                layer_flow[layer] = True
-            if layer not in link_strengths:
-                link_strengths[layer] = 1.0
-
-    base_layers = ["notes", "priority", "families", "note_links", "examples", "kanji"]
-    all_layers = list(base_layers)
-    for layer in sorted(provider_layer_map.keys()):
-        if layer not in all_layers:
-            all_layers.append(layer)
-
-    return {
-        "changed_nids": sorted(int(x) for x in uniq_nids),
-        "nodes": nodes,
-        "edges": edges,
-        "meta": {
-            "layers": all_layers,
-            "provider_layers": dict(provider_layer_map),
-            "provider_layer_labels": dict(provider_layer_labels),
-            "layer_colors": layer_colors,
-            "link_colors": link_colors,
-            "layer_styles": layer_styles,
-            "layer_flow": layer_flow,
-            "link_strengths": link_strengths,
-        },
-    }
-
-
 def _build_kanji_maps(
     col: Collection,
     kanji_mid: str,
@@ -823,6 +604,531 @@ def _build_kanji_maps(
     # radicals intentionally ignored in graph view
 
     return kanji_map, radical_map, kanji_components
+
+
+def _stable_meta_serialize(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        return "[" + ",".join(_stable_meta_serialize(v) for v in value) + "]"
+    if isinstance(value, dict):
+        parts: list[str] = []
+        for key in sorted(value.keys(), key=lambda x: str(x)):
+            parts.append(json.dumps(str(key), ensure_ascii=False) + ":" + _stable_meta_serialize(value.get(key)))
+        return "{" + ",".join(parts) + "}"
+    try:
+        return json.dumps(value, ensure_ascii=False)
+    except Exception:
+        return json.dumps(str(value), ensure_ascii=False)
+
+
+def _stable_edge_id(source: str, target: str, layer: str, meta: dict[str, Any] | None) -> str:
+    src = str(source or "")
+    dst = str(target or "")
+    lyr = str(layer or "")
+    meta_sig = _stable_meta_serialize(meta or {})
+    return f"ed:{src}|{dst}|{lyr}|{meta_sig}"
+
+
+def _resolve_note_or_card_to_nid(col: Collection, raw_id: int) -> int | None:
+    try:
+        note = col.get_note(int(raw_id))
+        if note is not None:
+            return int(note.id)
+    except Exception:
+        pass
+    try:
+        card = col.get_card(int(raw_id))
+        if card is not None:
+            return int(card.nid)
+    except Exception:
+        pass
+    return None
+
+
+def build_note_delta_slice(
+    col: Collection,
+    changed_nids: list[int],
+    reason: str,
+    rev: int,
+) -> dict[str, Any]:
+    cfg = _get_tools_config()
+    changed_clean: list[int] = []
+    changed_seen: set[int] = set()
+    for raw in changed_nids or []:
+        try:
+            nid = int(raw or 0)
+        except Exception:
+            nid = 0
+        if nid <= 0 or nid in changed_seen:
+            continue
+        changed_seen.add(nid)
+        changed_clean.append(nid)
+
+    if not cfg:
+        logger.dbg("delta slice config missing", "rev=", rev, "reason=", reason)
+        return {
+            "rev": int(rev),
+            "reason": str(reason or ""),
+            "changed_nids": [str(n) for n in changed_clean],
+            "expanded_nids": [],
+            "nodes_raw": [],
+            "edges_raw": [],
+            "meta": {"provider_layers": {}, "layer_labels": {}, "error": "missing_tools_config"},
+        }
+
+    graph_cfg = load_graph_config()
+    label_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_label_fields") or {})
+    linked_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_linked_fields") or {})
+    tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
+    selected_decks = graph_cfg.get("selected_decks") or []
+
+    allowed_nids: set[int] | None = None
+    if isinstance(selected_decks, list) and selected_decks:
+        allowed_nids = set()
+        for deck_name in selected_decks:
+            dn = str(deck_name or "").strip()
+            if not dn:
+                continue
+            allowed_nids.update(_note_ids_for_deck(col, dn))
+
+    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
+    family_enabled = bool((fg_cfg or {}).get("enabled"))
+    family_field = str((fg_cfg or {}).get("family_field") or "")
+    family_sep = str((fg_cfg or {}).get("separator") or ";")
+    try:
+        family_default_prio = int((fg_cfg or {}).get("default_prio") or 0)
+    except Exception:
+        family_default_prio = 0
+    family_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
+    family_note_type_ids = {str(k) for k in family_note_types.keys() if str(k).strip()}
+
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    edges_by_id: dict[str, dict[str, Any]] = {}
+    provider_layer_map: dict[str, str] = {}
+    provider_layer_labels: dict[str, str] = {}
+
+    note_cache: dict[int, Any | None] = {}
+    note_exists_cache: dict[int, bool] = {}
+    outgoing_manual_cache: dict[int, list[tuple[int, str]]] = {}
+    incoming_manual_cache: dict[int, list[tuple[int, str]]] = {}
+    family_members_cache: dict[str, dict[int, int]] = {}
+
+    def _in_scope(nid: int) -> bool:
+        try:
+            nid_int = int(nid or 0)
+        except Exception:
+            return False
+        if nid_int <= 0:
+            return False
+        if allowed_nids is not None and nid_int not in allowed_nids:
+            return False
+        if nid_int in note_exists_cache:
+            return bool(note_exists_cache[nid_int])
+        exists = False
+        try:
+            note = col.get_note(nid_int)
+            exists = note is not None
+        except Exception:
+            exists = False
+        note_exists_cache[nid_int] = exists
+        return exists
+
+    def _get_note(nid: int):
+        if nid in note_cache:
+            return note_cache[nid]
+        note = None
+        try:
+            note = col.get_note(int(nid))
+        except Exception:
+            note = None
+        note_cache[nid] = note
+        return note
+
+    def _note_extra(note) -> list[dict[str, str]]:
+        extra: list[dict[str, str]] = []
+        if note is None:
+            return extra
+        fields = tooltip_fields.get(str(note.mid)) if isinstance(tooltip_fields, dict) else None
+        if not fields:
+            return extra
+        for fname in fields:
+            key = str(fname or "").strip()
+            if not key or key not in note:
+                continue
+            val = _strip_html(str(note[key] or "")).strip()
+            if not val:
+                continue
+            extra.append({"name": key, "value": val})
+        return extra
+
+    def _ensure_note_node(nid: int) -> bool:
+        sid = str(int(nid))
+        if sid in nodes_by_id:
+            node = nodes_by_id[sid]
+            layers = node.get("layers")
+            if isinstance(layers, list) and "notes" not in layers:
+                layers.append("notes")
+            return True
+        note = _get_note(int(nid))
+        if note is None:
+            return False
+        family_prios: dict[str, int] = {}
+        if family_enabled and family_field and family_field in note:
+            fams = _parse_family_field(str(note[family_field] or ""), family_sep, family_default_prio)
+            for fid, prio in fams:
+                family_prios[str(fid)] = int(prio)
+        nodes_by_id[sid] = {
+            "id": sid,
+            "label": _note_label(note, label_fields.get(str(note.mid))),
+            "kind": "note",
+            "note_type_id": str(note.mid),
+            "note_type": _note_type_name(col, int(note.mid)),
+            "layers": ["notes"],
+            "family_prios": family_prios,
+            "extra": _note_extra(note),
+            "cards": [],
+        }
+        return True
+
+    def _ensure_family_hub(fid: str) -> str:
+        hub_id = f"family:{fid}"
+        node = nodes_by_id.get(hub_id)
+        if node is None:
+            nodes_by_id[hub_id] = {
+                "id": hub_id,
+                "label": str(fid),
+                "kind": "family",
+                "layers": ["families"],
+                "extra": [],
+            }
+            return hub_id
+        layers = node.get("layers")
+        if isinstance(layers, list) and "families" not in layers:
+            layers.append("families")
+        return hub_id
+
+    def _add_layer(node_id: str, layer: str) -> None:
+        if not node_id or not layer:
+            return
+        node = nodes_by_id.get(str(node_id))
+        if not isinstance(node, dict):
+            return
+        layers = node.setdefault("layers", [])
+        if isinstance(layers, list) and layer not in layers:
+            layers.append(layer)
+
+    def _add_edge(source: str, target: str, layer: str, **meta: Any) -> None:
+        src = str(source or "")
+        dst = str(target or "")
+        lyr = str(layer or "")
+        if not src or not dst or not lyr or src == dst:
+            return
+        meta_obj = dict(meta or {})
+        edge_id = _stable_edge_id(src, dst, lyr, meta_obj)
+        if edge_id in edges_by_id:
+            return
+        edges_by_id[edge_id] = {
+            "id": edge_id,
+            "source": src,
+            "target": dst,
+            "layer": lyr,
+            "meta": meta_obj,
+        }
+
+    def _outgoing_manual_links(nid: int) -> list[tuple[int, str]]:
+        if nid in outgoing_manual_cache:
+            return outgoing_manual_cache[nid]
+        out: list[tuple[int, str]] = []
+        note = _get_note(nid)
+        if note is None:
+            outgoing_manual_cache[nid] = out
+            return out
+        field = str(linked_fields.get(str(note.mid)) or "").strip() if isinstance(linked_fields, dict) else ""
+        if not field or field not in note:
+            outgoing_manual_cache[nid] = out
+            return out
+        raw = str(note[field] or "")
+        if not raw:
+            outgoing_manual_cache[nid] = out
+            return out
+        text = _strip_html(html.unescape(raw))
+        text = text.replace("ï½œ", "|").replace("ï¼»", "[").replace("ï¼½", "]")
+        targets, _invalid = _parse_link_targets(text)
+        seen: set[tuple[int, str]] = set()
+        for label, ref_id in targets:
+            resolved = _resolve_note_or_card_to_nid(col, int(ref_id))
+            if not resolved:
+                continue
+            if not _in_scope(resolved):
+                continue
+            key = (int(resolved), str(label or ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((int(resolved), str(label or "")))
+        outgoing_manual_cache[nid] = out
+        return out
+
+    def _incoming_manual_links(target_nid: int) -> list[tuple[int, str]]:
+        if target_nid in incoming_manual_cache:
+            return incoming_manual_cache[target_nid]
+        out: list[tuple[int, str]] = []
+        if not _in_scope(target_nid):
+            incoming_manual_cache[target_nid] = out
+            return out
+        try:
+            rows = col.db.all("select id from notes where flds like ?", f"%nid{int(target_nid)}%")
+        except Exception:
+            rows = []
+        seen: set[tuple[int, str]] = set()
+        for row in rows or []:
+            try:
+                source_nid = int(row[0])
+            except Exception:
+                continue
+            if source_nid <= 0 or source_nid == target_nid:
+                continue
+            if not _in_scope(source_nid):
+                continue
+            for resolved, label in _outgoing_manual_links(source_nid):
+                if int(resolved) != int(target_nid):
+                    continue
+                key = (source_nid, str(label or ""))
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append((source_nid, str(label or "")))
+        incoming_manual_cache[target_nid] = out
+        return out
+
+    def _family_members(fid: str) -> dict[int, int]:
+        key = str(fid or "").strip()
+        if not key:
+            return {}
+        if key in family_members_cache:
+            return family_members_cache[key]
+        members: dict[int, int] = {}
+        if not (family_enabled and family_field and family_note_type_ids):
+            family_members_cache[key] = members
+            return members
+        for nt_id in sorted(family_note_type_ids):
+            for nid in _note_ids_for_mid(col, nt_id):
+                if not _in_scope(nid):
+                    continue
+                note = _get_note(int(nid))
+                if note is None or family_field not in note:
+                    continue
+                fams = _parse_family_field(str(note[family_field] or ""), family_sep, family_default_prio)
+                for fid_val, prio in fams:
+                    if str(fid_val) != key:
+                        continue
+                    members[int(nid)] = int(prio)
+                    break
+        family_members_cache[key] = members
+        return members
+
+    expanded_nids: set[int] = set()
+    frontier: set[int] = set()
+    for nid in changed_clean:
+        if _in_scope(nid):
+            expanded_nids.add(int(nid))
+            frontier.add(int(nid))
+
+    while frontier:
+        current = sorted(frontier)
+        frontier.clear()
+
+        provider_payload = _get_provider_link_edges_via_main_api(current, include_family=False)
+        provider_edges = provider_payload.get("edges") if isinstance(provider_payload, dict) else []
+        if isinstance(provider_edges, list):
+            for row in provider_edges:
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    source_nid = int(row.get("source_nid") or 0)
+                    target_nid = int(row.get("target_nid") or 0)
+                except Exception:
+                    continue
+                if source_nid <= 0 or target_nid <= 0:
+                    continue
+                if not _in_scope(source_nid) or not _in_scope(target_nid):
+                    continue
+
+                provider_id = str(row.get("provider_id") or "").strip()
+                if not provider_id:
+                    continue
+                provider_name = _provider_display_name(provider_id, str(row.get("provider_name") or ""))
+                layer = _provider_layer_id(provider_id)
+                provider_layer_map[layer] = provider_id
+                provider_layer_labels[layer] = provider_name
+
+                if not _ensure_note_node(source_nid):
+                    continue
+                if not _ensure_note_node(target_nid):
+                    continue
+                _add_layer(str(source_nid), layer)
+                _add_layer(str(target_nid), layer)
+                _add_edge(
+                    str(source_nid),
+                    str(target_nid),
+                    layer,
+                    provider_id=provider_id,
+                    provider_category=str(row.get("provider_category") or ""),
+                    label=str(row.get("label") or ""),
+                    group=str(row.get("group") or ""),
+                    target_kind=str(row.get("target_kind") or "nid"),
+                    target_id=int(row.get("target_id") or 0),
+                    manual=False,
+                )
+
+                if source_nid not in expanded_nids:
+                    expanded_nids.add(source_nid)
+                    frontier.add(source_nid)
+                if target_nid not in expanded_nids:
+                    expanded_nids.add(target_nid)
+                    frontier.add(target_nid)
+
+        for nid in current:
+            if not _ensure_note_node(nid):
+                continue
+            note = _get_note(nid)
+            if note is None:
+                continue
+
+            if family_enabled and family_field and family_field in note:
+                fams = _parse_family_field(str(note[family_field] or ""), family_sep, family_default_prio)
+                for fid, prio in fams:
+                    fid_txt = str(fid or "").strip()
+                    if not fid_txt:
+                        continue
+                    hub_id = _ensure_family_hub(fid_txt)
+                    _add_edge(
+                        str(nid),
+                        hub_id,
+                        "families",
+                        kind="hub",
+                        fid=fid_txt,
+                        prio=int(prio),
+                    )
+                    _add_layer(str(nid), "families")
+                    members = _family_members(fid_txt)
+                    for other_nid, other_prio in members.items():
+                        if other_nid <= 0 or other_nid == nid:
+                            continue
+                        if not _in_scope(other_nid):
+                            continue
+                        if not _ensure_note_node(other_nid):
+                            continue
+                        left = int(nid) if int(nid) < int(other_nid) else int(other_nid)
+                        right = int(other_nid) if left == int(nid) else int(nid)
+                        left_prio = int(prio) if left == int(nid) else int(other_prio)
+                        right_prio = int(other_prio) if right == int(other_nid) else int(prio)
+                        _add_edge(
+                            str(left),
+                            str(right),
+                            "priority",
+                            kind="direct",
+                            fid=fid_txt,
+                            prio_left=left_prio,
+                            prio_right=right_prio,
+                            same_prio=left_prio == right_prio,
+                        )
+                        _add_layer(str(left), "priority")
+                        _add_layer(str(right), "priority")
+                        if other_nid not in expanded_nids:
+                            expanded_nids.add(other_nid)
+                            frontier.add(other_nid)
+
+            for target_nid, label in _outgoing_manual_links(nid):
+                if not _ensure_note_node(target_nid):
+                    continue
+                _add_edge(
+                    str(nid),
+                    str(target_nid),
+                    "note_links",
+                    label=str(label or ""),
+                    manual=True,
+                )
+                _add_layer(str(nid), "note_links")
+                _add_layer(str(target_nid), "note_links")
+                if target_nid not in expanded_nids:
+                    expanded_nids.add(target_nid)
+                    frontier.add(target_nid)
+
+            for source_nid, label in _incoming_manual_links(nid):
+                if not _ensure_note_node(source_nid):
+                    continue
+                _add_edge(
+                    str(source_nid),
+                    str(nid),
+                    "note_links",
+                    label=str(label or ""),
+                    manual=True,
+                )
+                _add_layer(str(source_nid), "note_links")
+                _add_layer(str(nid), "note_links")
+                if source_nid not in expanded_nids:
+                    expanded_nids.add(source_nid)
+                    frontier.add(source_nid)
+
+    for edge in edges_by_id.values():
+        src = str(edge.get("source") or "")
+        dst = str(edge.get("target") or "")
+        layer = str(edge.get("layer") or "")
+        if layer:
+            _add_layer(src, layer)
+            _add_layer(dst, layer)
+
+    note_ids: list[int] = []
+    for node_id, node in nodes_by_id.items():
+        if node.get("kind") != "note":
+            continue
+        try:
+            note_ids.append(int(node_id))
+        except Exception:
+            continue
+    card_map = _build_card_map(col, note_ids)
+    for node_id, node in nodes_by_id.items():
+        if node.get("kind") != "note":
+            continue
+        try:
+            node["cards"] = card_map.get(int(node_id), [])
+        except Exception:
+            node["cards"] = []
+
+    nodes_raw = sorted(nodes_by_id.values(), key=lambda n: str(n.get("id") or ""))
+    edges_raw = sorted(edges_by_id.values(), key=lambda e: str(e.get("id") or ""))
+
+    changed_out = [str(nid) for nid in changed_clean]
+    expanded_out = [str(nid) for nid in sorted(expanded_nids)]
+    logger.dbg(
+        "delta slice",
+        "reason=",
+        str(reason or ""),
+        "changed=",
+        changed_out,
+        "expanded=",
+        len(expanded_out),
+        "nodes=",
+        len(nodes_raw),
+        "edges=",
+        len(edges_raw),
+        "rev=",
+        int(rev),
+    )
+    return {
+        "rev": int(rev),
+        "reason": str(reason or ""),
+        "changed_nids": changed_out,
+        "expanded_nids": expanded_out,
+        "nodes_raw": nodes_raw,
+        "edges_raw": edges_raw,
+        "meta": {
+            "provider_layers": dict(provider_layer_map),
+            "layer_labels": dict(provider_layer_labels),
+        },
+    }
 
 
 def build_graph(col: Collection) -> dict[str, Any]:
