@@ -24,6 +24,7 @@
 - Added alpha-only solver reheat for edge-changing delta updates (`reheat(1.25)`), so delta edge changes can nudge physics without rebuilding the solver simulation.
 - Added explicit delta reheat logs (trigger/skip/failure with rev/edge op counts/requested alpha) and solver reheat logs with the effective applied alpha.
 - Routed all city->engine runtime graph method calls through adapter engine port `graphCall(...)` and removed direct city-side `STATE.graph.*` calls.
+- Added adapter contract registry (`register/get/list` for city+engine ports) and declared explicit `graphCall` method contracts (required args + return shape) as central runtime API reference.
 - Limited delta neighbor expansion to one hop from changed notes to prevent transitive recursive slice blowups on context link/unlink operations.
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.

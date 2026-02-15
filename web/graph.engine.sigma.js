@@ -2653,42 +2653,103 @@ function applyGraphDeltaOps(ops, arrays, options) {
   return true;
 }
 
-var ENGINE_GRAPH_CALL_ALLOWLIST = Object.freeze({
-  reheat: true,
-  requestFrame: true,
-  getPointPositions: true,
-  spaceToScreenPosition: true,
-  getPointScreenRadiusByIndex: true,
-  spaceToScreenRadius: true,
-  getSelectedIndices: true,
-  getZoomLevel: true,
-  setConfig: true,
-  stop: true,
-  start: true,
-  render: true,
-  resize: true,
-  fitView: true,
-  setPointColors: true,
-  setPointSizes: true,
-  setLinkColors: true,
-  setLinkWidths: true,
-  setLinkStrength: true,
-  setLinkStyleCodes: true,
-  setLinkFlowMask: true,
-  setLinkBidirMask: true,
-  setLinkDistance: true,
-  screenToSpacePosition: true,
-  getCameraState: true
+var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze({
+  reheat: { args: [{ name: "alpha", type: "number", required: false }], returns: "boolean|undefined", desc: "Alpha-only solver nudge on running simulation." },
+  requestFrame: { args: [], returns: "undefined", desc: "Request one render frame for shader uniforms." },
+  getPointPositions: { args: [], returns: "array|typedarray|null", desc: "Get flattened [x,y] pairs for active nodes." },
+  spaceToScreenPosition: { args: [{ name: "spacePoint", type: "array2", required: true }], returns: "array", desc: "Project graph-space position to viewport-space." },
+  getPointScreenRadiusByIndex: { args: [{ name: "index", type: "number", required: true }], returns: "number", desc: "Get rendered point radius in pixels." },
+  spaceToScreenRadius: { args: [{ name: "radius", type: "number", required: true }], returns: "number", desc: "Project graph-space radius to viewport-space." },
+  getSelectedIndices: { args: [], returns: "array|null", desc: "Return selected node indices." },
+  getZoomLevel: { args: [], returns: "number", desc: "Return camera zoom ratio." },
+  setConfig: { args: [{ name: "configPatch", type: "object", required: true }], returns: "undefined", desc: "Apply runtime engine/solver/renderer config patch." },
+  stop: { args: [{ name: "destroySupervisor", type: "boolean", required: false }], returns: "undefined", desc: "Stop layout simulation." },
+  start: { args: [{ name: "alpha", type: "number", required: false }], returns: "undefined", desc: "Start/restart layout simulation." },
+  render: { args: [{ name: "alpha", type: "number", required: false }], returns: "undefined", desc: "Render frame with optional interpolation alpha." },
+  resize: { args: [], returns: "undefined", desc: "Resize renderer to host viewport." },
+  fitView: { args: [{ name: "durationMs", type: "number", required: false }, { name: "paddingRatio", type: "number", required: false }], returns: "undefined", desc: "Fit camera to graph bounds." },
+  setPointColors: { args: [{ name: "colors", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set flattened RGBA point colors." },
+  setPointSizes: { args: [{ name: "sizes", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set point sizes by index." },
+  setLinkColors: { args: [{ name: "colors", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set flattened RGBA edge colors." },
+  setLinkWidths: { args: [{ name: "widths", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set edge widths by index." },
+  setLinkStrength: { args: [{ name: "strengths", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set solver link strengths by index." },
+  setLinkStyleCodes: { args: [{ name: "styleCodes", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set edge style code array." },
+  setLinkFlowMask: { args: [{ name: "flowMask", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set per-edge shader flow mask." },
+  setLinkBidirMask: { args: [{ name: "bidirMask", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set per-edge bidirectional mask." },
+  setLinkDistance: { args: [{ name: "distances", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set solver link distances by index." },
+  screenToSpacePosition: { args: [{ name: "screenPoint", type: "array2", required: true }], returns: "array", desc: "Project viewport-space position to graph-space." },
+  getCameraState: { args: [], returns: "object|null", desc: "Get current camera state." }
 });
+
+var ENGINE_GRAPH_CALL_ALLOWLIST = Object.freeze((function () {
+  var out = Object.create(null);
+  Object.keys(ENGINE_GRAPH_CALL_CONTRACTS).forEach(function (name) {
+    out[name] = true;
+  });
+  return out;
+})());
+
+function graphCallTypeMatches(value, typeName) {
+  var t = String(typeName || "").trim().toLowerCase();
+  if (!t || t === "any") return true;
+  if (t === "undefined") return value === undefined;
+  if (t === "null") return value === null;
+  if (t === "number") return typeof value === "number" && isFinite(value);
+  if (t === "string") return typeof value === "string";
+  if (t === "boolean") return typeof value === "boolean";
+  if (t === "object") return !!value && typeof value === "object" && !Array.isArray(value) && !ArrayBuffer.isView(value);
+  if (t === "array") return Array.isArray(value);
+  if (t === "array2") return Array.isArray(value) && value.length >= 2 && isFinite(Number(value[0])) && isFinite(Number(value[1]));
+  if (t === "typedarray") return !!value && typeof value === "object" && ArrayBuffer.isView(value) && !(value instanceof DataView);
+  return false;
+}
+
+function graphCallArgMatches(value, typeExpr) {
+  var spec = String(typeExpr || "any");
+  var parts = spec.split("|");
+  for (var i = 0; i < parts.length; i += 1) {
+    if (graphCallTypeMatches(value, parts[i])) return true;
+  }
+  return false;
+}
+
+function graphCallValidateArgs(methodName, argsList, contract) {
+  if (!contract || !Array.isArray(contract.args)) return true;
+  for (var i = 0; i < contract.args.length; i += 1) {
+    var argSpec = contract.args[i] || {};
+    var required = argSpec.required !== false;
+    var value = argsList[i];
+    if (value === undefined || value === null) {
+      if (required) {
+        lg("warn", "graphCall invalid args method=" + String(methodName) + " arg=" + String(argSpec.name || i) + " reason=missing");
+        return false;
+      }
+      continue;
+    }
+    if (!graphCallArgMatches(value, argSpec.type || "any")) {
+      lg(
+        "warn",
+        "graphCall invalid args method=" + String(methodName)
+          + " arg=" + String(argSpec.name || i)
+          + " expected=" + String(argSpec.type || "any")
+      );
+      return false;
+    }
+  }
+  return true;
+}
 
 function graphCall(methodName) {
   if (!STATE.graph) return undefined;
   var key = String(methodName || "").trim();
   if (!key) return undefined;
   if (!Object.prototype.hasOwnProperty.call(ENGINE_GRAPH_CALL_ALLOWLIST, key)) return undefined;
+  var methodArgs = Array.prototype.slice.call(arguments, 1);
+  var contract = ENGINE_GRAPH_CALL_CONTRACTS[key] || null;
+  if (!graphCallValidateArgs(key, methodArgs, contract)) return undefined;
   var fn = STATE.graph[key];
   if (typeof fn !== "function") return undefined;
-  return fn.apply(STATE.graph, Array.prototype.slice.call(arguments, 1));
+  return fn.apply(STATE.graph, methodArgs);
 }
 
 window.applyGraphData = applyGraphData;
@@ -2707,5 +2768,53 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   adapter.registerEnginePort("focusNodeById", focusNodeById);
   adapter.registerEnginePort("edgeCurvByStyle", edgeCurvByStyle);
   adapter.registerEnginePort("graphCall", graphCall);
+  if (typeof adapter.registerEngineContract === "function") {
+    adapter.registerEngineContract("applyGraphData", {
+      args: [{ name: "fitView", type: "boolean", required: false }],
+      returns: "undefined"
+    });
+    adapter.registerEngineContract("applyGraphDeltaOps", {
+      args: [
+        { name: "ops", type: "object", required: false },
+        { name: "arrays", type: "object", required: false },
+        { name: "options", type: "object", required: false }
+      ],
+      returns: "boolean"
+    });
+    adapter.registerEngineContract("applyVisualStyles", {
+      args: [{ name: "renderAlpha", type: "number", required: false }],
+      returns: "undefined"
+    });
+    adapter.registerEngineContract("applyPhysicsToGraph", {
+      args: [],
+      returns: "undefined"
+    });
+    adapter.registerEngineContract("createGraphEngineSigma", {
+      args: [
+        { name: "container", type: "object", required: true },
+        { name: "config", type: "object", required: false }
+      ],
+      returns: "object"
+    });
+    adapter.registerEngineContract("focusNodeById", {
+      args: [
+        { name: "nodeId", type: "string|number", required: true },
+        { name: "fromSearch", type: "boolean", required: false }
+      ],
+      returns: "undefined"
+    });
+    adapter.registerEngineContract("edgeCurvByStyle", {
+      args: [
+        { name: "styleCode", type: "number", required: true },
+        { name: "edgeIndex", type: "number", required: false }
+      ],
+      returns: "number"
+    });
+    adapter.registerEngineContract("graphCall", {
+      args: [{ name: "methodName", type: "string", required: true }],
+      returns: "any",
+      methods: ENGINE_GRAPH_CALL_CONTRACTS
+    });
+  }
 })();
 

@@ -5,6 +5,8 @@
 
   var cityPorts = Object.create(null);
   var enginePorts = Object.create(null);
+  var cityContracts = Object.create(null);
+  var engineContracts = Object.create(null);
 
   function asName(name) {
     return String(name || "").trim();
@@ -36,6 +38,15 @@
     return Array.prototype.slice.call(args, start || 0);
   }
 
+  function cloneContractSpec(contract) {
+    if (!contract || typeof contract !== "object") return null;
+    try {
+      return JSON.parse(JSON.stringify(contract));
+    } catch (_e0) {
+      return null;
+    }
+  }
+
   var adapter = root.GraphAdapter && typeof root.GraphAdapter === "object"
     ? root.GraphAdapter
     : {};
@@ -50,6 +61,20 @@
     var key = asName(name);
     if (!key || typeof fn !== "function") return;
     enginePorts[key] = fn;
+  };
+
+  adapter.registerCityContract = function (name, contract) {
+    var key = asName(name);
+    var spec = cloneContractSpec(contract);
+    if (!key || !spec) return;
+    cityContracts[key] = spec;
+  };
+
+  adapter.registerEngineContract = function (name, contract) {
+    var key = asName(name);
+    var spec = cloneContractSpec(contract);
+    if (!key || !spec) return;
+    engineContracts[key] = spec;
   };
 
   adapter.hasCityPort = function (name) {
@@ -70,8 +95,30 @@
     return invoke(enginePorts, name, tailArgs(arguments, 1));
   };
 
+  adapter.getCityContract = function (name) {
+    var key = asName(name);
+    if (!key || !cityContracts[key]) return null;
+    return cloneContractSpec(cityContracts[key]);
+  };
+
+  adapter.getEngineContract = function (name) {
+    var key = asName(name);
+    if (!key || !engineContracts[key]) return null;
+    return cloneContractSpec(engineContracts[key]);
+  };
+
+  adapter.listCityContracts = function () {
+    return cloneContractSpec(cityContracts) || {};
+  };
+
+  adapter.listEngineContracts = function () {
+    return cloneContractSpec(engineContracts) || {};
+  };
+
   adapter.cityPorts = cityPorts;
   adapter.enginePorts = enginePorts;
+  adapter.cityContracts = cityContracts;
+  adapter.engineContracts = engineContracts;
 
   root.GraphAdapter = adapter;
 })();
