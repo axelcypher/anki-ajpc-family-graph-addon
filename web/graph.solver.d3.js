@@ -133,6 +133,202 @@ AjpcGraphSolverD3.prototype._edgeStrength = function (link, cfg) {
   return cl(cfg.d3_link_strength * dyn, 0, 2);
 };
 
+AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options) {
+  var cfg = this._settings();
+  if (!cfg.layout_enabled) {
+    lg("warn", "subset pull skipped: layout disabled");
+    return false;
+  }
+
+  var d3 = this._d3();
+  if (!d3) {
+    lg("warn", "subset pull skipped: d3 missing");
+    return false;
+  }
+
+  var owner = this.owner || {};
+  var graph = owner.graph || null;
+  if (!graph) {
+    lg("warn", "subset pull skipped: graph missing");
+    return false;
+  }
+
+  var opt = options && typeof options === "object" ? options : {};
+  var idsInput = Array.isArray(nodeIds) ? nodeIds : [];
+  var ids = [];
+  var seenIds = new Set();
+  for (var i = 0; i < idsInput.length; i += 1) {
+    var nodeId = String(idsInput[i] || "");
+    if (!nodeId || seenIds.has(nodeId)) continue;
+    seenIds.add(nodeId);
+    ids.push(nodeId);
+  }
+  if (ids.length < 2) {
+    lg("warn", "subset pull skipped: requires >=2 nodes");
+    return false;
+  }
+
+  var nodes = [];
+  var nodeById = new Map();
+  for (i = 0; i < ids.length; i += 1) {
+    var id = ids[i];
+    if (!graph.hasNode(id)) continue;
+    var attrs = graph.getNodeAttributes(id);
+    if (!attrs || attrs.hidden) continue;
+    var x = Number(attrs.x);
+    var y = Number(attrs.y);
+    if (!isFinite(x) || !isFinite(y)) {
+      var seed = solverSeededPos(id);
+      x = Number(seed[0] || 0) - off();
+      y = Number(seed[1] || 0) - off();
+    }
+    var node = {
+      id: id,
+      x: x,
+      y: y,
+      vx: Number(attrs.vx || 0),
+      vy: Number(attrs.vy || 0)
+    };
+    nodes.push(node);
+    nodeById.set(id, node);
+  }
+
+  if (nodes.length < 2) {
+    lg("warn", "subset pull skipped: not enough in-scope nodes");
+    return false;
+  }
+
+  var links = [];
+  if (opt.include_links !== false) {
+    var edgeIds = Array.isArray(owner.edgeIdByIndex) ? owner.edgeIdByIndex : [];
+    for (i = 0; i < edgeIds.length; i += 1) {
+      var edgeId = edgeIds[i];
+      if (!edgeId || !graph.hasEdge(edgeId)) continue;
+      var edgeAttrs = graph.getEdgeAttributes(edgeId);
+      if (edgeAttrs && edgeAttrs.hidden) continue;
+      var sid = String(graph.source(edgeId) || "");
+      var tid = String(graph.target(edgeId) || "");
+      var s = nodeById.get(sid);
+      var t = nodeById.get(tid);
+      if (!s || !t || s === t) continue;
+      links.push({
+        source: s,
+        target: t,
+        id: String(edgeId),
+        edgeIndex: owner.edgeIndexById && typeof owner.edgeIndexById.get === "function"
+          ? Number(owner.edgeIndexById.get(String(edgeId)))
+          : i
+      });
+    }
+  }
+
+  var centroidX = 0;
+  var centroidY = 0;
+  for (i = 0; i < nodes.length; i += 1) {
+    centroidX += Number(nodes[i].x || 0);
+    centroidY += Number(nodes[i].y || 0);
+  }
+  centroidX /= nodes.length;
+  centroidY /= nodes.length;
+
+  var alphaInput = Number(opt.alpha);
+  var alpha = (isFinite(alphaInput) && alphaInput >= 0)
+    ? Math.max(alphaInput, cfg.d3_alpha_min)
+    : Math.max(cfg.d3_alpha, cfg.d3_alpha_min);
+
+  var ticksInput = Number(opt.ticks);
+  var ticksDefault = cfg.d3_warmup_ticks > 0 ? cfg.d3_warmup_ticks : 80;
+  var ticks = isFinite(ticksInput) ? Math.floor(ticksInput) : ticksDefault;
+  if (!isFinite(ticks) || ticks < 1) ticks = 1;
+  ticks = Math.min(ticks, 5000);
+
+  var centerStrengthInput = Number(opt.center_strength);
+  var centerStrength = isFinite(centerStrengthInput)
+    ? centerStrengthInput
+    : Math.max(cfg.d3_center_strength, 0.02);
+  centerStrength = cl(centerStrength, 0, 1);
+
+  var attractInput = Number(opt.attract_strength);
+  var attractBase = Math.abs(Number(cfg.d3_manybody_strength || 0));
+  var attractStrength = isFinite(attractInput) ? attractInput : (attractBase > 0 ? attractBase : 40);
+  attractStrength = cl(attractStrength, 0, 5000);
+
+  var self = this;
+  var charge = d3.forceManyBody()
+    .strength(function () { return attractStrength; })
+    .theta(cfg.d3_manybody_theta);
+  charge.distanceMin(cfg.d3_manybody_distance_min);
+  if (cfg.d3_manybody_distance_max > 0) charge.distanceMax(cfg.d3_manybody_distance_max);
+
+  var sim = d3.forceSimulation(nodes)
+    .alpha(alpha)
+    .alphaMin(cfg.d3_alpha_min)
+    .alphaDecay(cfg.d3_alpha_decay)
+    .alphaTarget(cfg.d3_alpha_target)
+    .velocityDecay(0)
+    .force("charge", charge)
+    .force("x", d3.forceX(centroidX).strength(centerStrength))
+    .force("y", d3.forceY(centroidY).strength(centerStrength));
+
+  if (links.length) {
+    var linkForce = d3.forceLink(links)
+      .id(function (n) { return n.id; })
+      .distance(function (l) { return self._edgeDistance(l, cfg); })
+      .strength(function (l) { return self._edgeStrength(l, cfg); })
+      .iterations(cfg.d3_link_iterations);
+    sim.force("link", linkForce);
+  }
+
+  sim.stop();
+  for (i = 0; i < ticks; i += 1) sim.tick();
+
+  var moved = 0;
+  var ofs = off();
+  var indexById = owner.indexById && typeof owner.indexById.get === "function" ? owner.indexById : null;
+  for (i = 0; i < nodes.length; i += 1) {
+    var n = nodes[i];
+    if (!n || !graph.hasNode(n.id)) continue;
+    var nx = Number(n.x);
+    var ny = Number(n.y);
+    if (!isFinite(nx) || !isFinite(ny)) continue;
+    graph.mergeNodeAttributes(n.id, { x: nx, y: ny, vx: Number(n.vx || 0), vy: Number(n.vy || 0) });
+    if (indexById && owner.pointPositions && owner.pointPositions.length) {
+      var posIdx = Number(indexById.get(String(n.id)));
+      if (isFinite(posIdx) && posIdx >= 0 && ((posIdx * 2) + 1) < owner.pointPositions.length) {
+        owner.pointPositions[posIdx * 2] = nx + ofs;
+        owner.pointPositions[(posIdx * 2) + 1] = ny + ofs;
+      }
+    }
+    moved += 1;
+  }
+
+  try { sim.stop(); } catch (_e) {}
+  if (owner && typeof owner.requestFrame === "function") owner.requestFrame();
+  else if (owner && owner.renderer && typeof owner.renderer.requestFrame === "function") owner.renderer.requestFrame();
+
+  lg(
+    "info",
+    "d3 solver subset pull nodes=" + String(nodes.length)
+      + " links=" + String(links.length)
+      + " ticks=" + String(ticks)
+      + " alpha=" + String(alpha)
+      + " attract=" + String(attractStrength)
+      + " center=" + String(centerStrength)
+      + " moved=" + String(moved)
+  );
+
+  return {
+    ok: moved > 0,
+    moved: moved,
+    nodes: nodes.length,
+    links: links.length,
+    ticks: ticks,
+    alpha: alpha,
+    attract_strength: attractStrength,
+    center_strength: centerStrength
+  };
+};
+
 AjpcGraphSolverD3.prototype._applyTick = function () {
   if (!this.simulation) return;
   var owner = this.owner || {};

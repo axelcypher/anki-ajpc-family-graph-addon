@@ -12,6 +12,7 @@
   - JS unified mod pipeline for full+delta slices (`web/graph.payload.js`)
   - JS diff/state patch ops (`node_add/node_update/node_drop`, `edge_upsert/edge_drop`)
   - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/graph.engine.sigma.js`)
+- Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/graph.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes

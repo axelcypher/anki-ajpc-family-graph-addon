@@ -115,6 +115,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.
+- Solver helper available (not auto-wired): `AjpcGraphSolverD3.runSubsetNoDampingPull(nodeIds, options)` for subset-only extra simulation with `velocityDecay(0)`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
 - `web/graph.flow.js` drives the shader flow animation loop and frame requests.
 - Node ping/ring effects are rendered in Sigma node shaders (`web/sigma-programs/graph.sigma.program.extra.nodefx.js`).
