@@ -3,7 +3,7 @@
 // Context-menu UI module (extracted from graph.ui.js).
 var CTX_ICON_DEFAULT_MODE = "fixed";
 var CTX_ICON_DEFAULT_COLOR = "var(--text-main)";
-var CTX_ICON_ENABLE_ENTRY_PREFIX = false; // keep only in-label token icons by default
+var CTX_ICON_ENABLE_ENTRY_PREFIX = true; // keep only in-label token icons by default
 var CTX_ICON_ALLOWED_MODES = Object.freeze({
   active: true,
   selected: true,
@@ -11,6 +11,10 @@ var CTX_ICON_ALLOWED_MODES = Object.freeze({
   split: true
 });
 var CTX_ICON_REGISTRY = Object.freeze({
+  preview: "assets/ctx-icons/preview.svg",
+  editor: "assets/ctx-icons/editor.svg",
+  browser: "assets/ctx-icons/browser.svg",
+  filter: "assets/ctx-icons/filter.svg",
   arrow_ltr: "assets/ctx-icons/arrow_ltr.svg",
   arrow_rtl: "assets/ctx-icons/arrow_rtl.svg",
   arrow_ltr_rtl: "assets/ctx-icons/arrow_ltr_rtl.svg",
@@ -18,7 +22,11 @@ var CTX_ICON_REGISTRY = Object.freeze({
   arrow_c_rtl: "assets/ctx-icons/arrow_c_rtl.svg",
   arrow_c_ltr_rtl: "assets/ctx-icons/arrow_c_ltr_rtl.svg",
   icon_active: "assets/ctx-icons/icon_active.svg",
-  icon_selected: "assets/ctx-icons/icon_selected.svg"
+  icon_selected: "assets/ctx-icons/icon_selected.svg",
+  family_link: "assets/ctx-icons/family_link.svg",
+  family_unlink: "assets/ctx-icons/family_unlink.svg",
+  link: "assets/ctx-icons/link.svg",
+  unlink: "assets/ctx-icons/unlink.svg"
 });
 var CTX_ICON_TEMPLATE_CACHE = Object.create(null);
 var CTX_ICON_LOADING_CACHE = Object.create(null);
@@ -176,21 +184,25 @@ function resolveCtxIconColor(candidate, fallback) {
 function resolveCtxIconColors(icon, ctxColorState) {
   var state = ctxColorState && typeof ctxColorState === "object" ? ctxColorState : {};
   var fallback = normalizeCtxIconColor(icon && icon.color);
-  if (!icon) return { primary: fallback, secondary: fallback };
+  var familyFallback = resolveCtxIconColor(state.familyColor, fallbackLayerColor("families"));
+  if (!icon) return { primary: fallback, secondary: fallback, family: familyFallback };
   if (icon.mode === "active") {
     var active = resolveCtxIconColor(state.activeColor, fallback);
-    return { primary: active, secondary: active };
+    var activeFamily = resolveCtxIconColor(state.activeFamilyColor, familyFallback);
+    return { primary: active, secondary: active, family: activeFamily };
   }
   if (icon.mode === "selected") {
     var selected = resolveCtxIconColor(state.selectedColor, fallback);
-    return { primary: selected, secondary: selected };
+    var selectedFamily = resolveCtxIconColor(state.selectedFamilyColor, familyFallback);
+    return { primary: selected, secondary: selected, family: selectedFamily };
   }
   if (icon.mode === "split") {
     var splitPrimary = resolveCtxIconColor(state.activeColor, fallback);
     var splitSecondary = resolveCtxIconColor(state.selectedColor, fallback);
-    return { primary: splitPrimary, secondary: splitSecondary };
+    var splitFamily = resolveCtxIconColor(state.familyColor, fallback);
+    return { primary: splitPrimary, secondary: splitSecondary, family: splitFamily };
   }
-  return { primary: fallback, secondary: fallback };
+  return { primary: fallback, secondary: fallback, family: fallback };
 }
 
 function createCtxIconElement(iconSpec, ctxColorState) {
@@ -212,6 +224,7 @@ function createCtxIconElement(iconSpec, ctxColorState) {
     var colors = resolveCtxIconColors(icon, ctxColorState);
     svg.style.setProperty("--ctx-icon-primary", colors.primary);
     svg.style.setProperty("--ctx-icon-secondary", colors.secondary);
+    svg.style.setProperty("--ctx-icon-family", colors.family);
     return svg;
   });
 }
@@ -311,6 +324,20 @@ function contextNodeColor(node) {
     return normalizeHexColor(STATE.noteTypes[ntid].color, fallbackLayerColor("notes"));
   }
   return fallbackLayerColor("notes");
+}
+
+function contextFamilyHubColor(node) {
+  if (!node) return "";
+  if (String(node.kind || "") !== "family") return "";
+  return contextNodeColor(node);
+}
+
+function resolveContextFamilyColor(selectedNode, contextNode) {
+  var activeFamilyColor = contextFamilyHubColor(selectedNode);
+  if (activeFamilyColor) return activeFamilyColor;
+  var selectedFamilyColor = contextFamilyHubColor(contextNode);
+  if (selectedFamilyColor) return selectedFamilyColor;
+  return fallbackLayerColor("families");
 }
 
 function isNodePinnedForCtx(node) {
@@ -428,7 +455,7 @@ function buildContextMenuGroupsForCtx(ctx) {
   var selectedKind = ctx.selectedKind || (selectedNode ? (selectedNode.kind || "") : "");
   var menuSelectedId = ctx.menuSelectedId || (selectedNode ? String(selectedNode.id) : "");
   var noteTypeLinkedField = ctx.noteTypeLinkedField || {};
-  var showToast = ctx.showToast || function () {};
+  var showToast = ctx.showToast || function () { };
   var pycmd = ctx.pycmd || null;
   var showFamilyPicker = ctx.showFamilyPicker || null;
   function openEditorViaApi(nodeId) {
@@ -463,23 +490,23 @@ function buildContextMenuGroupsForCtx(ctx) {
   if (node.kind === "note") {
     openGroup.push({
       label: "Open Preview",
-      iconSpec: "icon_selected",
+      iconSpec: "preview",
       cb: function () { showToast("Open preview"); if (pycmd) pycmd("ctx:preview:" + node.id); }
     });
     openGroup.push({
       label: "Open Editor",
-      iconSpec: "icon_active",
+      iconSpec: "editor",
       cb: function () { showToast("Open editor"); openEditorViaApi(node.id); }
     });
     openGroup.push({
       label: "Open Browser",
-      iconSpec: "icon_selected",
+      iconSpec: "browser",
       cb: function () { showToast("Open browser"); if (pycmd) pycmd("ctx:browser:" + node.id); }
     });
   } else if (isNodeNoteTypeHub) {
     openGroup.push({
       label: "Open Browser by Mass Linker Tag",
-      iconSpec: "icon_selected",
+      iconSpec: "browser",
       cb: function () {
         var tag = "";
         var rawId = String(node.id || "");
@@ -510,8 +537,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     if (canConnect) {
       if (isNodeFamily && selectedKind === "note") {
         connectGroup.push({
-          label: "Connect active to: selected Family",
-          iconSpec: "arrow_c_rtl:selected",
+          label: "Add Family: from active arrow_ltr:active to selected",
+          iconSpec: "family_link",
           cb: function () {
             var hubFid = node.label || String(node.id).replace("family:", "");
             hubFid = String(hubFid || "").trim();
@@ -560,16 +587,32 @@ function buildContextMenuGroupsForCtx(ctx) {
         };
       }
       if (selectedKind === "family") {
-        connectGroup.push({ label: "Connect selected to Family", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select hub families", "hub_zero") });
+        connectGroup.push({ 
+          label: "Add selected to Family", 
+          iconSpec: "family_link", 
+          cb: doConnectWithMode("Select hub families", "hub_zero") 
+        });
       } else if (selectedKind === "note") {
-        connectGroup.push({ label: "Connect selected: to active Family@+1", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "") });
-        connectGroup.push({ label: "Connect selected to: active Family", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "same") });
+        connectGroup.push({ 
+          label: "Add Family[+1]: to active arrow_rtl:fixed:#f72a2a from selected", 
+          iconSpec: "family_link", 
+          cb: doConnectWithMode("Select families to connect", "") 
+        });
+        connectGroup.push({ 
+          label: "Add Family: to active arrow_rtl:fixed:#f72a2a from selected", 
+          iconSpec: "family_link", 
+          cb: doConnectWithMode("Select families to connect", "same") 
+        });
         if (hasPositiveFamilyPrioForCtx(selectedNode)) {
-          connectGroup.push({ label: "Connect selected: to active Family@-1", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "minus1") });
+          connectGroup.push({ 
+            label: "Add Family[-1]: to active arrow_rtl:fixed:#f72a2a from selected", 
+            iconSpec: "family_link", 
+            cb: doConnectWithMode("Select families to connect", "minus1") 
+          });
         }
         connectGroup.push({
-          label: "Connect active to: selected Family",
-          iconSpec: "arrow_c_rtl:selected",
+          label: "Add Family: from active arrow_ltr:active to selected",
+          iconSpec: "family_link",
           cb: function () {
             var families = getNodeFamiliesForCtx(node);
             if (!families.length) { showToast("No family on selected"); return; }
@@ -622,13 +665,13 @@ function buildContextMenuGroupsForCtx(ctx) {
     if (sharedFamilies.length) {
       disconnectGroup.push({
         label: isSame
-          ? "Disconnect from Family"
+          ? "Remove from Family"
           : (isNodeFamily && isSelectedNote)
-            ? "Disconnect from Family"
+            ? "Remove from Family"
             : isSelectedFamily
-              ? "Disconnect selected from Family"
-              : "Disconnect selected: from active Family",
-        iconSpec: "arrow_c_ltr:fixed:#ef4444",
+              ? "Remove Family from selected"
+              : "Remove Family from selected",
+        iconSpec: "family_unlink",
         cb: function () {
           function doDisconnect(families) {
             showToast("Disconnect family");
@@ -668,7 +711,7 @@ function buildContextMenuGroupsForCtx(ctx) {
     if (targetLinked && !linkInfo.ba) {
       appendItems.push({
         label: "Append Link: to active arrow_rtl:fixed:#f72a2a from selected",
-        iconSpec: "arrow_ltr:active",
+        iconSpec: "link",
         cb: function () {
           showToast("Append link");
           var payload = { source: String(menuSelectedId), target: String(node.id), label: selectedNode.label || "" };
@@ -679,7 +722,7 @@ function buildContextMenuGroupsForCtx(ctx) {
     if (activeLinked && !linkInfo.ab) {
       appendItems.push({
         label: "Append Link: from active arrow_ltr:active to selected",
-        iconSpec: "arrow_rtl:selected",
+        iconSpec: "link",
         cb: function () {
           showToast("Append link");
           var payload = { source: String(node.id), target: String(menuSelectedId), label: node.label || "" };
@@ -690,7 +733,7 @@ function buildContextMenuGroupsForCtx(ctx) {
     if (targetLinked && activeLinked && !linkInfo.ab && !linkInfo.ba) {
       appendItems.push({
         label: "Append Link: on both arrow_ltr_rtl:split to both",
-        iconSpec: "arrow_ltr_rtl:split",
+        iconSpec: "link",
         cb: function () {
           showToast("Append links");
           var payload = {
@@ -713,8 +756,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     var selLinked = selNt ? noteTypeLinkedField[selNt] : "";
     if (linkInfo.ba && nodeLinked) {
       removeGroup.push({
-        label: "Remove Link on selected: to active",
-        iconSpec: "arrow_ltr:fixed:#ef4444",
+        label: "Remove Link: to active arrow_c_rtl:fixed:#f72a2a from selected",
+        iconSpec: "unlink",
         cb: function () {
           showToast("Remove link");
           var payload = { source: String(menuSelectedId), target: String(node.id) };
@@ -724,8 +767,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     }
     if (linkInfo.ab && selLinked) {
       removeGroup.push({
-        label: "Remove Link on active: to selected",
-        iconSpec: "arrow_rtl:fixed:#ef4444",
+        label: "Remove Link: from active arrow_c_ltr:active to selected",
+        iconSpec: "unlink",
         cb: function () {
           showToast("Remove link");
           var payload = { source: String(node.id), target: String(menuSelectedId) };
@@ -735,8 +778,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     }
     if (linkInfo.ab && linkInfo.ba && nodeLinked && selLinked) {
       removeGroup.push({
-        label: "Remove Link on both: to each other",
-        iconSpec: "arrow_ltr_rtl:fixed:#ef4444",
+        label: "Remove Link: on both arrow_c_ltr_rtl:split to both",
+        iconSpec: "unlink",
         cb: function () {
           showToast("Remove links");
           var payload = { source: String(menuSelectedId), target: String(node.id) };
@@ -753,7 +796,7 @@ function buildContextMenuGroupsForCtx(ctx) {
   families.forEach(function (fid) {
     filterGroup.push({
       label: "Filter Family: " + fid,
-      iconSpec: "icon_selected:selected",
+      iconSpec: "filter",
       cb: function () {
         showToast("Filter family");
         if (pycmd) pycmd("ctx:filter:" + encodeURIComponent(fid));
@@ -844,9 +887,14 @@ function showContextMenu(node, evt) {
     menuSelectedId = String(node.id || "");
   }
   var selectedKind = selectedNode ? String(selectedNode.kind || "") : "";
+  var activeFamilyColor = contextFamilyHubColor(selectedNode);
+  var selectedFamilyColor = contextFamilyHubColor(node);
   var iconColorState = {
     activeColor: selectedNode ? contextNodeColor(selectedNode) : "",
-    selectedColor: contextNodeColor(node)
+    selectedColor: contextNodeColor(node),
+    activeFamilyColor: activeFamilyColor,
+    selectedFamilyColor: selectedFamilyColor,
+    familyColor: resolveContextFamilyColor(selectedNode, node)
   };
   var noteTypeLinkedField = buildNoteTypeLinkedFieldMapForCtx();
 

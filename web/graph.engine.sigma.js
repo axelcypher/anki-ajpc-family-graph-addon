@@ -2642,8 +2642,15 @@ function applyGraphDeltaOps(ops, arrays, options) {
   if (!STATE.graph || typeof STATE.graph.applyDeltaOps !== "function") {
     throw new Error("applyDeltaOps is not available");
   }
-  var changed = STATE.graph.applyDeltaOps(ops || {}, arrays || {}, options || {});
+  var deltaOps = ops || {};
+  var changed = STATE.graph.applyDeltaOps(deltaOps, arrays || {}, options || {});
   if (!changed) return false;
+  var edgeUpsertCount = Array.isArray(deltaOps.edge_upsert) ? deltaOps.edge_upsert.length : 0;
+  var edgeDropCount = Array.isArray(deltaOps.edge_drop) ? deltaOps.edge_drop.length : 0;
+  var shouldReheat = edgeUpsertCount > 0 || edgeDropCount > 0;
+  if (shouldReheat && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
+    STATE.graph.start(0.25);
+  }
   if (STATE.graph && typeof STATE.graph.resize === "function") STATE.graph.resize();
   cityEnsureFlowParticlesLoop();
   return true;

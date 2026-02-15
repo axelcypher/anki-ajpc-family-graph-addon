@@ -74,6 +74,7 @@
   & .ctx-icon-base {
     --ctx-icon-primary: var(--text-main);
     --ctx-icon-secondary: var(--text-main);
+    --ctx-icon-family: var(--ctx-icon-primary);
     overflow: visible;
     color: var(--ctx-icon-primary);
   }
@@ -92,16 +93,27 @@
     vector-effect: non-scaling-stroke;
   }
 
-  & .ctx-icon--arrow_ltr_rtl .ctx-icon-path-primary,
-  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary {
+  & .ctx-icon-base .ctx-icon-path-primary {
     stroke: var(--ctx-icon-primary) !important;
+    fill: var(--ctx-icon-primary) !important;
   }
 
-  & .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary,
-  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
+  & .ctx-icon-base .ctx-icon-path-secondary {
     stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
+    fill: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
   }
-}
+
+  & .ctx-icon-base .ctx-icon-path-family {
+    stroke: var(--ctx-icon-family, var(--ctx-icon-primary)) !important;
+    fill: var(--ctx-icon-family, var(--ctx-icon-primary)) !important;
+  }
+
+  & .ctx-icon-base .ctx-icon-path-primary[fill='none'],
+  & .ctx-icon-base .ctx-icon-path-secondary[fill='none'],
+  & .ctx-icon-base .ctx-icon-path-family[fill='none'] {
+    fill: none !important;
+  }
+} 
 
 #ctx-picker {
   position: fixed;

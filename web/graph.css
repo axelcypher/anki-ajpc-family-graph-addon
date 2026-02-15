@@ -1147,6 +1147,7 @@ input[type=checkbox]:checked::before {
 #ctx-menu .ctx-icon-base {
   --ctx-icon-primary: var(--text-main);
   --ctx-icon-secondary: var(--text-main);
+  --ctx-icon-family: var(--ctx-icon-primary);
   overflow: visible;
   color: var(--ctx-icon-primary);
 }
@@ -1157,11 +1158,20 @@ input[type=checkbox]:checked::before {
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-#ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary {
+#ctx-menu .ctx-icon-base .ctx-icon-path-primary {
   stroke: var(--ctx-icon-primary) !important;
+  fill: var(--ctx-icon-primary) !important;
 }
-#ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
+#ctx-menu .ctx-icon-base .ctx-icon-path-secondary {
   stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
+  fill: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
+}
+#ctx-menu .ctx-icon-base .ctx-icon-path-family {
+  stroke: var(--ctx-icon-family, var(--ctx-icon-primary)) !important;
+  fill: var(--ctx-icon-family, var(--ctx-icon-primary)) !important;
+}
+#ctx-menu .ctx-icon-base .ctx-icon-path-primary[fill=none], #ctx-menu .ctx-icon-base .ctx-icon-path-secondary[fill=none], #ctx-menu .ctx-icon-base .ctx-icon-path-family[fill=none] {
+  fill: none !important;
 }
 
 #ctx-picker {

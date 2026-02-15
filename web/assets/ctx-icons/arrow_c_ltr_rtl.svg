@@ -3,10 +3,15 @@
 <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
 <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Arrow / Arrow_Left_Right">
-<g transform="translate(12 12) scale(1.2) translate(-10.5 -10.5)">
-<path class="ctx-icon-path-primary" d="m12.5 3.5-4 14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(12 12) scale(1.2) translate(-10.5 -10)">
+    <path class="ctx-icon-path-primary" d="m12.5 3.5-4 14" stroke="#ffffff" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<path class="ctx-icon-path-primary" d="M16 13L19 16M19 16L16 19M19 16H5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<path class="ctx-icon-path-secondary" d="M8 11L5 8M5 8L8 5M5 8H19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(12 12) scale(0.65) translate(-16.5 -7.5)">
+            <path class="ctx-icon-path-secondary" id="Vector" d="M3 12L8 17M3 12L8 7M3 12H21" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <g transform="translate(12 12) scale(0.65) translate(-7.5 -14.5)">
+            <path class="ctx-icon-path-primary" id="Vector" d="M21 12L16 7M21 12L16 17M21 12H3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
 </g>
 </svg>

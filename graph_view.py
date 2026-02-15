@@ -1,9 +1,11 @@
 ﻿from __future__ import annotations
 
+import ctypes
+import sys
 from typing import Any
 
 from aqt import gui_hooks, mw
-from aqt.qt import QVBoxLayout, QWidget, Qt, QTimer
+from aqt.qt import QEvent, QVBoxLayout, QWidget, Qt, QTimer
 from aqt.utils import restoreGeom, saveGeom, setWindowIcon
 from aqt.webview import AnkiWebView
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -17,13 +19,24 @@ from .graph_sync import GraphSyncMixin
 class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditorMixin, QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self._native_style_applied = False
         try:
-            self.setWindowFlags(
+            flags = (
                 Qt.WindowType.Window
+                | Qt.WindowType.WindowTitleHint
+                | Qt.WindowType.WindowSystemMenuHint
                 | Qt.WindowType.WindowMinimizeButtonHint
                 | Qt.WindowType.WindowMaximizeButtonHint
                 | Qt.WindowType.WindowCloseButtonHint
             )
+            for forbidden in (
+                Qt.WindowType.Tool,
+                Qt.WindowType.Popup,
+                Qt.WindowType.Dialog,
+                Qt.WindowType.SubWindow,
+            ):
+                flags &= ~forbidden
+            self.setWindowFlags(flags)
         except Exception:
             pass
         self.setWindowTitle("Anki - AJpC Tools Graph")
@@ -84,6 +97,98 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         except Exception:
             pass
         self._bind_note_add_hooks()
+
+    def _force_appwindow_style(self, hwnd: int, *, reason: str = "") -> None:
+        if sys.platform != "win32":
+            return
+        try:
+            user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+            g_wl_exstyle = -20
+            ws_ex_toolwindow = 0x00000080
+            ws_ex_appwindow = 0x00040000
+            ws_ex_noactivate = 0x08000000
+            swp_nosize = 0x0001
+            swp_nomove = 0x0002
+            swp_nozorder = 0x0004
+            swp_noactivate = 0x0010
+            swp_framechanged = 0x0020
+
+            long_ptr_t = (
+                ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
+            )
+            get_window_long_ptr = user32.GetWindowLongPtrW
+            set_window_long_ptr = user32.SetWindowLongPtrW
+            set_window_pos = user32.SetWindowPos
+            get_window_long_ptr.argtypes = [ctypes.c_void_p, ctypes.c_int]
+            get_window_long_ptr.restype = long_ptr_t
+            set_window_long_ptr.argtypes = [ctypes.c_void_p, ctypes.c_int, long_ptr_t]
+            set_window_long_ptr.restype = long_ptr_t
+            set_window_pos.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_uint,
+            ]
+            set_window_pos.restype = ctypes.c_int
+
+            old_exstyle = int(get_window_long_ptr(hwnd, g_wl_exstyle))
+            new_exstyle = (old_exstyle | ws_ex_appwindow) & ~ws_ex_toolwindow & ~ws_ex_noactivate
+            if new_exstyle == old_exstyle:
+                logger.debug(
+                    "window style already normalized",
+                    f"reason={reason or 'n/a'}",
+                    f"hwnd=0x{int(hwnd):X}",
+                    f"exstyle=0x{old_exstyle & 0xFFFFFFFF:08X}",
+                )
+                return
+
+            set_window_long_ptr(hwnd, g_wl_exstyle, long_ptr_t(new_exstyle))
+            set_window_pos(
+                hwnd,
+                0,
+                0,
+                0,
+                0,
+                0,
+                swp_nomove | swp_nosize | swp_nozorder | swp_noactivate | swp_framechanged,
+            )
+            logger.info(
+                "window style normalized",
+                f"reason={reason or 'n/a'}",
+                f"hwnd=0x{int(hwnd):X}",
+                f"old_exstyle=0x{old_exstyle & 0xFFFFFFFF:08X}",
+                f"new_exstyle=0x{new_exstyle & 0xFFFFFFFF:08X}",
+            )
+        except Exception as exc:
+            logger.warn("window style normalize failed", f"reason={reason or 'n/a'}", exc)
+
+    def _apply_native_window_style(self, *, reason: str = "") -> None:
+        if sys.platform != "win32":
+            return
+        try:
+            hwnd = int(self.winId() or 0)
+        except Exception:
+            hwnd = 0
+        if hwnd <= 0:
+            return
+        self._force_appwindow_style(hwnd, reason=reason)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not self._native_style_applied:
+            self._apply_native_window_style(reason="show")
+            self._native_style_applied = True
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        try:
+            if event and event.type() == QEvent.Type.WindowStateChange:
+                self._apply_native_window_style(reason="window-state-change")
+        except Exception:
+            pass
 
     def closeEvent(self, event) -> None:
         saveGeom(self, "ajpc_tools_graph")
