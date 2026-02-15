@@ -45,7 +45,7 @@ AjpcGraphSolverD3.prototype._settings = function () {
     d3_manybody_theta: num(p.d3_manybody_theta, DEF_SOLVER.d3_manybody_theta, 0.1, 2),
     d3_manybody_distance_min: num(p.d3_manybody_distance_min, DEF_SOLVER.d3_manybody_distance_min, 0, 10000),
     d3_manybody_distance_max: num(p.d3_manybody_distance_max, DEF_SOLVER.d3_manybody_distance_max, 0, 10000),
-    //d3_link_distance: num(p.d3_link_distance, DEF_SOLVER.d3_link_distance, 1, 5000),
+    //d3_link_distance: num(p.d3_link_distance, DEF_SOLVER.d3_link_distance, 1, 5000), // Deactivated, because we calculate link distance via algorithm (Link Metric)
     d3_link_strength: num(p.d3_link_strength, DEF_SOLVER.d3_link_strength, 0, 2),
     d3_link_iterations: it(p.d3_link_iterations, DEF_SOLVER.d3_link_iterations, 1, 16),
     d3_warmup_ticks: it(p.d3_warmup_ticks, DEF_SOLVER.d3_warmup_ticks, 0, 5000),
