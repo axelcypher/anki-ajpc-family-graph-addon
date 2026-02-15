@@ -740,8 +740,9 @@ def build_note_delta_slice(
     family_default_prio = int(family_cfg.get("default_prio") or 0)
     family_note_types = family_cfg.get("note_types") or {}
     family_note_type_ids = {str(k) for k in family_note_types.keys() if str(k).strip()}
-    reason_norm = str(reason or "").strip().lower()
-    recursive_neighbor_expand = not reason_norm.startswith("note change")
+    # Delta expansion is intentionally limited to one hop from changed notes.
+    # We collect direct neighbors into expanded_nids, but do not recurse further.
+    recursive_neighbor_expand = False
 
     nodes_by_id: dict[str, dict[str, Any]] = {}
     edges_by_id: dict[str, dict[str, Any]] = {}

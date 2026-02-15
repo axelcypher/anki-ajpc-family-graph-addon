@@ -22,6 +22,7 @@
 - Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
 - Added alpha-only solver reheat for edge-changing delta updates (`STATE.graph.reheat(0.25)`), so delta edge changes can nudge physics without rebuilding the solver simulation.
 - Added explicit delta reheat logs (trigger/skip/failure with rev/edge op counts/requested alpha) and solver reheat logs with the effective applied alpha.
+- Limited delta neighbor expansion to one hop from changed notes to prevent transitive recursive slice blowups on context link/unlink operations.
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
 - Centralized Family Gate config parsing into `graph_data._get_family_gate_config(...)` and wired build + ctx mutation paths to this single mapper to avoid future key-drift across call sites.
