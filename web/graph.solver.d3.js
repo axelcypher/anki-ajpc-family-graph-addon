@@ -245,16 +245,25 @@ AjpcGraphSolverD3.prototype.start = function (alpha) {
 
 AjpcGraphSolverD3.prototype.reheat = function (alpha) {
   var cfg = this._settings();
-  if (!cfg.layout_enabled) return false;
-  if (!this.simulation) return false;
+  if (!cfg.layout_enabled) {
+    lg("warn", "d3 solver reheat skipped: layout disabled");
+    return false;
+  }
+  if (!this.simulation) {
+    lg("warn", "d3 solver reheat skipped: simulation missing");
+    return false;
+  }
 
   var a = Number(alpha);
-  if (isFinite(a) && a >= 0) this.simulation.alpha(Math.max(a, cfg.d3_alpha_min));
-  else this.simulation.alpha(Math.max(cfg.d3_alpha, cfg.d3_alpha_min));
+  var appliedAlpha;
+  if (isFinite(a) && a >= 0) appliedAlpha = Math.max(a, cfg.d3_alpha_min);
+  else appliedAlpha = Math.max(cfg.d3_alpha, cfg.d3_alpha_min);
+  this.simulation.alpha(appliedAlpha);
   this.simulation.alphaTarget(cfg.d3_alpha_target);
   this._startTs = Date.now();
   this._tickCount = 0;
   this.simulation.restart();
+  lg("info", "d3 solver reheat alpha=" + String(appliedAlpha) + " input=" + String(alpha));
   return true;
 };
 

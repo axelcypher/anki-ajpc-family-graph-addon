@@ -26,7 +26,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
-- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(0.25)`) to nudge physics without rebuilding the solver model. Family Gate config for build + context mutations is parsed through one shared backend helper path.
+- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(0.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Gate config for build + context mutations is parsed through one shared backend helper path.
 
 ### Settings panel
 **Note Settings**

@@ -176,8 +176,35 @@ function applyDeltaPayload(payload) {
     var applyStyles = resolveApplyVisualStyles();
     if (applyStyles) applyStyles(0.08);
     var hasEdgeDelta = counts.edge_upsert > 0 || counts.edge_drop > 0;
-    if (hasEdgeDelta && STATE.graph && typeof STATE.graph.reheat === "function" && STATE.solver && STATE.solver.layout_enabled) {
-      STATE.graph.reheat(0.25);
+    if (hasEdgeDelta) {
+      var deltaReheatAlpha = 1.25;
+      var hasGraph = !!STATE.graph;
+      var hasReheat = hasGraph && typeof STATE.graph.reheat === "function";
+      var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
+      if (hasReheat && layoutEnabled) {
+        log(
+          "delta reheat trigger rev=" + String(incomingRev)
+          + " alpha=" + String(deltaReheatAlpha)
+          + " edge_upsert=" + String(counts.edge_upsert)
+          + " edge_drop=" + String(counts.edge_drop)
+        );
+        var reheatOk = STATE.graph.reheat(deltaReheatAlpha);
+        if (reheatOk === false) {
+          log(
+            "delta reheat failed rev=" + String(incomingRev)
+            + " alpha=" + String(deltaReheatAlpha)
+            + " reason=solver_reheat_false"
+          );
+        }
+      } else {
+        log(
+          "delta reheat skipped rev=" + String(incomingRev)
+          + " alpha=" + String(deltaReheatAlpha)
+          + " graph=" + String(hasGraph)
+          + " reheat_fn=" + String(hasReheat)
+          + " layout_enabled=" + String(layoutEnabled)
+        );
+      }
     }
 
     STATE.lastAppliedDeltaRev = incomingRev;
