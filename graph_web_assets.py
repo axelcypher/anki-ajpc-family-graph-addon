@@ -75,6 +75,9 @@ def render_graph_html(_payload: dict[str, Any]) -> str:
         "__GRAPH_UI_CTX_JS__": asset_url("adapters/city/ui/graph.city.ui.ctx.js"),
         "__GRAPH_UI_EDITOR_JS__": asset_url("adapters/city/ui/graph.city.ui.editor.js"),
         "__GRAPH_UI_JS__": asset_url("adapters/city/ui/graph.city.ui.js"),
+        "__GRAPH_USECASE_ENGINE_PORTS_JS__": asset_url("core/application/usecases/city/graph.city.usecase.engine.ports.js"),
+        "__GRAPH_USECASE_PAYLOAD_APPLY_JS__": asset_url("core/application/usecases/city/graph.city.usecase.payload.apply.js"),
+        "__GRAPH_USECASE_DELTA_APPLY_JS__": asset_url("core/application/usecases/city/graph.city.usecase.delta.apply.js"),
         "__GRAPH_MAIN_JS__": asset_url("core/application/usecases/city/graph.city.usecase.bootstrap.js"),
     }
     logger.dbg("web base", web_base, "graph main js", replacements.get("__GRAPH_MAIN_JS__", ""))

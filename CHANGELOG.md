@@ -23,6 +23,7 @@
 - Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/adapters/engine/solver/graph.engine.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
 - Refactored frontend runtime to strict `core/` + `adapters/` structure (without SCSS/HTML structure changes).
 - Exposed subset solver helper to city via explicit engine port `runSubsetNoDampingPull(...)`.
+- Etappe 2 refactor: extracted city use-case logic from bootstrap into dedicated modules (`graph.city.usecase.engine.ports.js`, `graph.city.usecase.payload.apply.js`, `graph.city.usecase.delta.apply.js`) and reduced bootstrap to entrypoint wiring.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes

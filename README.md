@@ -103,7 +103,11 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - shared adapter: `graph.adapter.js`
   - city adapters: `adapters/city/*`
   - engine adapters: `adapters/engine/*`
-  - city bootstrap use-case entrypoint: `core/application/usecases/city/graph.city.usecase.bootstrap.js`
+  - city use-cases:
+    - `core/application/usecases/city/graph.city.usecase.engine.ports.js`
+    - `core/application/usecases/city/graph.city.usecase.payload.apply.js`
+    - `core/application/usecases/city/graph.city.usecase.delta.apply.js`
+    - `core/application/usecases/city/graph.city.usecase.bootstrap.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
 - Engine runtime implementation is in `web/adapters/engine/runtime/graph.engine.main.js`.
