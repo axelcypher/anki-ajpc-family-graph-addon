@@ -5,25 +5,11 @@ import re
 from aqt import mw
 
 from .graph_config import load_graph_config
-from .graph_data import _parse_family_field, _parse_link_targets
+from .graph_data import _get_tools_config, _parse_family_field, _parse_link_targets
 
 
 def _get_family_field() -> str:
-    if mw is None:
-        return ""
-    api = getattr(mw, "_ajpc_graph_api", None)
-    if not isinstance(api, dict):
-        return ""
-    getter = api.get("get_config")
-    if not callable(getter):
-        return ""
-    try:
-        cfg = getter(reload=True)
-    except Exception:
-        try:
-            cfg = getter()
-        except Exception:
-            cfg = None
+    cfg = _get_tools_config()
     if not isinstance(cfg, dict):
         return ""
     fg = cfg.get("family_gate", {}) or {}
@@ -31,21 +17,7 @@ def _get_family_field() -> str:
 
 
 def _get_family_cfg() -> tuple[str, str, int]:
-    if mw is None:
-        return "", ";", 0
-    api = getattr(mw, "_ajpc_graph_api", None)
-    if not isinstance(api, dict):
-        return "", ";", 0
-    getter = api.get("get_config")
-    if not callable(getter):
-        return "", ";", 0
-    try:
-        cfg = getter(reload=True)
-    except Exception:
-        try:
-            cfg = getter()
-        except Exception:
-            cfg = None
+    cfg = _get_tools_config()
     if not isinstance(cfg, dict):
         return "", ";", 0
     fg = cfg.get("family_gate", {}) or {}
@@ -56,7 +28,6 @@ def _get_family_cfg() -> tuple[str, str, int]:
     except Exception:
         default_prio = 0
     return field, sep, default_prio
-
 
 def _append_family_to_note(
     nid: int, fid: str, prio: int, field: str, sep: str, default_prio: int

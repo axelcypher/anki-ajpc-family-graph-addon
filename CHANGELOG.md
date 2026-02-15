@@ -21,6 +21,7 @@
 - Fixed flow animation startup for active selection after delta by reapplying visual/runtime flow masks immediately after patch.
 - Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
+- Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
 
 ## 1.0.0-beta.1 - 2026-02-14
 
