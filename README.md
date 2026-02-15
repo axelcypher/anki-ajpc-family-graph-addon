@@ -121,8 +121,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Adapter contracts are discoverable at runtime:
   - Engine port contracts: `GraphAdapter.listEngineContracts()` / `GraphAdapter.getEngineContract(name)`
   - City port contracts: `GraphAdapter.listCityContracts()` / `GraphAdapter.getCityContract(name)`
-  - Contract source of truth is `web/core/contracts/graph.contracts.js` (`city`, `engine`, `engine graph method` contracts).
-  - Runtime modules resolve contract specs from `window.AjpcGraphContracts` when registering adapter ports.
+- Contract source of truth is `web/core/contracts/graph.contracts.js` (`city`, `engine`, `engine graph method` contracts).
+- Runtime modules resolve contract specs from `window.AjpcGraphContracts` when registering adapter ports.
+- Contract/runtime architecture smoke-check:
+  - `node scripts/check_frontend_runtime_contracts.js`
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/adapters/engine/solver/graph.engine.solver.d3.js`.
