@@ -47,9 +47,9 @@ function logCtxIcon(level, msg) {
 }
 
 function ctxCallEngine(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
-  return adapter.callEngine.apply(adapter, arguments);
+  var gw = window && window.AjpcCityGateway;
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function ctxCallEngineGraph(methodName) {
@@ -840,9 +840,9 @@ function hideContextMenu(suppressStateClear) {
     STATE.contextPointIndex = null;
   }
   if (hadContext) {
-    var adapter = window && window.GraphAdapter;
-    if (adapter && typeof adapter.callEngine === "function") {
-      adapter.callEngine("applyVisualStyles", 0.08);
+    var gw = window && window.AjpcCityGateway;
+    if (gw && typeof gw.callEngine === "function") {
+      gw.callEngine("applyVisualStyles", 0.08);
     } else if (typeof callEngineApplyVisualStyles === "function") {
       callEngineApplyVisualStyles(0.08);
     }

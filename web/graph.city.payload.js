@@ -118,10 +118,15 @@ function syncCardSettingsFromMeta() {
   STATE.cards = collectCardSettings(merged);
 }
 
+function payloadGateway() {
+  var gw = window && window.AjpcCityGateway;
+  return (gw && typeof gw === "object") ? gw : null;
+}
+
 function payloadCallEngine(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
-  return adapter.callEngine.apply(adapter, arguments);
+  var gw = payloadGateway();
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function payloadCallEngineGraph(methodName) {
@@ -2440,15 +2445,11 @@ var PAYLOAD_CITY_PORT_CONTRACTS = Object.freeze({
 });
 
 (function registerPayloadAdapterPorts() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+  var gw = payloadGateway();
+  if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
 
   function reg(name, fn) {
-    adapter.registerCityPort(name, fn);
-    if (typeof adapter.registerCityContract !== "function") return;
-    var contract = PAYLOAD_CITY_PORT_CONTRACTS[name];
-    if (!contract) return;
-    adapter.registerCityContract(name, contract);
+    gw.registerCityPortWithContract(name, fn, PAYLOAD_CITY_PORT_CONTRACTS[name] || null);
   }
 
   reg("getEngineSolverDefaults", getEngineSolverDefaults);

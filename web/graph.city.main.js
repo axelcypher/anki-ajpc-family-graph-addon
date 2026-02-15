@@ -2,16 +2,27 @@
 
 log("graph.city.main.js modular");
 
+function cityGateway() {
+  var gw = window && window.AjpcCityGateway;
+  return (gw && typeof gw === "object") ? gw : null;
+}
+
 function adapterCallEngine(name) {
-  if (!(window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function")) return undefined;
-  return window.GraphAdapter.callEngine.apply(window.GraphAdapter, arguments);
+  var gw = cityGateway();
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function hasEnginePort(name) {
-  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+  var gw = cityGateway();
+  return !!(gw && typeof gw.hasEnginePort === "function" && gw.hasEnginePort(name));
 }
 
 function callEngineGraph(methodName) {
+  var gw = cityGateway();
+  if (gw && typeof gw.callEngineGraph === "function") {
+    return gw.callEngineGraph.apply(gw, arguments);
+  }
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
   args.unshift("graphCall");

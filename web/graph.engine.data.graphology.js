@@ -8,9 +8,9 @@ var AJPC_CIRCLEPACK_SEED_HIERARCHY = [
 ];
 
 function adapterCallCityPort(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callCity !== "function") return undefined;
-  return adapter.callCity.apply(adapter, arguments);
+  var gw = window && window.AjpcEngineGateway;
+  if (!gw || typeof gw.callCity !== "function") return undefined;
+  return gw.callCity.apply(gw, arguments);
 }
 
 function adapterSeededPos(id) {
@@ -27,9 +27,9 @@ function adapterNodeBaseSize(node) {
 }
 
 function adapterEdgeCurvByStyle(code, idx) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return 0;
-  var out = Number(adapter.callEngine("edgeCurvByStyle", code, idx));
+  var gw = window && window.AjpcEngineGateway;
+  if (!gw || typeof gw.callEngine !== "function") return 0;
+  var out = Number(gw.callEngine("edgeCurvByStyle", code, idx));
   return isFinite(out) ? out : 0;
 }
 

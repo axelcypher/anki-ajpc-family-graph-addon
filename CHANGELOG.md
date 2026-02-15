@@ -16,6 +16,10 @@
   - City modules renamed to `graph.city.*` / `ui/graph.city.ui.*`
   - Engine modules renamed to `graph.engine.*` and `graph.engine.sigma.*`
   - Shared adapter kept neutral as `web/graph.adapter.js`
+- Added centralized runtime gateways:
+  - `web/graph.city.gateway.js` for City->Engine/City port calls and city port registration
+  - `web/graph.engine.gateway.js` for Engine->City/Engine port calls and engine port registration
+  - Engine/City runtime modules now route adapter interactions through these gateways.
 - Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/graph.engine.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
 - Exposed subset solver helper to city via adapter graph-call path (`GraphAdapter.callEngine("graphCall", "runSubsetNoDampingPull", ...)`) by forwarding through `SigmaGraphCompat`.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.

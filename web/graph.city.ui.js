@@ -59,20 +59,26 @@ function clearHoverNodeState(reason, details) {
   hideTooltip();
 }
 
+function uiGateway() {
+  var gw = window && window.AjpcCityGateway;
+  return (gw && typeof gw === "object") ? gw : null;
+}
+
 function adapterCallCity(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callCity !== "function") return undefined;
-  return adapter.callCity.apply(adapter, arguments);
+  var gw = uiGateway();
+  if (!gw || typeof gw.callCity !== "function") return undefined;
+  return gw.callCity.apply(gw, arguments);
 }
 
 function adapterCallEngine(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
-  return adapter.callEngine.apply(adapter, arguments);
+  var gw = uiGateway();
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function hasEnginePort(name) {
-  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+  var gw = uiGateway();
+  return !!(gw && typeof gw.hasEnginePort === "function" && gw.hasEnginePort(name));
 }
 
 function callEngineApplyVisualStyles(renderAlpha) {
@@ -1939,8 +1945,8 @@ function wireDom() {
 }
 
 (function registerUiAdapterPorts() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+  var gw = uiGateway();
+  if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
 
   var contracts = {
     updateStatus: { args: [{ name: "extraText", type: "string|number|boolean", required: false }], returns: "undefined", desc: "Update toolbar/status text and active-node summary." },
@@ -1955,11 +1961,7 @@ function wireDom() {
   };
 
   function reg(name, fn) {
-    adapter.registerCityPort(name, fn);
-    if (typeof adapter.registerCityContract !== "function") return;
-    var contract = contracts[name];
-    if (!contract) return;
-    adapter.registerCityContract(name, contract);
+    gw.registerCityPortWithContract(name, fn, contracts[name] || null);
   }
 
   reg("updateStatus", updateStatus);

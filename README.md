@@ -100,8 +100,8 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `window.ajpcGraphUpdate(data)`
   - `window.ajpcGraphDelta(slice)`
 - Frontend runtime is split into prefixed modules under `web/graph.*.js`:
-  - `graph.city.state.js`, `graph.city.bridge.js`, `graph.adapter.js`, `graph.city.utils.js`, `graph.city.payload.js`
-  - `graph.city.flow.js`, `graph.engine.main.js`, `graph.engine.data.graphology.js`
+  - `graph.city.state.js`, `graph.city.bridge.js`, `graph.adapter.js`, `graph.city.gateway.js`, `graph.city.utils.js`, `graph.city.payload.js`
+  - `graph.city.flow.js`, `graph.engine.gateway.js`, `graph.engine.main.js`, `graph.engine.data.graphology.js`
   - `graph.engine.solver.d3.js`, `graph.engine.renderer.sigma.js`
   - `ui/graph.city.ui.deptree.js`, `ui/graph.city.ui.debug.js`, `ui/graph.city.ui.tooltip.js`, `ui/graph.city.ui.ctx.js`, `ui/graph.city.ui.editor.js`
   - `graph.city.ui.js`, `graph.city.main.js`
@@ -113,6 +113,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.city.payload.js`)
   - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.main.js`)
 - City->Engine runtime calls use adapter engine ports; graph runtime method calls are routed via `GraphAdapter.callEngine("graphCall", method, ...args)` (no direct `STATE.graph.*` calls in city modules).
+- City modules call through `AjpcCityGateway`; engine modules call back through `AjpcEngineGateway`. Both gateways delegate to `window.GraphAdapter` ports/contracts.
 - Adapter contracts are discoverable at runtime:
   - Engine port contracts: `GraphAdapter.listEngineContracts()` / `GraphAdapter.getEngineContract(name)`
   - City port contracts: `GraphAdapter.listCityContracts()` / `GraphAdapter.getCityContract(name)`

@@ -3,9 +3,9 @@
 // Dep-tree UI module (extracted from graph.city.ui.js)
 
 function depTreeCallEngine(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
-  return adapter.callEngine.apply(adapter, arguments);
+  var gw = window && window.AjpcCityGateway;
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function depTreeCacheMap() {

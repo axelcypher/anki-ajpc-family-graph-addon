@@ -221,15 +221,17 @@ function seededPos(id) {
   return [x, y];
 }
 
+function utilsGateway() {
+  var gw = window && window.AjpcCityGateway;
+  return (gw && typeof gw === "object") ? gw : null;
+}
+
 (function registerUtilsAdapterPorts() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.registerCityPort !== "function") return;
-  adapter.registerCityPort("seededPos", seededPos);
-  if (typeof adapter.registerCityContract === "function") {
-    adapter.registerCityContract("seededPos", {
-      args: [{ name: "id", type: "string|number", required: true }],
-      returns: "array",
-      desc: "Return deterministic seeded graph-space position for node id."
-    });
-  }
+  var gw = utilsGateway();
+  if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
+  gw.registerCityPortWithContract("seededPos", seededPos, {
+    args: [{ name: "id", type: "string|number", required: true }],
+    returns: "array",
+    desc: "Return deterministic seeded graph-space position for node id."
+  });
 })();

@@ -8,14 +8,20 @@ function flowClamp(v, minV, maxV) {
   return n;
 }
 
+function flowGateway() {
+  var gw = window && window.AjpcCityGateway;
+  return (gw && typeof gw === "object") ? gw : null;
+}
+
 function flowHasEnginePort(name) {
-  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+  var gw = flowGateway();
+  return !!(gw && typeof gw.hasEnginePort === "function" && gw.hasEnginePort(name));
 }
 
 function flowCallEngine(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
-  return adapter.callEngine.apply(adapter, arguments);
+  var gw = flowGateway();
+  if (!gw || typeof gw.callEngine !== "function") return undefined;
+  return gw.callEngine.apply(gw, arguments);
 }
 
 function flowCallEngineGraph(methodName) {
@@ -79,18 +85,14 @@ function ensureFlowParticlesLoop() {
 }
 
 (function registerFlowAdapterPorts() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.registerCityPort !== "function") return;
+  var gw = flowGateway();
+  if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
   var contracts = {
     ensureFlowCanvasSize: { args: [], returns: "undefined", desc: "Flow canvas compatibility stub (no-op in shader flow mode)." },
     ensureFlowParticlesLoop: { args: [], returns: "undefined", desc: "Ensure shader-flow RAF loop is running when flow is active." }
   };
   function reg(name, fn) {
-    adapter.registerCityPort(name, fn);
-    if (typeof adapter.registerCityContract !== "function") return;
-    var contract = contracts[name];
-    if (!contract) return;
-    adapter.registerCityContract(name, contract);
+    gw.registerCityPortWithContract(name, fn, contracts[name] || null);
   }
   reg("ensureFlowCanvasSize", ensureFlowCanvasSize);
   reg("ensureFlowParticlesLoop", ensureFlowParticlesLoop);

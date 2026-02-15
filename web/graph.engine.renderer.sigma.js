@@ -20,9 +20,9 @@ function setNoteNodeAAFlag(enabled) {
 }
 
 function requestFlowCanvasSizeSync() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callCity !== "function") return;
-  adapter.callCity("ensureFlowCanvasSize");
+  var gw = window && window.AjpcEngineGateway;
+  if (!gw || typeof gw.callCity !== "function") return;
+  gw.callCity("ensureFlowCanvasSize");
 }
 
 AjpcGraphRendererSigma.prototype._settings = function () {

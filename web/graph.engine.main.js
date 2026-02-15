@@ -141,9 +141,9 @@ function bol(v, fallback) {
 function off() { return (typeof SPACE_SIZE === "number" && isFinite(SPACE_SIZE)) ? (SPACE_SIZE * 0.5) : 2048; }
 
 function adapterCallCity(name) {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.callCity !== "function") return undefined;
-  return adapter.callCity.apply(adapter, arguments);
+  var gw = window && window.AjpcEngineGateway;
+  if (!gw || typeof gw.callCity !== "function") return undefined;
+  return gw.callCity.apply(gw, arguments);
 }
 
 function cityEnsureFlowParticlesLoop() {
@@ -2909,63 +2909,54 @@ window.applyVisualStyles = applyVisualStyles;
 window.applyPhysicsToGraph = applyPhysicsToGraph;
 
 (function registerEngineAdapterPorts() {
-  var adapter = window && window.GraphAdapter;
-  if (!adapter || typeof adapter.registerEnginePort !== "function") return;
-  adapter.registerEnginePort("applyGraphData", applyGraphData);
-  adapter.registerEnginePort("applyGraphDeltaOps", applyGraphDeltaOps);
-  adapter.registerEnginePort("applyVisualStyles", applyVisualStyles);
-  adapter.registerEnginePort("applyPhysicsToGraph", applyPhysicsToGraph);
-  adapter.registerEnginePort("createGraphEngineSigma", createGraphEngineSigma);
-  adapter.registerEnginePort("focusNodeById", focusNodeById);
-  adapter.registerEnginePort("edgeCurvByStyle", edgeCurvByStyle);
-  adapter.registerEnginePort("graphCall", graphCall);
-  if (typeof adapter.registerEngineContract === "function") {
-    adapter.registerEngineContract("applyGraphData", {
-      args: [{ name: "fitView", type: "boolean", required: false }],
-      returns: "undefined"
-    });
-    adapter.registerEngineContract("applyGraphDeltaOps", {
-      args: [
-        { name: "ops", type: "object", required: false },
-        { name: "arrays", type: "object", required: false },
-        { name: "options", type: "object", required: false }
-      ],
-      returns: "boolean"
-    });
-    adapter.registerEngineContract("applyVisualStyles", {
-      args: [{ name: "renderAlpha", type: "number", required: false }],
-      returns: "undefined"
-    });
-    adapter.registerEngineContract("applyPhysicsToGraph", {
-      args: [],
-      returns: "undefined"
-    });
-    adapter.registerEngineContract("createGraphEngineSigma", {
-      args: [
-        { name: "container", type: "object", required: true },
-        { name: "config", type: "object", required: false }
-      ],
-      returns: "object"
-    });
-    adapter.registerEngineContract("focusNodeById", {
-      args: [
-        { name: "nodeId", type: "string|number", required: true },
-        { name: "fromSearch", type: "boolean", required: false }
-      ],
-      returns: "undefined"
-    });
-    adapter.registerEngineContract("edgeCurvByStyle", {
-      args: [
-        { name: "styleCode", type: "number", required: true },
-        { name: "edgeIndex", type: "number", required: false }
-      ],
-      returns: "number"
-    });
-    adapter.registerEngineContract("graphCall", {
-      args: [{ name: "methodName", type: "string", required: true }],
-      returns: "any",
-      methods: ENGINE_GRAPH_CALL_CONTRACTS
-    });
-  }
+  var gw = window && window.AjpcEngineGateway;
+  if (!gw || typeof gw.registerEnginePortWithContract !== "function") return;
+
+  gw.registerEnginePortWithContract("applyGraphData", applyGraphData, {
+    args: [{ name: "fitView", type: "boolean", required: false }],
+    returns: "undefined"
+  });
+  gw.registerEnginePortWithContract("applyGraphDeltaOps", applyGraphDeltaOps, {
+    args: [
+      { name: "ops", type: "object", required: false },
+      { name: "arrays", type: "object", required: false },
+      { name: "options", type: "object", required: false }
+    ],
+    returns: "boolean"
+  });
+  gw.registerEnginePortWithContract("applyVisualStyles", applyVisualStyles, {
+    args: [{ name: "renderAlpha", type: "number", required: false }],
+    returns: "undefined"
+  });
+  gw.registerEnginePortWithContract("applyPhysicsToGraph", applyPhysicsToGraph, {
+    args: [],
+    returns: "undefined"
+  });
+  gw.registerEnginePortWithContract("createGraphEngineSigma", createGraphEngineSigma, {
+    args: [
+      { name: "container", type: "object", required: true },
+      { name: "config", type: "object", required: false }
+    ],
+    returns: "object"
+  });
+  gw.registerEnginePortWithContract("focusNodeById", focusNodeById, {
+    args: [
+      { name: "nodeId", type: "string|number", required: true },
+      { name: "fromSearch", type: "boolean", required: false }
+    ],
+    returns: "undefined"
+  });
+  gw.registerEnginePortWithContract("edgeCurvByStyle", edgeCurvByStyle, {
+    args: [
+      { name: "styleCode", type: "number", required: true },
+      { name: "edgeIndex", type: "number", required: false }
+    ],
+    returns: "number"
+  });
+  gw.registerEnginePortWithContract("graphCall", graphCall, {
+    args: [{ name: "methodName", type: "string", required: true }],
+    returns: "any",
+    methods: ENGINE_GRAPH_CALL_CONTRACTS
+  });
 })();
 
