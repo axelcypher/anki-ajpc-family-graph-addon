@@ -90,6 +90,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 ## Notes
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.
 - All actions are visual only, except the context actions that explicitly write to your notes.
+- Logging is level-driven from AJpC Tools Graph API (`debug.enabled`, `debug.level`, module overrides). If API config is unavailable, graph-side `_FORCE_LOGGING` fallback automatically logs at debug level.
 
 ## Frontend architecture (dev)
 - Runtime entry points:

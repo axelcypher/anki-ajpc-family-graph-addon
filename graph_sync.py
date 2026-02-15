@@ -62,13 +62,19 @@ class GraphSyncMixin:
         if mw is None or not getattr(mw, "col", None):
             showInfo("No collection loaded.")
             return
-        logger.dbg("load graph")
+        logger.info("graph load start")
 
         def op(_col):
             return build_graph(_col)
 
         def on_success(result: dict[str, Any]) -> None:
-            logger.dbg("graph build success", "nodes=", len(result.get("nodes", [])), "edges=", len(result.get("edges", [])))
+            logger.info(
+                "graph load done",
+                "nodes=",
+                len(result.get("nodes", [])),
+                "edges=",
+                len(result.get("edges", [])),
+            )
             if isinstance(result, dict):
                 meta = result.get("meta")
                 if not isinstance(meta, dict):
@@ -85,7 +91,7 @@ class GraphSyncMixin:
                 "const kick=()=>{"
                 "if(window.ajpcGraphInit){"
                 "window.ajpcGraphInit(data);"
-                "if(window.pycmd){pycmd('log:graph init called');}"
+                "if(window.pycmd){pycmd('log:info:graph init called');}"
                 "}else{setTimeout(kick,50);}"
                 "};"
                 "kick();"
@@ -97,13 +103,13 @@ class GraphSyncMixin:
             try:
                 meta = result.get("meta") if isinstance(result, dict) else {}
                 if isinstance(meta, dict) and str(meta.get("error") or "") == "missing_tools_config":
-                    logger.dbg("graph api missing on first load, scheduling retry refresh")
+                    logger.warn("graph api missing on first load, scheduling retry refresh")
                     self._schedule_refresh("await main graph api")
             except Exception:
                 pass
 
         def on_failure(err: Exception) -> None:
-            logger.dbg("graph build failed", repr(err))
+            logger.error("graph build failed", repr(err))
             showInfo(f"Graph build failed: {err!r}")
 
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
@@ -114,14 +120,14 @@ class GraphSyncMixin:
         if not self._graph_ready:
             self._load()
             return
-        logger.dbg("refresh graph")
+        logger.info("graph refresh start")
 
         def op(_col):
             return build_graph(_col)
 
         def on_success(result: dict[str, Any]) -> None:
-            logger.dbg(
-                "graph refresh success",
+            logger.info(
+                "graph refresh done",
                 "nodes=",
                 len(result.get("nodes", [])),
                 "edges=",
@@ -139,10 +145,10 @@ class GraphSyncMixin:
                 "const data=" + payload_json + ";"
                 "if(window.ajpcGraphUpdate){"
                 "window.ajpcGraphUpdate(data);"
-                "if(window.pycmd){pycmd('log:graph update called');}"
+                "if(window.pycmd){pycmd('log:info:graph update called');}"
                 "}else if(window.ajpcGraphInit){"
                 "window.ajpcGraphInit(data);"
-                "if(window.pycmd){pycmd('log:graph init called');}"
+                "if(window.pycmd){pycmd('log:info:graph init called');}"
                 "}"
                 "})();"
             )
@@ -150,7 +156,7 @@ class GraphSyncMixin:
             self._flush_pending_focus_in_graph()
 
         def on_failure(err: Exception) -> None:
-            logger.dbg("graph refresh failed", repr(err))
+            logger.error("graph refresh failed", repr(err))
 
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
 
@@ -214,7 +220,7 @@ class GraphSyncMixin:
         reason = str(getattr(self, "_pending_delta_reason", "note change") or "note change")
         rev = self._next_delta_rev()
         self._delta_inflight = True
-        logger.dbg("dispatch delta", "rev=", rev, "reason=", reason, "changed=", changed)
+        logger.info("dispatch delta", "rev=", rev, "reason=", reason, "changed=", changed)
 
         def op(_col):
             return build_note_delta_slice(
@@ -231,7 +237,7 @@ class GraphSyncMixin:
             except Exception:
                 meta = {}
             if isinstance(meta, dict) and str(meta.get("error") or "") == "missing_tools_config":
-                logger.dbg("delta skipped: missing tools config, scheduling refresh")
+                logger.warn("delta skipped: missing tools config, scheduling refresh")
                 self._schedule_refresh("await main graph api")
                 return
             try:
@@ -250,7 +256,7 @@ class GraphSyncMixin:
                     "})();"
                 )
                 self.web.eval(js)
-                logger.dbg(
+                logger.info(
                     "delta sent",
                     "rev=",
                     int((result or {}).get("rev") or rev),
@@ -260,7 +266,7 @@ class GraphSyncMixin:
                     len((result or {}).get("edges_raw") or []),
                 )
             except Exception as exc:
-                logger.dbg("delta dispatch eval failed", repr(exc))
+                logger.error("delta dispatch eval failed", repr(exc))
                 self._schedule_refresh("delta eval failed")
             if getattr(self, "_pending_delta_nids", None):
                 try:
@@ -271,7 +277,7 @@ class GraphSyncMixin:
 
         def on_failure(err: Exception) -> None:
             self._delta_inflight = False
-            logger.dbg("delta build failed", repr(err))
+            logger.error("delta build failed", repr(err))
             self._schedule_refresh("delta build failed")
 
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()

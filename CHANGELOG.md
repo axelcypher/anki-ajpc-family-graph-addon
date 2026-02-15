@@ -23,6 +23,9 @@
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
 - Centralized Family Gate config parsing into `graph_data._get_family_gate_config(...)` and wired build + ctx mutation paths to this single mapper to avoid future key-drift across call sites.
+- Refactored graph logger to main-addon style level gating and module tags, including `logger.configure(...)` and JS bridge level routing (`log:info|warn|error|debug:`).
+- Kept `_FORCE_LOGGING` as API-outage fallback and enabled automatic debug-level logging when tools API config is unavailable.
+- Added API debug payload fields in AJpC Tools graph config response (`debug.level`, `debug.module_logs`, `debug.module_levels`) for graph-side level/module filtering.
 
 ## 1.0.0-beta.1 - 2026-02-14
 

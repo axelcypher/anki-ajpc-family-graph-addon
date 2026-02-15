@@ -77,14 +77,27 @@ class GraphBridgeHandlersMixin:
     def _on_bridge_cmd(self, message: str) -> Any:
         # JS -> Python bridge: apply config changes and context actions.
         if message == "refresh":
-            logger.dbg("bridge refresh")
+            logger.info("bridge refresh")
             try:
                 self._hide_embedded_editor_panel()
             except Exception:
                 pass
             self._load()
         elif message.startswith("log:"):
-            logger.dbg("js", message[4:])
+            payload = str(message[4:] or "")
+            level_raw, sep, rest = payload.partition(":")
+            level = str(level_raw or "").strip().lower()
+            text = rest if sep else payload
+            if level == "trace":
+                logger.trace("js", text, source="graph_bridge")
+            elif level == "info":
+                logger.info("js", text, source="graph_bridge")
+            elif level in {"warn", "warning"}:
+                logger.warn("js", text, source="graph_bridge")
+            elif level == "error":
+                logger.error("js", text, source="graph_bridge")
+            else:
+                logger.debug("js", payload, source="graph_bridge")
         elif message.startswith("embed_editor:"):
             try:
                 _prefix, rest = message.split(":", 1)

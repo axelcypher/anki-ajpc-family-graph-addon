@@ -132,7 +132,8 @@ def _tools_vendor_path() -> str | None:
 def _get_tools_config() -> dict[str, Any] | None:
     getter = _resolve_tools_config_getter()
     if not callable(getter):
-        logger.dbg("tools config: getter not callable")
+        logger.configure()
+        logger.warn("tools config: getter not callable")
         return None
     attempts = (
         ("getter(reload=False)", lambda: getter(reload=False)),
@@ -149,7 +150,19 @@ def _get_tools_config() -> dict[str, Any] | None:
             logger.dbg("tools config:", label, "failed", repr(exc))
             cfg = None
     if isinstance(cfg, dict):
-        logger.set_enabled(bool(cfg.get("debug_enabled", True)))
+        debug_cfg = cfg.get("debug") if isinstance(cfg.get("debug"), dict) else {}
+        debug_enabled = bool(
+            (debug_cfg or {}).get("enabled", cfg.get("debug_enabled", False))
+        )
+        logger.configure(
+            debug_enabled=debug_enabled,
+            level=(debug_cfg or {}).get("level", "debug"),
+            module_logs=(debug_cfg or {}).get("module_logs", {}),
+            module_levels=(debug_cfg or {}).get("module_levels", {}),
+        )
+    else:
+        logger.configure()
+        logger.warn("tools config: unavailable after attempts")
     return cfg
 
 
@@ -693,7 +706,7 @@ def build_note_delta_slice(
         changed_clean.append(nid)
 
     if not cfg:
-        logger.dbg("delta slice config missing", "rev=", rev, "reason=", reason)
+        logger.warn("delta slice config missing", "rev=", rev, "reason=", reason)
         return {
             "rev": int(rev),
             "reason": str(reason or ""),
@@ -1158,7 +1171,7 @@ def build_note_delta_slice(
 def build_graph(col: Collection) -> dict[str, Any]:
     cfg = _get_tools_config()
     if not cfg:
-        logger.dbg("config missing: _ajpc_graph_api unavailable")
+        logger.warn("config missing: _ajpc_graph_api unavailable")
         return {"nodes": [], "edges": [], "meta": {"error": "missing_tools_config"}}
     debug_enabled = bool(cfg.get("debug_enabled", False)) if isinstance(cfg, dict) else False
     debug_mode = str(cfg.get("debug_mode") or "").strip().lower() if isinstance(cfg, dict) else ""
