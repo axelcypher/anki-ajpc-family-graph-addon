@@ -132,7 +132,6 @@ function payloadCallEngine(name) {
 function payloadCallEngineGraph(methodName) {
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return payloadCallEngine.apply(null, args);
 }
 

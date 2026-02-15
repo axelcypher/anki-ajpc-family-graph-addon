@@ -55,7 +55,6 @@ function ctxCallEngine(name) {
 function ctxCallEngineGraph(methodName) {
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return ctxCallEngine.apply(null, args);
 }
 
@@ -96,7 +95,7 @@ function discoverCtxIconBaseUrl() {
   if (CTX_ICON_BASE_URL_CACHE) return CTX_ICON_BASE_URL_CACHE;
   try {
     var scripts = document && document.getElementsByTagName ? document.getElementsByTagName("script") : [];
-    var marker = "/ui/graph.city.ui.ctx.js";
+    var marker = "/adapters/city/ui/graph.city.ui.ctx.js";
     for (var i = 0; i < scripts.length; i += 1) {
       var src = String((scripts[i] && scripts[i].getAttribute && scripts[i].getAttribute("src")) || "");
       var idx = src.indexOf(marker);

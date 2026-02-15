@@ -99,37 +99,37 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `window.ajpcGraphInit(data)`
   - `window.ajpcGraphUpdate(data)`
   - `window.ajpcGraphDelta(slice)`
-- Frontend runtime is split into prefixed modules under `web/graph.*.js`:
-  - `graph.city.state.js`, `graph.city.bridge.js`, `graph.adapter.js`, `graph.city.gateway.js`, `graph.city.utils.js`, `graph.city.payload.js`
-  - `graph.city.flow.js`, `graph.engine.gateway.js`, `graph.engine.main.js`, `graph.engine.data.graphology.js`
-  - `graph.engine.solver.d3.js`, `graph.engine.renderer.sigma.js`
-  - `ui/graph.city.ui.deptree.js`, `ui/graph.city.ui.debug.js`, `ui/graph.city.ui.tooltip.js`, `ui/graph.city.ui.ctx.js`, `ui/graph.city.ui.editor.js`
-  - `graph.city.ui.js`, `graph.city.main.js`
+- Frontend runtime is split into hex-oriented folders under `web/`:
+  - shared adapter: `graph.adapter.js`
+  - city adapters: `adapters/city/*`
+  - engine adapters: `adapters/engine/*`
+  - city bootstrap use-case entrypoint: `core/application/usecases/city/graph.city.usecase.bootstrap.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
-- Engine runtime implementation is in `web/graph.engine.main.js`.
+- Engine runtime implementation is in `web/adapters/engine/runtime/graph.engine.main.js`.
 - Delta runtime is split into:
   - Python slice builder `build_note_delta_slice(...)` (`graph_data.py`)
-  - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.city.payload.js`)
-  - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.main.js`)
-- City->Engine runtime calls use adapter engine ports; graph runtime method calls are routed via `GraphAdapter.callEngine("graphCall", method, ...args)` (no direct `STATE.graph.*` calls in city modules).
+  - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/adapters/city/payload/graph.city.payload.js`)
+  - Engine graphology patch port (`applyGraphDeltaOps` in `web/adapters/engine/runtime/graph.engine.main.js`)
+- City->Engine runtime calls use explicit engine ports via City Gateway (no direct `STATE.graph.*` calls in city modules).
+- Legacy `graphCall(method, ...args)` remains only as compatibility path; primary City runtime path is explicit engine ports.
 - City modules call through `AjpcCityGateway`; engine modules call back through `AjpcEngineGateway`. Both gateways delegate to `window.GraphAdapter` ports/contracts.
 - Adapter contracts are discoverable at runtime:
   - Engine port contracts: `GraphAdapter.listEngineContracts()` / `GraphAdapter.getEngineContract(name)`
   - City port contracts: `GraphAdapter.listCityContracts()` / `GraphAdapter.getCityContract(name)`
-  - `graphCall` method-level args/returns are declared in `web/graph.engine.main.js` (`ENGINE_GRAPH_CALL_CONTRACTS`).
-  - City contracts are registered by `web/graph.city.payload.js`, `web/graph.city.ui.js`, `web/graph.city.flow.js`, and `web/graph.city.utils.js`.
+  - engine method-level args/returns are declared in `web/adapters/engine/runtime/graph.engine.main.js` (`ENGINE_GRAPH_CALL_CONTRACTS`).
+  - City contracts are registered by `web/adapters/city/payload/graph.city.payload.js`, `web/adapters/city/ui/graph.city.ui.js`, `web/adapters/city/flow/graph.city.flow.js`, and `web/adapters/city/utils/graph.city.utils.js`.
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
-- Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.engine.solver.d3.js`.
-- Solver helper is adapter-accessible via `GraphAdapter.callEngine("graphCall", "runSubsetNoDampingPull", nodeIds, options)` for subset-only extra simulation with `velocityDecay(0)`.
+- Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/adapters/engine/solver/graph.engine.solver.d3.js`.
+- Solver helper is adapter-accessible via explicit engine port `runSubsetNoDampingPull(nodeIds, options)` for subset-only extra simulation with `velocityDecay(0)`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
-- `web/graph.city.flow.js` drives the shader flow animation loop and frame requests.
-- Node ping/ring effects are rendered in Sigma node shaders (`web/sigma-programs/graph.engine.sigma.program.extra.nodefx.js`).
-- Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.engine.sigma.program.edge.*.js`).
+- `web/adapters/city/flow/graph.city.flow.js` drives the shader flow animation loop and frame requests.
+- Node ping/ring effects are rendered in Sigma node shaders (`web/adapters/engine/programs/graph.engine.sigma.program.extra.nodefx.js`).
+- Flow particles are rendered directly in Sigma edge shaders (`web/adapters/engine/programs/graph.engine.sigma.program.edge.*.js`).
 - Bidirectional links render two-way shader photons on one collapsed edge (`ajpc_bidir` attribute path).
 - Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
-- Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.engine.sigma.program.node.hub.js`).
+- Hub dimming during active focus is handled in the hub node shader (`web/adapters/engine/programs/graph.engine.sigma.program.node.hub.js`).
 - Ping/ring effects scale with camera ratio in the same render pass as nodes (no canvas drift).
 - The graph window hosts a native embedded Anki editor panel (Qt side) that can be toggled from the graph UI.
 - Python host runtime is split into dedicated modules (`graph_launcher.py`, `graph_view.py`, `graph_sync.py`, `graph_bridge_handlers.py`, `graph_actions.py`, `graph_note_ops.py`, `graph_api_adapter.py`, `graph_web_assets.py`, `graph_previewer.py`, `graph_editor_embedded.py`, `graph_editor_window.py`).

@@ -33,7 +33,6 @@
   function callEngineGraph(methodName) {
     var args = Array.prototype.slice.call(arguments, 1);
     args.unshift(String(methodName || ""));
-    args.unshift("graphCall");
     return callEngine.apply(null, args);
   }
 

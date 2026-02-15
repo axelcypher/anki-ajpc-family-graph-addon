@@ -1,6 +1,6 @@
 "use strict";
 
-log("graph.city.main.js modular");
+log("core.city.usecase.bootstrap.js modular");
 
 function cityGateway() {
   var gw = window && window.AjpcCityGateway;
@@ -25,7 +25,6 @@ function callEngineGraph(methodName) {
   }
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return adapterCallEngine.apply(null, args);
 }
 
@@ -196,7 +195,7 @@ function applyDeltaPayload(payload) {
     var hasEdgeDelta = counts.edge_upsert > 0 || counts.edge_drop > 0;
     if (hasEdgeDelta) {
       var deltaReheatAlpha = 1.25;
-      var hasGraphCall = hasEnginePort("graphCall");
+      var hasGraphCall = hasEnginePort("reheat");
       var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
       if (hasGraphCall && layoutEnabled) {
         log(

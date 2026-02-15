@@ -96,7 +96,6 @@ function callEngineFocusNodeById(nodeId, fromSearch) {
 function callEngineGraph(methodName) {
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return adapterCallEngine.apply(null, args);
 }
 
@@ -1414,7 +1413,7 @@ function buildConfigFromSpec(specList, values) {
 }
 
 function applyEngineSettingsToGraph() {
-  if (!hasEnginePort("graphCall")) return;
+  if (!hasEnginePort("setConfig")) return;
 
   var engineValues = collectEngineRuntimeSettings(STATE.engine || {});
   var solverValues = collectSolverSettings(STATE.solver || {});

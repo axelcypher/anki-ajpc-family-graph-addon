@@ -27,7 +27,6 @@ function flowCallEngine(name) {
 function flowCallEngineGraph(methodName) {
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return flowCallEngine.apply(null, args);
 }
 
@@ -41,7 +40,7 @@ function stopFlowParticles() {
 
 function hasShaderFlowCandidates() {
   if (!OVERLAY_EFFECTS_ENABLED) return false;
-  if (!flowHasEnginePort("graphCall") || !Array.isArray(STATE.activeEdges) || !STATE.activeEdges.length) return false;
+  if (!flowHasEnginePort("requestFrame") || !Array.isArray(STATE.activeEdges) || !STATE.activeEdges.length) return false;
   var speed = flowClamp(STATE.layerFlowSpeed, 0, 3);
   if (speed <= 0.001) return false;
   if (STATE.lastStyleHasFocus) return true;

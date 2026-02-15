@@ -9,19 +9,20 @@
 - Added a new end-to-end delta pipeline for note changes:
   - Python subgraph slice builder: `build_note_delta_slice(...)` (`graph_data.py`)
   - Python rev/order dispatch queue: `_enqueue_note_delta` / `_dispatch_note_delta` (`graph_sync.py`)
-  - JS unified mod pipeline for full+delta slices (`web/graph.city.payload.js`)
+  - JS unified mod pipeline for full+delta slices (`web/adapters/city/payload/graph.city.payload.js`)
   - JS diff/state patch ops (`node_add/node_update/node_drop`, `edge_upsert/edge_drop`)
-  - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/graph.engine.main.js`)
+  - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/adapters/engine/runtime/graph.engine.main.js`)
 - Completed frontend runtime file namespace split:
   - City modules renamed to `graph.city.*` / `ui/graph.city.ui.*`
   - Engine modules renamed to `graph.engine.*` and `graph.engine.sigma.*`
   - Shared adapter kept neutral as `web/graph.adapter.js`
 - Added centralized runtime gateways:
-  - `web/graph.city.gateway.js` for City->Engine/City port calls and city port registration
-  - `web/graph.engine.gateway.js` for Engine->City/Engine port calls and engine port registration
+  - `web/adapters/city/gateway/graph.city.gateway.js` for City->Engine/City port calls and city port registration
+  - `web/adapters/engine/gateway/graph.engine.gateway.js` for Engine->City/Engine port calls and engine port registration
   - Engine/City runtime modules now route adapter interactions through these gateways.
-- Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/graph.engine.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
-- Exposed subset solver helper to city via adapter graph-call path (`GraphAdapter.callEngine("graphCall", "runSubsetNoDampingPull", ...)`) by forwarding through `SigmaGraphCompat`.
+- Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/adapters/engine/solver/graph.engine.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
+- Refactored frontend runtime to strict `core/` + `adapters/` structure (without SCSS/HTML structure changes).
+- Exposed subset solver helper to city via explicit engine port `runSubsetNoDampingPull(...)`.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
@@ -32,9 +33,10 @@
 - Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
 - Added alpha-only solver reheat for edge-changing delta updates (`reheat(1.25)`), so delta edge changes can nudge physics without rebuilding the solver simulation.
 - Added explicit delta reheat logs (trigger/skip/failure with rev/edge op counts/requested alpha) and solver reheat logs with the effective applied alpha.
-- Routed all city->engine runtime graph method calls through adapter engine port `graphCall(...)` and removed direct city-side `STATE.graph.*` calls.
+- Replaced city runtime dependency on adapter `graphCall(...)` with explicit engine port calls and kept `graphCall` as compatibility path.
 - Added adapter contract registry (`register/get/list` for city+engine ports) and declared explicit `graphCall` method contracts (required args + return shape) as central runtime API reference.
 - Added city-port contracts for all registered city adapter ports (payload/ui/flow/utils), so `GraphAdapter.getCityContract(name)` now exposes argument and return expectations end-to-end.
+- Synced architecture/runtime docs to the moved `web/adapters/*` + `web/core/*` structure and explicit engine-port-first boundary (legacy `graphCall` kept as compatibility path).
 - Limited delta neighbor expansion to one hop from changed notes to prevent transitive recursive slice blowups on context link/unlink operations.
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
@@ -43,7 +45,7 @@
 - Kept `_FORCE_LOGGING` as API-outage fallback and enabled automatic debug-level logging when tools API config is unavailable.
 - Added API debug payload fields in AJpC Tools graph config response (`debug.level`, `debug.module_logs`, `debug.module_levels`) for graph-side level/module filtering.
 - Added a context-menu connect option for `active note + context family hub`, so selected family hubs can now add their family directly to the active note.
-- Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/ui/graph.city.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
+- Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/adapters/city/ui/graph.city.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
 
 ## 1.0.0-beta.1 - 2026-02-14
 

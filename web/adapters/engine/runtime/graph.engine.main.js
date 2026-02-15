@@ -2903,6 +2903,15 @@ function graphCall(methodName) {
   return fn.apply(STATE.graph, methodArgs);
 }
 
+function graphCallMethodPort(methodName) {
+  var key = String(methodName || "").trim();
+  return function () {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(key);
+    return graphCall.apply(null, args);
+  };
+}
+
 window.applyGraphData = applyGraphData;
 window.applyGraphDeltaOps = applyGraphDeltaOps;
 window.applyVisualStyles = applyVisualStyles;
@@ -2952,6 +2961,14 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
       { name: "edgeIndex", type: "number", required: false }
     ],
     returns: "number"
+  });
+  Object.keys(ENGINE_GRAPH_CALL_CONTRACTS).forEach(function (methodName) {
+    if (!methodName) return;
+    gw.registerEnginePortWithContract(
+      methodName,
+      graphCallMethodPort(methodName),
+      ENGINE_GRAPH_CALL_CONTRACTS[methodName]
+    );
   });
   gw.registerEnginePortWithContract("graphCall", graphCall, {
     args: [{ name: "methodName", type: "string", required: true }],

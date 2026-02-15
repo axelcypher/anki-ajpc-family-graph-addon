@@ -27,7 +27,6 @@ function debugCallEngine(name) {
 function debugCallEngineGraph(methodName) {
   var args = Array.prototype.slice.call(arguments, 1);
   args.unshift(methodName);
-  args.unshift("graphCall");
   return debugCallEngine.apply(null, args);
 }
 
