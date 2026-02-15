@@ -1,6 +1,6 @@
 "use strict";
 
-// Debug panel UI module (extracted from graph.ui.js)
+// Debug panel UI module (extracted from graph.city.ui.js)
 
 var DEBUG_EXTRA_SPEC = [
   { key: "fps", a: "perfFps", b: null },
@@ -399,3 +399,4 @@ function wireDebugDom() {
   }
   syncDebugPerfMonitor();
 }
+

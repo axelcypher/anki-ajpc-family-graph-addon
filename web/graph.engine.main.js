@@ -2658,7 +2658,13 @@ function applyGraphDeltaOps(ops, arrays, options) {
 }
 
 var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze({
-  reheat: { args: [{ name: "alpha", type: "number", required: false }], returns: "boolean|undefined", desc: "Alpha-only solver nudge on running simulation." },
+  reheat: {
+    args: [
+      { name: "alpha", type: "number", required: false }
+    ],
+    returns: "boolean|undefined",
+    desc: "Alpha-only solver nudge on running simulation."
+  },
   runSubsetNoDampingPull: {
     args: [
       { name: "nodeIds", type: "array", required: true },
@@ -2667,30 +2673,163 @@ var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze({
     returns: "object|boolean",
     desc: "Run subset-only d3 pull simulation with velocityDecay(0) and write back positions."
   },
-  requestFrame: { args: [], returns: "undefined", desc: "Request one render frame for shader uniforms." },
-  getPointPositions: { args: [], returns: "array|typedarray|null", desc: "Get flattened [x,y] pairs for active nodes." },
-  spaceToScreenPosition: { args: [{ name: "spacePoint", type: "array2", required: true }], returns: "array", desc: "Project graph-space position to viewport-space." },
-  getPointScreenRadiusByIndex: { args: [{ name: "index", type: "number", required: true }], returns: "number", desc: "Get rendered point radius in pixels." },
-  spaceToScreenRadius: { args: [{ name: "radius", type: "number", required: true }], returns: "number", desc: "Project graph-space radius to viewport-space." },
-  getSelectedIndices: { args: [], returns: "array|null", desc: "Return selected node indices." },
-  getZoomLevel: { args: [], returns: "number", desc: "Return camera zoom ratio." },
-  setConfig: { args: [{ name: "configPatch", type: "object", required: true }], returns: "undefined", desc: "Apply runtime engine/solver/renderer config patch." },
-  stop: { args: [{ name: "destroySupervisor", type: "boolean", required: false }], returns: "undefined", desc: "Stop layout simulation." },
-  start: { args: [{ name: "alpha", type: "number", required: false }], returns: "undefined", desc: "Start/restart layout simulation." },
-  render: { args: [{ name: "alpha", type: "number", required: false }], returns: "undefined", desc: "Render frame with optional interpolation alpha." },
-  resize: { args: [], returns: "undefined", desc: "Resize renderer to host viewport." },
-  fitView: { args: [{ name: "durationMs", type: "number", required: false }, { name: "paddingRatio", type: "number", required: false }], returns: "undefined", desc: "Fit camera to graph bounds." },
-  setPointColors: { args: [{ name: "colors", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set flattened RGBA point colors." },
-  setPointSizes: { args: [{ name: "sizes", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set point sizes by index." },
-  setLinkColors: { args: [{ name: "colors", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set flattened RGBA edge colors." },
-  setLinkWidths: { args: [{ name: "widths", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set edge widths by index." },
-  setLinkStrength: { args: [{ name: "strengths", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set solver link strengths by index." },
-  setLinkStyleCodes: { args: [{ name: "styleCodes", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set edge style code array." },
-  setLinkFlowMask: { args: [{ name: "flowMask", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set per-edge shader flow mask." },
-  setLinkBidirMask: { args: [{ name: "bidirMask", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set per-edge bidirectional mask." },
-  setLinkDistance: { args: [{ name: "distances", type: "typedarray|array", required: true }], returns: "undefined", desc: "Set solver link distances by index." },
-  screenToSpacePosition: { args: [{ name: "screenPoint", type: "array2", required: true }], returns: "array", desc: "Project viewport-space position to graph-space." },
-  getCameraState: { args: [], returns: "object|null", desc: "Get current camera state." }
+  requestFrame: {
+    args: [],
+    returns: "undefined",
+    desc: "Request one render frame for shader uniforms."
+  },
+  getPointPositions: {
+    args: [],
+    returns: "array|typedarray|null",
+    desc: "Get flattened [x,y] pairs for active nodes."
+  },
+  spaceToScreenPosition: {
+    args: [
+      { name: "spacePoint", type: "array2", required: true }
+    ],
+    returns: "array",
+    desc: "Project graph-space position to viewport-space."
+  },
+  getPointScreenRadiusByIndex: {
+    args: [
+      { name: "index", type: "number", required: true }
+    ],
+    returns: "number",
+    desc: "Get rendered point radius in pixels."
+  },
+  spaceToScreenRadius: {
+    args: [
+      { name: "radius", type: "number", required: true }
+    ],
+    returns: "number",
+    desc: "Project graph-space radius to viewport-space."
+  },
+  getSelectedIndices: {
+    args: [],
+    returns: "array|null",
+    desc: "Return selected node indices."
+  },
+  getZoomLevel: {
+    args: [],
+    returns: "number",
+    desc: "Return camera zoom ratio."
+  },
+  setConfig: {
+    args: [
+      { name: "configPatch", type: "object", required: true }
+    ],
+    returns: "undefined",
+    desc: "Apply runtime engine/solver/renderer config patch."
+  },
+  stop: {
+    args: [
+      { name: "destroySupervisor", type: "boolean", required: false }
+    ],
+    returns: "undefined",
+    desc: "Stop layout simulation."
+  },
+  start: {
+    args: [
+      { name: "alpha", type: "number", required: false }
+    ],
+    returns: "undefined",
+    desc: "Start/restart layout simulation."
+  },
+  render: {
+    args: [
+      { name: "alpha", type: "number", required: false }
+    ],
+    returns: "undefined",
+    desc: "Render frame with optional interpolation alpha."
+  },
+  resize: {
+    args: [],
+    returns: "undefined",
+    desc: "Resize renderer to host viewport."
+  },
+  fitView: {
+    args: [
+      { name: "durationMs", type: "number", required: false },
+      { name: "paddingRatio", type: "number", required: false }
+    ],
+    returns: "undefined",
+    desc: "Fit camera to graph bounds."
+  },
+  setPointColors: {
+    args: [
+      { name: "colors", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set flattened RGBA point colors."
+  },
+  setPointSizes: {
+    args: [
+      { name: "sizes", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set point sizes by index."
+  },
+  setLinkColors: {
+    args: [
+      { name: "colors", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set flattened RGBA edge colors."
+  },
+  setLinkWidths: {
+    args: [
+      { name: "widths", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set edge widths by index."
+  },
+  setLinkStrength: {
+    args: [
+      { name: "strengths", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set solver link strengths by index."
+  },
+  setLinkStyleCodes: {
+    args: [
+      { name: "styleCodes", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set edge style code array."
+  },
+  setLinkFlowMask: {
+    args: [
+      { name: "flowMask", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set per-edge shader flow mask."
+  },
+  setLinkBidirMask: {
+    args: [
+      { name: "bidirMask", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set per-edge bidirectional mask."
+  },
+  setLinkDistance: {
+    args: [
+      { name: "distances", type: "typedarray|array", required: true }
+    ],
+    returns: "undefined",
+    desc: "Set solver link distances by index."
+  },
+  screenToSpacePosition: {
+    args: [
+      { name: "screenPoint", type: "array2", required: true }
+    ],
+    returns: "array",
+    desc: "Project viewport-space position to graph-space."
+  },
+  getCameraState: {
+    args: [],
+    returns: "object|null",
+    desc: "Get current camera state."
+  }
 });
 
 var ENGINE_GRAPH_CALL_ALLOWLIST = Object.freeze((function () {

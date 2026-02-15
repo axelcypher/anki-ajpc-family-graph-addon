@@ -26,7 +26,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
-- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. Delta slice neighbor expansion is limited to one hop from changed notes (no transitive recursive expansion). If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(0.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Gate config for build + context mutations is parsed through one shared backend helper path.
+- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. Delta slice neighbor expansion is limited to one hop from changed notes (no transitive recursive expansion). If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(1.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Gate config for build + context mutations is parsed through one shared backend helper path.
 
 ### Settings panel
 **Note Settings**
@@ -100,35 +100,35 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `window.ajpcGraphUpdate(data)`
   - `window.ajpcGraphDelta(slice)`
 - Frontend runtime is split into prefixed modules under `web/graph.*.js`:
-  - `graph.state.js`, `graph.bridge.js`, `graph.adapter.js`, `graph.utils.js`, `graph.payload.js`
-  - `graph.flow.js`, `graph.engine.sigma.js`, `graph.data.graphology.js`
-  - `graph.solver.d3.js`, `graph.renderer.sigma.js`
-  - `ui/graph.ui.deptree.js`, `ui/graph.ui.debug.js`, `ui/graph.ui.tooltip.js`, `ui/graph.ui.ctx.js`, `ui/graph.ui.editor.js`
-  - `graph.ui.js`, `graph.main.js`
+  - `graph.city.state.js`, `graph.city.bridge.js`, `graph.adapter.js`, `graph.city.utils.js`, `graph.city.payload.js`
+  - `graph.city.flow.js`, `graph.engine.main.js`, `graph.engine.data.graphology.js`
+  - `graph.engine.solver.d3.js`, `graph.engine.renderer.sigma.js`
+  - `ui/graph.city.ui.deptree.js`, `ui/graph.city.ui.debug.js`, `ui/graph.city.ui.tooltip.js`, `ui/graph.city.ui.ctx.js`, `ui/graph.city.ui.editor.js`
+  - `graph.city.ui.js`, `graph.city.main.js`
 - Module boundaries and load order are documented in `.devdocs/ARCHITECTURE_GUIDE.md`.
 - Engine runtime is now `sigma.js` via local asset `web/libs/sigma.min.js`.
-- Engine runtime implementation is in `web/graph.engine.sigma.js`.
+- Engine runtime implementation is in `web/graph.engine.main.js`.
 - Delta runtime is split into:
   - Python slice builder `build_note_delta_slice(...)` (`graph_data.py`)
-  - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.payload.js`)
-  - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.sigma.js`)
+  - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.city.payload.js`)
+  - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.main.js`)
 - City->Engine runtime calls use adapter engine ports; graph runtime method calls are routed via `GraphAdapter.callEngine("graphCall", method, ...args)` (no direct `STATE.graph.*` calls in city modules).
 - Adapter contracts are discoverable at runtime:
   - Engine port contracts: `GraphAdapter.listEngineContracts()` / `GraphAdapter.getEngineContract(name)`
   - City port contracts: `GraphAdapter.listCityContracts()` / `GraphAdapter.getCityContract(name)`
-  - `graphCall` method-level args/returns are declared in `web/graph.engine.sigma.js` (`ENGINE_GRAPH_CALL_CONTRACTS`).
-  - City contracts are registered by `web/graph.payload.js`, `web/graph.ui.js`, `web/graph.flow.js`, and `web/graph.utils.js`.
+  - `graphCall` method-level args/returns are declared in `web/graph.engine.main.js` (`ENGINE_GRAPH_CALL_CONTRACTS`).
+  - City contracts are registered by `web/graph.city.payload.js`, `web/graph.city.ui.js`, `web/graph.city.flow.js`, and `web/graph.city.utils.js`.
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
-- Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.
+- Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.engine.solver.d3.js`.
 - Solver helper is adapter-accessible via `GraphAdapter.callEngine("graphCall", "runSubsetNoDampingPull", nodeIds, options)` for subset-only extra simulation with `velocityDecay(0)`.
 - Custom post-pass collision/noverlap is removed from the active FA2 runtime path.
-- `web/graph.flow.js` drives the shader flow animation loop and frame requests.
-- Node ping/ring effects are rendered in Sigma node shaders (`web/sigma-programs/graph.sigma.program.extra.nodefx.js`).
-- Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.sigma.program.edge.*.js`).
+- `web/graph.city.flow.js` drives the shader flow animation loop and frame requests.
+- Node ping/ring effects are rendered in Sigma node shaders (`web/sigma-programs/graph.engine.sigma.program.extra.nodefx.js`).
+- Flow particles are rendered directly in Sigma edge shaders (`web/sigma-programs/graph.engine.sigma.program.edge.*.js`).
 - Bidirectional links render two-way shader photons on one collapsed edge (`ajpc_bidir` attribute path).
 - Flow visibility is interaction-gated (hover/active selection), not globally enabled on all visible edges.
-- Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.sigma.program.node.hub.js`).
+- Hub dimming during active focus is handled in the hub node shader (`web/sigma-programs/graph.engine.sigma.program.node.hub.js`).
 - Ping/ring effects scale with camera ratio in the same render pass as nodes (no canvas drift).
 - The graph window hosts a native embedded Anki editor panel (Qt side) that can be toggled from the graph UI.
 - Python host runtime is split into dedicated modules (`graph_launcher.py`, `graph_view.py`, `graph_sync.py`, `graph_bridge_handlers.py`, `graph_actions.py`, `graph_note_ops.py`, `graph_api_adapter.py`, `graph_web_assets.py`, `graph_previewer.py`, `graph_editor_embedded.py`, `graph_editor_window.py`).
@@ -154,3 +154,4 @@ See `THIRD_PARTY_NOTICES.md` for a summary.
 
 ## License
 MIT — see `LICENSE`.
+

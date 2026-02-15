@@ -35,13 +35,13 @@
     "u_dim_alpha_mul"
   ];
 
-  // Must stay aligned with node pulse max in graph.sigma.program.node.note.js:
+  // Must stay aligned with node pulse max in graph.engine.sigma.program.node.note.js:
   // pulseOuterMax = coreRadius * (1.28 + 0.40) = 1.68 * coreRadius
   var NODE_PULSE_MAX_RADIUS_MUL = 1.68;
-  // Must stay aligned with node pulse min in graph.sigma.program.node.note.js:
+  // Must stay aligned with node pulse min in graph.engine.sigma.program.node.note.js:
   // pulseOuterMin = coreRadius * (1.28 + 0.20) = 1.48 * coreRadius
   var NODE_PULSE_MIN_RADIUS_MUL = 1.48;
-  // Must stay aligned with node pulse speed in graph.sigma.program.node.note.js:
+  // Must stay aligned with node pulse speed in graph.engine.sigma.program.node.note.js:
   // wave = sin(((u_time * 0.4) + seed) * TAU) -> angular speed = TAU * 0.4
   var NODE_PULSE_ANGULAR_SPEED = 6.28318530717958647692 * 0.4;
 

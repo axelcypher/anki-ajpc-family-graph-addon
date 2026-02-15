@@ -1,6 +1,6 @@
 "use strict";
 
-// Tooltip UI module (extracted from graph.ui.js).
+// Tooltip UI module (extracted from graph.city.ui.js).
 
 function tooltipHtml(node) {
   var parts = [];
@@ -110,3 +110,4 @@ function hideTooltip() {
   DOM.hoverTip.classList.remove("is-visible");
   DOM.hoverTip.__nodeId = "";
 }
+

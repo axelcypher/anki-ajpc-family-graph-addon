@@ -1,6 +1,6 @@
 "use strict";
 
-// Context-menu UI module (extracted from graph.ui.js).
+// Context-menu UI module (extracted from graph.city.ui.js).
 var CTX_ICON_DEFAULT_MODE = "fixed";
 var CTX_ICON_DEFAULT_COLOR = "var(--text-main)";
 var CTX_ICON_ENABLE_ENTRY_PREFIX = true; // keep only in-label token icons by default
@@ -96,7 +96,7 @@ function discoverCtxIconBaseUrl() {
   if (CTX_ICON_BASE_URL_CACHE) return CTX_ICON_BASE_URL_CACHE;
   try {
     var scripts = document && document.getElementsByTagName ? document.getElementsByTagName("script") : [];
-    var marker = "/ui/graph.ui.ctx.js";
+    var marker = "/ui/graph.city.ui.ctx.js";
     for (var i = 0; i < scripts.length; i += 1) {
       var src = String((scripts[i] && scripts[i].getAttribute && scripts[i].getAttribute("src")) || "");
       var idx = src.indexOf(marker);
@@ -1007,3 +1007,4 @@ function showContextMenu(node, evt) {
 }
 
 window.hideContextMenu = hideContextMenu;
+

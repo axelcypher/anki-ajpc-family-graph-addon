@@ -1,6 +1,6 @@
 "use strict";
 
-// Dep-tree UI module (extracted from graph.ui.js)
+// Dep-tree UI module (extracted from graph.city.ui.js)
 
 function depTreeCallEngine(name) {
   var adapter = window && window.GraphAdapter;
@@ -1253,4 +1253,5 @@ window.setActiveDepTreeFromPy = function (payload) {
   renderDepTreeCanvas(p);
   markDepTreeRendered(nid, p);
 };
+
 

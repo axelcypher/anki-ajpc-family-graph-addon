@@ -9,10 +9,14 @@
 - Added a new end-to-end delta pipeline for note changes:
   - Python subgraph slice builder: `build_note_delta_slice(...)` (`graph_data.py`)
   - Python rev/order dispatch queue: `_enqueue_note_delta` / `_dispatch_note_delta` (`graph_sync.py`)
-  - JS unified mod pipeline for full+delta slices (`web/graph.payload.js`)
+  - JS unified mod pipeline for full+delta slices (`web/graph.city.payload.js`)
   - JS diff/state patch ops (`node_add/node_update/node_drop`, `edge_upsert/edge_drop`)
-  - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/graph.engine.sigma.js`)
-- Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/graph.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
+  - Engine runtime delta patch port: `applyGraphDeltaOps` (`web/graph.engine.main.js`)
+- Completed frontend runtime file namespace split:
+  - City modules renamed to `graph.city.*` / `ui/graph.city.ui.*`
+  - Engine modules renamed to `graph.engine.*` and `graph.engine.sigma.*`
+  - Shared adapter kept neutral as `web/graph.adapter.js`
+- Added solver helper `runSubsetNoDampingPull(nodeIds, options)` in `web/graph.engine.solver.d3.js` to run an extra subset-only simulation with `velocityDecay(0)` and write back node positions.
 - Exposed subset solver helper to city via adapter graph-call path (`GraphAdapter.callEngine("graphCall", "runSubsetNoDampingPull", ...)`) by forwarding through `SigmaGraphCompat`.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
@@ -35,7 +39,7 @@
 - Kept `_FORCE_LOGGING` as API-outage fallback and enabled automatic debug-level logging when tools API config is unavailable.
 - Added API debug payload fields in AJpC Tools graph config response (`debug.level`, `debug.module_logs`, `debug.module_levels`) for graph-side level/module filtering.
 - Added a context-menu connect option for `active note + context family hub`, so selected family hubs can now add their family directly to the active note.
-- Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/ui/graph.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
+- Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/ui/graph.city.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
 
 ## 1.0.0-beta.1 - 2026-02-14
 
@@ -58,3 +62,4 @@
 - Delta updates no longer route through full frontend `applyGraphData()` rebuild; note edits/new notes now use a dedicated incremental engine delta path that patches graph nodes/edges in-place.
 - Fixed partial delta-node merge so unchanged node fields are preserved instead of being overwritten by sparse patch payloads.
 - Fixed full-build vs delta edge-key mismatch by using stable edge IDs in full graph builds, preventing mass edge churn/freeze behavior on first delta apply.
+

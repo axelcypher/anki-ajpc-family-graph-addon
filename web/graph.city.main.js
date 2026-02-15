@@ -1,6 +1,6 @@
 "use strict";
 
-log("graph.main.js modular");
+log("graph.city.main.js modular");
 
 function adapterCallEngine(name) {
   if (!(window && window.GraphAdapter && typeof window.GraphAdapter.callEngine === "function")) return undefined;
@@ -262,3 +262,4 @@ if (document.readyState === "loading") {
   wireDebugDom();
   updateSettingsVisibility(false);
 }
+
