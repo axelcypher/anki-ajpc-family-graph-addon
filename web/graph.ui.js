@@ -83,12 +83,12 @@ function callEngineFocusNodeById(nodeId, fromSearch) {
   return adapterCallEngine("focusNodeById", nodeId, fromSearch);
 }
 
-function callCityApplyRuntimeUiSettings(reheatLayout) {
-  return adapterCallCity("applyRuntimeUiSettings", reheatLayout);
+function callCityApplyRuntimeUiSettings(solverRestartLayout) {
+  return adapterCallCity("applyRuntimeUiSettings", solverRestartLayout);
 }
 
-function callCityApplyRuntimeLinkDistances(reheat) {
-  return adapterCallCity("applyRuntimeLinkDistances", reheat);
+function callCityApplyRuntimeLinkDistances(solverRestart) {
+  return adapterCallCity("applyRuntimeLinkDistances", solverRestart);
 }
 
 function callCityGetCardSettingsDefaults() {
@@ -214,8 +214,8 @@ function findHoverCandidateAtPointer() {
 }
 
 // === UI helpers ==============================================================
-function applyUiSettingsNoRebuild(reheatLayout) {
-  var runtimeApplied = callCityApplyRuntimeUiSettings(reheatLayout);
+function applyUiSettingsNoRebuild(solverRestartLayout) {
+  var runtimeApplied = callCityApplyRuntimeUiSettings(solverRestartLayout);
   if (runtimeApplied !== undefined) {
     return !!runtimeApplied;
   }
@@ -1334,14 +1334,14 @@ function renderLinkSettings() {
     });
   });
 
-  function applyNeighborScalingRuntime(reheat) {
+  function applyNeighborScalingRuntime(solverRestart) {
     var cfg = (typeof normalizeNeighborScaling === "function")
       ? normalizeNeighborScaling(STATE.neighborScaling || null)
       : { mode: "none", directed: "undirected", weights: {} };
     STATE.neighborScaling = cfg;
     var updated = false;
-    updated = !!callCityApplyRuntimeLinkDistances(reheat !== false);
-    if (!updated) applyUiSettingsNoRebuild(reheat !== false);
+    updated = !!callCityApplyRuntimeLinkDistances(solverRestart !== false);
+    if (!updated) applyUiSettingsNoRebuild(solverRestart !== false);
     persistHook("neighborscale:" + encodeURIComponent(JSON.stringify(cfg)));
   }
 

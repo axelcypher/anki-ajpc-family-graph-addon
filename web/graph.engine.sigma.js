@@ -210,8 +210,8 @@ function cityBuildGraphArrays(source) {
   return { nodes: [], edges: [], indexById: new Map(), idsByIndex: [], linkFlowMask: new Uint8Array(0) };
 }
 
-function cityApplyRuntimeUiSettings(reheatLayout) {
-  var res = adapterCallCity("applyRuntimeUiSettings", reheatLayout);
+function cityApplyRuntimeUiSettings(solverRestartLayout) {
+  var res = adapterCallCity("applyRuntimeUiSettings", solverRestartLayout);
   if (res !== undefined) return !!res;
   return false;
 }

@@ -2221,7 +2221,7 @@ function buildRuntimeVisibilityMasks(nodes, edges, indexById) {
   return { nodeVisible: nodeVisible, edgeVisible: edgeVisible };
 }
 
-function applyRuntimeUiSettings(reheatLayout) {
+function applyRuntimeUiSettings(solverRestartLayout) {
   if (!STATE.graph || !Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
 
   var nodes = STATE.activeNodes;
@@ -2343,7 +2343,7 @@ function applyRuntimeUiSettings(reheatLayout) {
     STATE.graph.render(0.08);
   }
 
-  if (reheatLayout !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
+  if (solverRestartLayout !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
     STATE.graph.start(0.25);
   }
   if (DOM && DOM.graphEmpty) {
@@ -2361,7 +2361,7 @@ function applyRuntimeUiSettings(reheatLayout) {
           edgesTotal: edges.length,
           nodesVisible: visibleNodeCount,
           edgesVisible: visibleEdgeCount,
-          reheat: reheatLayout !== false
+          solverRestart: solverRestartLayout !== false
         })
       );
     } catch (_e2) { }
@@ -2369,7 +2369,7 @@ function applyRuntimeUiSettings(reheatLayout) {
   return true;
 }
 
-function applyRuntimeLinkDistances(reheat) {
+function applyRuntimeLinkDistances(solverRestart) {
   if (!STATE.graph || !STATE.activeNodes || !STATE.activeNodes.length) return false;
   var edgeRecords = buildRuntimeEdgeRecords();
   var visibleMask = (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === edgeRecords.length)
@@ -2392,7 +2392,7 @@ function applyRuntimeLinkDistances(reheat) {
   if (typeof STATE.graph.render === "function") {
     STATE.graph.render(0.08);
   }
-  if (reheat !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
+  if (solverRestart !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
     STATE.graph.start();
   }
   return true;
