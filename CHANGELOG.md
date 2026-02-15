@@ -29,6 +29,7 @@
 - Etappe 5 hardening: added automated delta/reheat pipeline check script (`scripts/check_frontend_delta_reheat_pipeline.js`) for bootstrap/usecase wiring, delta-apply invariants, engine bridge, and solver reheat behavior.
 - Etappe 6 hardening: added unified smoke suite runner (`scripts/check_graph_smoke_suite.py`) that executes frontend contract/pipeline checks and backend delta one-hop guard validation in one command.
 - Etappe 7 integration: added CI workflow (`.github/workflows/smoke-checks.yml`) to run `python scripts/check_graph_smoke_suite.py` on `push/pull_request` for `main` and `dev`.
+- Etappe 8 integration: added local git pre-commit hook (`.githooks/pre-commit`) and documented `git config core.hooksPath .githooks` so smoke suite runs before commits.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes

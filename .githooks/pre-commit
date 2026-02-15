@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+set -eu
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$REPO_ROOT"
+
+echo "[pre-commit] Running graph smoke suite..."
+
+if command -v python >/dev/null 2>&1; then
+  python scripts/check_graph_smoke_suite.py
+  exit 0
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  python3 scripts/check_graph_smoke_suite.py
+  exit 0
+fi
+
+if command -v py >/dev/null 2>&1; then
+  py -3 scripts/check_graph_smoke_suite.py
+  exit 0
+fi
+
+echo "[pre-commit] ERROR: Python runtime not found (python/python3/py)." >&2
+exit 1

@@ -131,6 +131,9 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `python scripts/check_graph_smoke_suite.py`
 - CI workflow:
   - `.github/workflows/smoke-checks.yml` runs the same suite on `push/pull_request` for `main` and `dev`.
+- Local pre-commit hook:
+  - `git config core.hooksPath .githooks`
+  - hook file: `.githooks/pre-commit` (runs `python scripts/check_graph_smoke_suite.py`).
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/adapters/engine/solver/graph.engine.solver.d3.js`.
