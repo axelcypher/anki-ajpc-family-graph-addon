@@ -5,28 +5,26 @@ import re
 from aqt import mw
 
 from .graph_config import load_graph_config
-from .graph_data import _get_tools_config, _parse_family_field, _parse_link_targets
+from .graph_data import (
+    _get_family_gate_config,
+    _get_tools_config,
+    _parse_family_field,
+    _parse_link_targets,
+)
 
 
 def _get_family_field() -> str:
     cfg = _get_tools_config()
-    if not isinstance(cfg, dict):
-        return ""
-    fg = cfg.get("family_gate", {}) or {}
-    return str(fg.get("family_field") or "")
+    family_cfg = _get_family_gate_config(cfg)
+    return str(family_cfg.get("family_field") or "")
 
 
 def _get_family_cfg() -> tuple[str, str, int]:
     cfg = _get_tools_config()
-    if not isinstance(cfg, dict):
-        return "", ";", 0
-    fg = cfg.get("family_gate", {}) or {}
-    field = str(fg.get("family_field") or "")
-    sep = str(fg.get("separator") or ";")
-    try:
-        default_prio = int(fg.get("default_prio") or 0)
-    except Exception:
-        default_prio = 0
+    family_cfg = _get_family_gate_config(cfg)
+    field = str(family_cfg.get("family_field") or "")
+    sep = str(family_cfg.get("separator") or ";")
+    default_prio = int(family_cfg.get("default_prio") or 0)
     return field, sep, default_prio
 
 def _append_family_to_note(

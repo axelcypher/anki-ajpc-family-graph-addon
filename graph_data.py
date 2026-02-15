@@ -153,6 +153,33 @@ def _get_tools_config() -> dict[str, Any] | None:
     return cfg
 
 
+def _get_family_gate_config(
+    cfg: dict[str, Any] | None,
+    col: Collection | None = None,
+) -> dict[str, Any]:
+    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
+    fg = fg_cfg if isinstance(fg_cfg, dict) else {}
+    family_field = str(fg.get("family_field") or "")
+    separator = str(fg.get("separator") or ";")
+    try:
+        default_prio = int(fg.get("default_prio") or 0)
+    except Exception:
+        default_prio = 0
+    note_types_raw = fg.get("note_types") or {}
+    note_types = (
+        _normalize_note_type_map(col, note_types_raw)
+        if col is not None
+        else (note_types_raw if isinstance(note_types_raw, dict) else {})
+    )
+    return {
+        "enabled": bool(fg.get("enabled")),
+        "family_field": family_field,
+        "separator": separator,
+        "default_prio": default_prio,
+        "note_types": note_types,
+    }
+
+
 def _strip_html(s: str) -> str:
     return _HTML_RE.sub("", s)
 
@@ -692,15 +719,12 @@ def build_note_delta_slice(
                 continue
             allowed_nids.update(_note_ids_for_deck(col, dn))
 
-    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
-    family_enabled = bool((fg_cfg or {}).get("enabled"))
-    family_field = str((fg_cfg or {}).get("family_field") or "")
-    family_sep = str((fg_cfg or {}).get("separator") or ";")
-    try:
-        family_default_prio = int((fg_cfg or {}).get("default_prio") or 0)
-    except Exception:
-        family_default_prio = 0
-    family_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
+    family_cfg = _get_family_gate_config(cfg, col)
+    family_enabled = bool(family_cfg.get("enabled"))
+    family_field = str(family_cfg.get("family_field") or "")
+    family_sep = str(family_cfg.get("separator") or ";")
+    family_default_prio = int(family_cfg.get("default_prio") or 0)
+    family_note_types = family_cfg.get("note_types") or {}
     family_note_type_ids = {str(k) for k in family_note_types.keys() if str(k).strip()}
 
     nodes_by_id: dict[str, dict[str, Any]] = {}
@@ -1158,8 +1182,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
             continue
         mass_linker_group_hubs_cfg_keys.add(grp_key)
         mass_linker_group_hubs_cfg.append(grp)
-    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
-    family_gate_note_types = _normalize_note_type_map(col, (fg_cfg or {}).get("note_types") or {})
+    family_cfg = _get_family_gate_config(cfg, col)
+    family_gate_note_types = family_cfg.get("note_types") or {}
     cs_cfg = cfg.get("card_stages") if isinstance(cfg, dict) else {}
     card_stages_note_types = _normalize_note_type_map(col, (cs_cfg or {}).get("note_types") or {})
     kg_cfg = cfg.get("kanji_gate") if isinstance(cfg, dict) else {}
@@ -1315,11 +1339,10 @@ def build_graph(col: Collection) -> dict[str, Any]:
         return None
 
     # Family Gate (direct + hub)
-    fg = cfg.get("family_gate", {})
-    if fg.get("enabled"):
-        family_field = str(fg.get("family_field") or "")
-        sep = str(fg.get("separator") or ";")
-        default_prio = int(fg.get("default_prio") or 0)
+    if family_cfg.get("enabled"):
+        family_field = str(family_cfg.get("family_field") or "")
+        sep = str(family_cfg.get("separator") or ";")
+        default_prio = int(family_cfg.get("default_prio") or 0)
         note_types = family_gate_note_types
         logger.dbg("family_gate enabled", "field=", family_field, "note_types=", len(note_types))
 
@@ -1994,7 +2017,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     )
                     add_layer(str(nid), layer)
 
-        if fg.get("enabled"):
+        if family_cfg.get("enabled"):
             family_nts = {str(k) for k in (family_gate_note_types or {}).keys() if str(k).strip()}
             if family_nts:
                 _add_unlinked_notes(family_nts, "notes")

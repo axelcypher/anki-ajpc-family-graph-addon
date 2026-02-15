@@ -22,6 +22,7 @@
 - Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
+- Centralized Family Gate config parsing into `graph_data._get_family_gate_config(...)` and wired build + ctx mutation paths to this single mapper to avoid future key-drift across call sites.
 
 ## 1.0.0-beta.1 - 2026-02-14
 
