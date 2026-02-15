@@ -127,6 +127,8 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `node scripts/check_frontend_runtime_contracts.js`
 - Delta/reheat pipeline architecture smoke-check:
   - `node scripts/check_frontend_delta_reheat_pipeline.js`
+- Unified graph smoke suite (frontend + backend delta guards):
+  - `python scripts/check_graph_smoke_suite.py`
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/adapters/engine/solver/graph.engine.solver.d3.js`.

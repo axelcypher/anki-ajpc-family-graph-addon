@@ -27,6 +27,7 @@
 - Etappe 3 refactor: centralized adapter contract specs in `web/core/contracts/graph.contracts.js` and switched City/Engine runtime modules to read contracts from this shared source.
 - Etappe 4 hardening: added automated frontend architecture check script (`scripts/check_frontend_runtime_contracts.js`) for contract coverage and asset/load-order consistency.
 - Etappe 5 hardening: added automated delta/reheat pipeline check script (`scripts/check_frontend_delta_reheat_pipeline.js`) for bootstrap/usecase wiring, delta-apply invariants, engine bridge, and solver reheat behavior.
+- Etappe 6 hardening: added unified smoke suite runner (`scripts/check_graph_smoke_suite.py`) that executes frontend contract/pipeline checks and backend delta one-hop guard validation in one command.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
