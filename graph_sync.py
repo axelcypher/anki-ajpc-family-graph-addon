@@ -308,17 +308,7 @@ class GraphSyncMixin:
             if not self._graph_ready:
                 return
             if getattr(changes, "note", False) or getattr(changes, "note_text", False):
-                try:
-                    if handler is not None:
-                        cand = getattr(handler, "note", None)
-                        if cand is not None and getattr(cand, "id", None):
-                            self._request_focus_note_in_graph(int(cand.id))
-                        elif getattr(handler, "note_id", None):
-                            self._request_focus_note_in_graph(int(getattr(handler, "note_id")))
-                        elif getattr(handler, "nid", None):
-                            self._request_focus_note_in_graph(int(getattr(handler, "nid")))
-                except Exception:
-                    pass
+
                 note_ids: list[int] = []
                 try:
                     if handler is not None:
