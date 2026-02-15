@@ -223,10 +223,34 @@ function buildContextMenuGroupsForCtx(ctx) {
   var isSame = selectedNode && String(node.id) === String(menuSelectedId);
 
   var connectGroup = [];
-  if (selectedNode && isDifferent && isNodeNote) {
-    var canConnect = selectedKind === "family" || (selectedKind === "note" && getNodeFamiliesForCtx(selectedNode).length);
+  if (selectedNode && isDifferent && (isNodeNote || isNodeFamily)) {
+    var canConnect = selectedKind === "family" || (
+      selectedKind === "note" &&
+      (isNodeFamily || getNodeFamiliesForCtx(selectedNode).length)
+    );
     if (selectedKind === "kanji" || selectedKind === "kanji_hub") canConnect = false;
     if (canConnect) {
+      if (isNodeFamily && selectedKind === "note") {
+        connectGroup.push({
+          label: "Connect active to: selected Family",
+          cb: function () {
+            var hubFid = node.label || String(node.id).replace("family:", "");
+            hubFid = String(hubFid || "").trim();
+            if (!hubFid) { showToast("Missing family id"); return; }
+            showToast("Connect family");
+            var payload = {
+              source: String(node.id),
+              target: String(menuSelectedId),
+              source_kind: "family",
+              source_label: hubFid,
+              prio_mode: "hub_zero"
+            };
+            if (pycmd) pycmd("ctx:connect:" + encodeURIComponent(JSON.stringify(payload)));
+          }
+        });
+      }
+    }
+    if (canConnect && isNodeNote) {
       function doConnectWithMode(title, mode) {
         return function () {
           function doConnect(families) {
