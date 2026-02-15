@@ -1353,6 +1353,10 @@ SigmaGraphCompat.prototype.setConfig = function (cfg) {
 
 SigmaGraphCompat.prototype.stop = function (destroySupervisor) { if (this.solver) this.solver.stop(!!destroySupervisor); };
 SigmaGraphCompat.prototype.start = function (alpha) { if (this.solver) this.solver.start(alpha); };
+SigmaGraphCompat.prototype.reheat = function (alpha) {
+  if (!this.solver || typeof this.solver.reheat !== "function") return false;
+  return this.solver.reheat(alpha);
+};
 
 SigmaGraphCompat.prototype.selectPointByIndex = function (idx) {
   var i = Number(idx);

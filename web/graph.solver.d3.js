@@ -243,6 +243,21 @@ AjpcGraphSolverD3.prototype.start = function (alpha) {
   this.simulation.restart();
 };
 
+AjpcGraphSolverD3.prototype.reheat = function (alpha) {
+  var cfg = this._settings();
+  if (!cfg.layout_enabled) return false;
+  if (!this.simulation) return false;
+
+  var a = Number(alpha);
+  if (isFinite(a) && a >= 0) this.simulation.alpha(Math.max(a, cfg.d3_alpha_min));
+  else this.simulation.alpha(Math.max(cfg.d3_alpha, cfg.d3_alpha_min));
+  this.simulation.alphaTarget(cfg.d3_alpha_target);
+  this._startTs = Date.now();
+  this._tickCount = 0;
+  this.simulation.restart();
+  return true;
+};
+
 AjpcGraphSolverD3.prototype.stop = function (destroySimulation) {
   if (!this.simulation) return;
   try { this.simulation.stop(); } catch (_e) {}

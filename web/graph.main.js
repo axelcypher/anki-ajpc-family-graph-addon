@@ -175,6 +175,10 @@ function applyDeltaPayload(payload) {
 
     var applyStyles = resolveApplyVisualStyles();
     if (applyStyles) applyStyles(0.08);
+    var hasEdgeDelta = counts.edge_upsert > 0 || counts.edge_drop > 0;
+    if (hasEdgeDelta && STATE.graph && typeof STATE.graph.reheat === "function" && STATE.solver && STATE.solver.layout_enabled) {
+      STATE.graph.reheat(0.25);
+    }
 
     STATE.lastAppliedDeltaRev = incomingRev;
     STATE.deltaRecoveryInProgress = false;
