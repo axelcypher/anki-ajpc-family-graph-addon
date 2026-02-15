@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
-  <path class="ctx-icon-path-primary" d="M2 11.8c2.2-4.1 4.6-5.7 8.7-5.7" />
-  <path class="ctx-icon-path-primary" d="m8.4 3.2 2.6 2.2L8.2 7.7" />
-  <path class="ctx-icon-path-secondary" d="M14 4.2c-2.2 4.1-4.6 5.7-8.7 5.7" />
-  <path class="ctx-icon-path-secondary" d="M7.6 12.8 5 10.6l2.8-2.3" />
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Arrow / Arrow_Left_Right">
+<g transform="translate(12 12) scale(1.2) translate(-10.5 -10.5)">
+<path class="ctx-icon-path-primary" d="m12.5 3.5-4 14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<path class="ctx-icon-path-primary" d="M16 13L19 16M19 16L16 19M19 16H5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="ctx-icon-path-secondary" d="M8 11L5 8M5 8L8 5M5 8H19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
 </svg>

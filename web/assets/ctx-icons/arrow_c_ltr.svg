@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
-  <path class="ctx-icon-path-primary" d="M2 12c2.3-4.8 5-6.7 10-6.7" />
-  <path class="ctx-icon-path-primary" d="m9.3 2.8 2.7 2.5-2.9 2.3" />
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Arrow / Arrow_Right_LG">
+<g transform="translate(12 12) scale(1.2) translate(-11.5 -11)">
+<path d="m12.5 3.5-4 14" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<path id="Vector" d="M21 12L16 7M21 12L16 17M21 12H3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
 </svg>

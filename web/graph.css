@@ -1148,24 +1148,20 @@ input[type=checkbox]:checked::before {
   --ctx-icon-primary: var(--text-main);
   --ctx-icon-secondary: var(--text-main);
   overflow: visible;
+  color: var(--ctx-icon-primary);
 }
-#ctx-menu .ctx-icon-base .ctx-icon-path-primary, #ctx-menu .ctx-icon-base .ctx-icon-path-secondary {
-  fill: none;
+#ctx-menu .ctx-icon-base path, #ctx-menu .ctx-icon-base line, #ctx-menu .ctx-icon-base polyline, #ctx-menu .ctx-icon-base polygon, #ctx-menu .ctx-icon-base circle, #ctx-menu .ctx-icon-base ellipse, #ctx-menu .ctx-icon-base rect {
+  fill: none !important;
+  stroke: currentColor !important;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-#ctx-menu .ctx-icon-base .ctx-icon-path-primary {
-  stroke: var(--ctx-icon-primary);
+#ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary {
+  stroke: var(--ctx-icon-primary) !important;
 }
-#ctx-menu .ctx-icon-base .ctx-icon-path-secondary {
-  stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary));
-}
-#ctx-menu .ctx-icon--arrow_ltr .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary, #ctx-menu .ctx-icon--arrow_c_ltr .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_c_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
-  stroke-width: 1.6;
-}
-#ctx-menu .ctx-icon--icon_active .ctx-icon-path-primary, #ctx-menu .ctx-icon--icon_selected .ctx-icon-path-primary, #ctx-menu .ctx-icon--icon_selected .ctx-icon-path-secondary {
-  stroke-width: 1.5;
+#ctx-menu .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary, #ctx-menu .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
+  stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
 }
 
 #ctx-picker {

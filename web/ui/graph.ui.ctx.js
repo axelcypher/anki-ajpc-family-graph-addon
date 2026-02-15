@@ -3,9 +3,10 @@
 // Context-menu UI module (extracted from graph.ui.js).
 var CTX_ICON_DEFAULT_MODE = "fixed";
 var CTX_ICON_DEFAULT_COLOR = "var(--text-main)";
+var CTX_ICON_ENABLE_ENTRY_PREFIX = false; // keep only in-label token icons by default
 var CTX_ICON_ALLOWED_MODES = Object.freeze({
+  active: true,
   selected: true,
-  context: true,
   fixed: true,
   split: true
 });
@@ -21,8 +22,21 @@ var CTX_ICON_REGISTRY = Object.freeze({
 });
 var CTX_ICON_TEMPLATE_CACHE = Object.create(null);
 var CTX_ICON_LOADING_CACHE = Object.create(null);
+var CTX_ICON_BASE_URL_CACHE = "";
 var CTX_ICON_HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 var CTX_ICON_VAR_RE = /^var\(\s*--[A-Za-z0-9_-]+\s*(?:,\s*[^)]+)?\)$/;
+
+function logCtxIcon(level, msg) {
+  try {
+    var pycmd = window && window.pycmd;
+    if (typeof pycmd !== "function") return;
+    var lv = String(level || "debug").toLowerCase();
+    if (lv !== "info" && lv !== "warn" && lv !== "error" && lv !== "debug") lv = "debug";
+    pycmd("log:" + lv + ":ctx icon " + String(msg || ""));
+  } catch (_err) {
+    // no-op
+  }
+}
 
 function isValidCtxIconColor(value) {
   var color = String(value || "").trim();
@@ -40,44 +54,110 @@ function parseIconSpec(spec) {
   if (!raw) return null;
   var parts = raw.split(":");
   var key = String(parts[0] || "").trim();
-  if (!key || !CTX_ICON_REGISTRY[key]) return null;
+  if (!key || !CTX_ICON_REGISTRY[key]) {
+    logCtxIcon("warn", "invalid spec key=" + key + " spec=" + raw);
+    return null;
+  }
   var mode = String(parts.length > 1 ? parts[1] : "").trim().toLowerCase();
+  if (!CTX_ICON_ALLOWED_MODES[mode] && mode) {
+    logCtxIcon("debug", "invalid mode fallback key=" + key + " mode=" + mode);
+  }
   if (!CTX_ICON_ALLOWED_MODES[mode]) mode = CTX_ICON_DEFAULT_MODE;
   var color = String(parts.length > 2 ? parts.slice(2).join(":") : "").trim();
+  if (color && !isValidCtxIconColor(color)) {
+    logCtxIcon("debug", "invalid color fallback key=" + key + " color=" + color);
+  }
   color = normalizeCtxIconColor(color);
   return { key: key, mode: mode, color: color };
+}
+
+function discoverCtxIconBaseUrl() {
+  if (CTX_ICON_BASE_URL_CACHE) return CTX_ICON_BASE_URL_CACHE;
+  try {
+    var scripts = document && document.getElementsByTagName ? document.getElementsByTagName("script") : [];
+    var marker = "/ui/graph.ui.ctx.js";
+    for (var i = 0; i < scripts.length; i += 1) {
+      var src = String((scripts[i] && scripts[i].getAttribute && scripts[i].getAttribute("src")) || "");
+      var idx = src.indexOf(marker);
+      if (idx <= 0) continue;
+      var baseRaw = src.slice(0, idx);
+      var abs = String(new URL(baseRaw + "/", window.location.href));
+      CTX_ICON_BASE_URL_CACHE = abs.replace(/\/+$/, "");
+      logCtxIcon("debug", "base from script=" + CTX_ICON_BASE_URL_CACHE);
+      return CTX_ICON_BASE_URL_CACHE;
+    }
+  } catch (err) {
+    logCtxIcon("warn", "base discover script failed err=" + String(err || ""));
+  }
+  try {
+    var links = document && document.querySelectorAll ? document.querySelectorAll("link[rel='stylesheet']") : [];
+    for (var j = 0; j < links.length; j += 1) {
+      var href = String((links[j] && links[j].getAttribute && links[j].getAttribute("href")) || "");
+      var cut = href.indexOf("/graph.css");
+      if (cut <= 0) continue;
+      var cssBaseRaw = href.slice(0, cut);
+      var cssAbs = String(new URL(cssBaseRaw + "/", window.location.href));
+      CTX_ICON_BASE_URL_CACHE = cssAbs.replace(/\/+$/, "");
+      logCtxIcon("debug", "base from css=" + CTX_ICON_BASE_URL_CACHE);
+      return CTX_ICON_BASE_URL_CACHE;
+    }
+  } catch (err2) {
+    logCtxIcon("warn", "base discover css failed err=" + String(err2 || ""));
+  }
+  return "";
 }
 
 function resolveCtxIconAssetUrl(key) {
   var rel = CTX_ICON_REGISTRY[key];
   if (!rel) return "";
+  var base = discoverCtxIconBaseUrl();
+  if (base) {
+    var normalizedRel = String(rel).replace(/^\/+/, "");
+    return base + "/" + normalizedRel;
+  }
   try {
     return String(new URL(rel, window.location.href));
   } catch (_err) {
+    logCtxIcon("warn", "asset url resolve fallback key=" + key + " rel=" + rel);
     return String(rel);
   }
 }
 
 function loadCtxIconTemplate(key) {
-  if (!CTX_ICON_REGISTRY[key]) return Promise.resolve(null);
+  if (!CTX_ICON_REGISTRY[key]) {
+    logCtxIcon("warn", "missing registry key=" + String(key || ""));
+    return Promise.resolve(null);
+  }
   if (CTX_ICON_TEMPLATE_CACHE[key]) return Promise.resolve(CTX_ICON_TEMPLATE_CACHE[key]);
   if (CTX_ICON_LOADING_CACHE[key]) return CTX_ICON_LOADING_CACHE[key];
   var url = resolveCtxIconAssetUrl(key);
+  logCtxIcon("debug", "load start key=" + key + " url=" + url);
   var task = fetch(url)
     .then(function (resp) {
-      if (!resp || !resp.ok) throw new Error("icon fetch failed");
+      if (!resp || !resp.ok) {
+        var status = resp ? String(resp.status) : "n/a";
+        throw new Error("icon fetch failed status=" + status + " key=" + key + " url=" + url);
+      }
       return resp.text();
     })
     .then(function (svgText) {
       var doc = new DOMParser().parseFromString(String(svgText || ""), "image/svg+xml");
       var root = doc && doc.documentElement ? doc.documentElement : null;
-      if (!root || String(root.nodeName || "").toLowerCase() !== "svg") return null;
+      if (!root || String(root.nodeName || "").toLowerCase() !== "svg") {
+        logCtxIcon("warn", "invalid svg root key=" + key + " url=" + url);
+        return null;
+      }
       var imported = document.importNode(root, true);
-      if (!imported || String(imported.nodeName || "").toLowerCase() !== "svg") return null;
+      if (!imported || String(imported.nodeName || "").toLowerCase() !== "svg") {
+        logCtxIcon("warn", "svg import failed key=" + key + " url=" + url);
+        return null;
+      }
       CTX_ICON_TEMPLATE_CACHE[key] = imported;
+      logCtxIcon("debug", "load ok key=" + key + " url=" + url);
       return imported;
     })
-    .catch(function (_err) {
+    .catch(function (err) {
+      logCtxIcon("error", "load failed key=" + key + " url=" + url + " err=" + String(err || ""));
       return null;
     })
     .finally(function () {
@@ -97,17 +177,17 @@ function resolveCtxIconColors(icon, ctxColorState) {
   var state = ctxColorState && typeof ctxColorState === "object" ? ctxColorState : {};
   var fallback = normalizeCtxIconColor(icon && icon.color);
   if (!icon) return { primary: fallback, secondary: fallback };
+  if (icon.mode === "active") {
+    var active = resolveCtxIconColor(state.activeColor, fallback);
+    return { primary: active, secondary: active };
+  }
   if (icon.mode === "selected") {
     var selected = resolveCtxIconColor(state.selectedColor, fallback);
     return { primary: selected, secondary: selected };
   }
-  if (icon.mode === "context") {
-    var context = resolveCtxIconColor(state.contextColor, fallback);
-    return { primary: context, secondary: context };
-  }
   if (icon.mode === "split") {
-    var splitPrimary = resolveCtxIconColor(state.selectedColor, fallback);
-    var splitSecondary = resolveCtxIconColor(state.contextColor, fallback);
+    var splitPrimary = resolveCtxIconColor(state.activeColor, fallback);
+    var splitSecondary = resolveCtxIconColor(state.selectedColor, fallback);
     return { primary: splitPrimary, secondary: splitSecondary };
   }
   return { primary: fallback, secondary: fallback };
@@ -117,9 +197,15 @@ function createCtxIconElement(iconSpec, ctxColorState) {
   var icon = parseIconSpec(iconSpec);
   if (!icon) return Promise.resolve(null);
   return loadCtxIconTemplate(icon.key).then(function (template) {
-    if (!template) return null;
+    if (!template) {
+      logCtxIcon("warn", "template missing key=" + icon.key + " spec=" + String(iconSpec || ""));
+      return null;
+    }
     var svg = template.cloneNode(true);
-    if (!svg || !svg.classList) return null;
+    if (!svg || !svg.classList) {
+      logCtxIcon("warn", "clone failed key=" + icon.key);
+      return null;
+    }
     svg.classList.add("ctx-icon-base", "ctx-icon--" + icon.key);
     svg.setAttribute("aria-hidden", "true");
     svg.setAttribute("focusable", "false");
@@ -133,13 +219,60 @@ function createCtxIconElement(iconSpec, ctxColorState) {
 function appendCtxIcon(container, iconSpec, ctxColorState) {
   if (!container) return;
   var icon = parseIconSpec(iconSpec);
-  if (!icon) return;
+  if (!icon) {
+    logCtxIcon("warn", "icon skipped spec=" + String(iconSpec || ""));
+    return;
+  }
   var placeholder = document.createElement("span");
   placeholder.className = "ctx-icon-placeholder";
   container.appendChild(placeholder);
   createCtxIconElement(iconSpec, ctxColorState).then(function (svg) {
-    if (!svg || !placeholder.parentNode) return;
+    if (!svg || !placeholder.parentNode) {
+      logCtxIcon("warn", "icon render skipped key=" + icon.key + " spec=" + String(iconSpec || ""));
+      if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+      return;
+    }
     placeholder.parentNode.replaceChild(svg, placeholder);
+  });
+}
+
+function shouldRenderCtxEntryPrefixIcon(entry) {
+  if (!entry || typeof entry !== "object") return CTX_ICON_ENABLE_ENTRY_PREFIX;
+  if (entry.prefixIcon === true) return true;
+  if (entry.prefixIcon === false) return false;
+  return CTX_ICON_ENABLE_ENTRY_PREFIX;
+}
+
+function parseInlineIconToken(token) {
+  var raw = String(token || "");
+  if (!raw) return null;
+  var trimmed = raw.trim();
+  if (!trimmed) return null;
+  var m = /^(.+?)([.,;!?)]*)$/.exec(trimmed);
+  var core = m && m[1] ? String(m[1]) : trimmed;
+  var trailing = m && m[2] ? String(m[2]) : "";
+  var key = String(core.split(":")[0] || "").trim();
+  if (!key || !CTX_ICON_REGISTRY[key]) return null;
+  var parsed = parseIconSpec(core);
+  if (!parsed) return null;
+  return { spec: core, trailing: trailing };
+}
+
+function appendLabelWithCtxIcons(container, label, ctxColorState) {
+  var chunks = String(label || "").split(/(\s+)/g);
+  chunks.forEach(function (chunk) {
+    if (!chunk) return;
+    if (/^\s+$/.test(chunk)) {
+      container.appendChild(document.createTextNode(chunk));
+      return;
+    }
+    var inlineIcon = parseInlineIconToken(chunk);
+    if (inlineIcon) {
+      appendCtxIcon(container, inlineIcon.spec, ctxColorState);
+      if (inlineIcon.trailing) container.appendChild(document.createTextNode(inlineIcon.trailing));
+      return;
+    }
+    container.appendChild(document.createTextNode(chunk));
   });
 }
 
@@ -378,7 +511,7 @@ function buildContextMenuGroupsForCtx(ctx) {
       if (isNodeFamily && selectedKind === "note") {
         connectGroup.push({
           label: "Connect active to: selected Family",
-          iconSpec: "arrow_c_rtl:context",
+          iconSpec: "arrow_c_rtl:selected",
           cb: function () {
             var hubFid = node.label || String(node.id).replace("family:", "");
             hubFid = String(hubFid || "").trim();
@@ -427,16 +560,16 @@ function buildContextMenuGroupsForCtx(ctx) {
         };
       }
       if (selectedKind === "family") {
-        connectGroup.push({ label: "Connect selected to Family", iconSpec: "arrow_c_ltr:selected", cb: doConnectWithMode("Select hub families", "hub_zero") });
+        connectGroup.push({ label: "Connect selected to Family", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select hub families", "hub_zero") });
       } else if (selectedKind === "note") {
-        connectGroup.push({ label: "Connect selected: to active Family@+1", iconSpec: "arrow_c_ltr:selected", cb: doConnectWithMode("Select families to connect", "") });
-        connectGroup.push({ label: "Connect selected to: active Family", iconSpec: "arrow_c_ltr:selected", cb: doConnectWithMode("Select families to connect", "same") });
+        connectGroup.push({ label: "Connect selected: to active Family@+1", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "") });
+        connectGroup.push({ label: "Connect selected to: active Family", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "same") });
         if (hasPositiveFamilyPrioForCtx(selectedNode)) {
-          connectGroup.push({ label: "Connect selected: to active Family@-1", iconSpec: "arrow_c_ltr:selected", cb: doConnectWithMode("Select families to connect", "minus1") });
+          connectGroup.push({ label: "Connect selected: to active Family@-1", iconSpec: "arrow_c_ltr:active", cb: doConnectWithMode("Select families to connect", "minus1") });
         }
         connectGroup.push({
           label: "Connect active to: selected Family",
-          iconSpec: "arrow_c_rtl:context",
+          iconSpec: "arrow_c_rtl:selected",
           cb: function () {
             var families = getNodeFamiliesForCtx(node);
             if (!families.length) { showToast("No family on selected"); return; }
@@ -534,8 +667,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     var activeLinked = activeNt ? noteTypeLinkedField[activeNt] : "";
     if (targetLinked && !linkInfo.ba) {
       appendItems.push({
-        label: "Append Link on selected: to active",
-        iconSpec: "arrow_ltr:selected",
+        label: "Append Link: to active arrow_rtl:fixed:#f72a2a from selected",
+        iconSpec: "arrow_ltr:active",
         cb: function () {
           showToast("Append link");
           var payload = { source: String(menuSelectedId), target: String(node.id), label: selectedNode.label || "" };
@@ -545,8 +678,8 @@ function buildContextMenuGroupsForCtx(ctx) {
     }
     if (activeLinked && !linkInfo.ab) {
       appendItems.push({
-        label: "Append Link on active: to selected",
-        iconSpec: "arrow_rtl:context",
+        label: "Append Link: from active arrow_ltr:active to selected",
+        iconSpec: "arrow_rtl:selected",
         cb: function () {
           showToast("Append link");
           var payload = { source: String(node.id), target: String(menuSelectedId), label: node.label || "" };
@@ -556,7 +689,7 @@ function buildContextMenuGroupsForCtx(ctx) {
     }
     if (targetLinked && activeLinked && !linkInfo.ab && !linkInfo.ba) {
       appendItems.push({
-        label: "Append Link on both: to each other",
+        label: "Append Link: on both arrow_ltr_rtl:split to both",
         iconSpec: "arrow_ltr_rtl:split",
         cb: function () {
           showToast("Append links");
@@ -620,7 +753,7 @@ function buildContextMenuGroupsForCtx(ctx) {
   families.forEach(function (fid) {
     filterGroup.push({
       label: "Filter Family: " + fid,
-      iconSpec: "icon_selected:context",
+      iconSpec: "icon_selected:selected",
       cb: function () {
         showToast("Filter family");
         if (pycmd) pycmd("ctx:filter:" + encodeURIComponent(fid));
@@ -712,8 +845,8 @@ function showContextMenu(node, evt) {
   }
   var selectedKind = selectedNode ? String(selectedNode.kind || "") : "";
   var iconColorState = {
-    selectedColor: selectedNode ? contextNodeColor(selectedNode) : "",
-    contextColor: contextNodeColor(node)
+    activeColor: selectedNode ? contextNodeColor(selectedNode) : "",
+    selectedColor: contextNodeColor(node)
   };
   var noteTypeLinkedField = buildNoteTypeLinkedFieldMapForCtx();
 
@@ -737,22 +870,8 @@ function showContextMenu(node, evt) {
     var label = entry.label;
     var div = document.createElement("div");
     div.className = "item";
-    if (entry.iconSpec) appendCtxIcon(div, entry.iconSpec, iconColorState);
-    var tokens = String(label || "").split(/(selected|active)/g);
-    tokens.forEach(function (tok) {
-      if (!tok) return;
-      if (tok === "selected") {
-        div.appendChild(document.createTextNode("selected"));
-        appendCtxIcon(div, "icon_selected:selected:#ef4444", iconColorState);
-        return;
-      }
-      if (tok === "active") {
-        div.appendChild(document.createTextNode("active"));
-        appendCtxIcon(div, "icon_active:context:#ef4444", iconColorState);
-        return;
-      }
-      div.appendChild(document.createTextNode(tok));
-    });
+    if (shouldRenderCtxEntryPrefixIcon(entry) && entry.iconSpec) appendCtxIcon(div, entry.iconSpec, iconColorState);
+    appendLabelWithCtxIcons(div, label, iconColorState);
     div.addEventListener("click", function () {
       try {
         entry.cb();

@@ -75,39 +75,31 @@
     --ctx-icon-primary: var(--text-main);
     --ctx-icon-secondary: var(--text-main);
     overflow: visible;
+    color: var(--ctx-icon-primary);
   }
 
-  & .ctx-icon-base .ctx-icon-path-primary,
-  & .ctx-icon-base .ctx-icon-path-secondary {
-    fill: none;
+  & .ctx-icon-base path,
+  & .ctx-icon-base line,
+  & .ctx-icon-base polyline,
+  & .ctx-icon-base polygon,
+  & .ctx-icon-base circle,
+  & .ctx-icon-base ellipse,
+  & .ctx-icon-base rect {
+    fill: none !important;
+    stroke: currentColor !important;
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
 
-  & .ctx-icon-base .ctx-icon-path-primary {
-    stroke: var(--ctx-icon-primary);
-  }
-
-  & .ctx-icon-base .ctx-icon-path-secondary {
-    stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary));
-  }
-
-  & .ctx-icon--arrow_ltr .ctx-icon-path-primary,
-  & .ctx-icon--arrow_rtl .ctx-icon-path-primary,
   & .ctx-icon--arrow_ltr_rtl .ctx-icon-path-primary,
-  & .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary,
-  & .ctx-icon--arrow_c_ltr .ctx-icon-path-primary,
-  & .ctx-icon--arrow_c_rtl .ctx-icon-path-primary,
-  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary,
-  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
-    stroke-width: 1.6;
+  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-primary {
+    stroke: var(--ctx-icon-primary) !important;
   }
 
-  & .ctx-icon--icon_active .ctx-icon-path-primary,
-  & .ctx-icon--icon_selected .ctx-icon-path-primary,
-  & .ctx-icon--icon_selected .ctx-icon-path-secondary {
-    stroke-width: 1.5;
+  & .ctx-icon--arrow_ltr_rtl .ctx-icon-path-secondary,
+  & .ctx-icon--arrow_c_ltr_rtl .ctx-icon-path-secondary {
+    stroke: var(--ctx-icon-secondary, var(--ctx-icon-primary)) !important;
   }
 }
 
