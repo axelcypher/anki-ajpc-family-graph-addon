@@ -2639,7 +2639,6 @@ function applyGraphData(fitView) {
 
 function applyGraphDeltaOps(ops, arrays, options) {
   ensureGraphInstance();
-  applyPhysicsToGraph();
   if (!STATE.graph || typeof STATE.graph.applyDeltaOps !== "function") {
     throw new Error("applyDeltaOps is not available");
   }
@@ -2666,3 +2665,4 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   adapter.registerEnginePort("focusNodeById", focusNodeById);
   adapter.registerEnginePort("edgeCurvByStyle", edgeCurvByStyle);
 })();
+

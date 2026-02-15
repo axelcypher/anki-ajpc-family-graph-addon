@@ -19,6 +19,7 @@
 - Fixed immediate styling of newly upserted links by running full edge-mod pipeline before diff and applying Graphology patch + runtime style pass in the same delta tick.
 - Fixed bidirectional note-link duplication in delta slices by coalescing opposite note-link directions into one visual edge (+ reverse flow-only edge metadata path).
 - Fixed flow animation startup for active selection after delta by reapplying visual/runtime flow masks immediately after patch.
+- Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
 
 ## 1.0.0-beta.1 - 2026-02-14
 

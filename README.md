@@ -26,7 +26,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
-- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases.
+- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event.
 
 ### Settings panel
 **Note Settings**
