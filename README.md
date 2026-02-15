@@ -112,6 +112,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - Python slice builder `build_note_delta_slice(...)` (`graph_data.py`)
   - JS diff/state patch (`prepareDeltaSlice`, `buildDeltaOps`, `applyDeltaOpsToState` in `web/graph.payload.js`)
   - Engine graphology patch port (`applyGraphDeltaOps` in `web/graph.engine.sigma.js`)
+- City->Engine runtime calls use adapter engine ports; graph runtime method calls are routed via `GraphAdapter.callEngine("graphCall", method, ...args)` (no direct `STATE.graph.*` calls in city modules).
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.

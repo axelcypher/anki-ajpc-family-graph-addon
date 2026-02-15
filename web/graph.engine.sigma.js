@@ -2653,6 +2653,44 @@ function applyGraphDeltaOps(ops, arrays, options) {
   return true;
 }
 
+var ENGINE_GRAPH_CALL_ALLOWLIST = Object.freeze({
+  reheat: true,
+  requestFrame: true,
+  getPointPositions: true,
+  spaceToScreenPosition: true,
+  getPointScreenRadiusByIndex: true,
+  spaceToScreenRadius: true,
+  getSelectedIndices: true,
+  getZoomLevel: true,
+  setConfig: true,
+  stop: true,
+  start: true,
+  render: true,
+  resize: true,
+  fitView: true,
+  setPointColors: true,
+  setPointSizes: true,
+  setLinkColors: true,
+  setLinkWidths: true,
+  setLinkStrength: true,
+  setLinkStyleCodes: true,
+  setLinkFlowMask: true,
+  setLinkBidirMask: true,
+  setLinkDistance: true,
+  screenToSpacePosition: true,
+  getCameraState: true
+});
+
+function graphCall(methodName) {
+  if (!STATE.graph) return undefined;
+  var key = String(methodName || "").trim();
+  if (!key) return undefined;
+  if (!Object.prototype.hasOwnProperty.call(ENGINE_GRAPH_CALL_ALLOWLIST, key)) return undefined;
+  var fn = STATE.graph[key];
+  if (typeof fn !== "function") return undefined;
+  return fn.apply(STATE.graph, Array.prototype.slice.call(arguments, 1));
+}
+
 window.applyGraphData = applyGraphData;
 window.applyGraphDeltaOps = applyGraphDeltaOps;
 window.applyVisualStyles = applyVisualStyles;
@@ -2668,5 +2706,6 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   adapter.registerEnginePort("createGraphEngineSigma", createGraphEngineSigma);
   adapter.registerEnginePort("focusNodeById", focusNodeById);
   adapter.registerEnginePort("edgeCurvByStyle", edgeCurvByStyle);
+  adapter.registerEnginePort("graphCall", graphCall);
 })();
 

@@ -71,6 +71,10 @@ function adapterCallEngine(name) {
   return adapter.callEngine.apply(adapter, arguments);
 }
 
+function hasEnginePort(name) {
+  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+}
+
 function callEngineApplyVisualStyles(renderAlpha) {
   return adapterCallEngine("applyVisualStyles", renderAlpha);
 }
@@ -81,6 +85,13 @@ function callEngineApplyGraphData(fitView) {
 
 function callEngineFocusNodeById(nodeId, fromSearch) {
   return adapterCallEngine("focusNodeById", nodeId, fromSearch);
+}
+
+function callEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return adapterCallEngine.apply(null, args);
 }
 
 function callCityApplyRuntimeUiSettings(solverRestartLayout) {
@@ -151,7 +162,6 @@ function clearHoverIfPointerOutside(reason) {
 }
 
 function findHoverCandidateAtPointer() {
-  if (!STATE.graph || typeof STATE.graph.getPointPositions !== "function") return null;
   if (!DOM.graph) return null;
   if (!isFiniteNumber(STATE.pointerClientX) || !isFiniteNumber(STATE.pointerClientY)) return null;
   var rect = DOM.graph.getBoundingClientRect();
@@ -159,19 +169,18 @@ function findHoverCandidateAtPointer() {
   var px = Number(STATE.pointerClientX) - Number(rect.left);
   var py = Number(STATE.pointerClientY) - Number(rect.top);
   if (!isFiniteNumber(px) || !isFiniteNumber(py)) return null;
-  if (typeof STATE.graph.spaceToScreenPosition !== "function") return null;
+  var spaceProbe = callEngineGraph("spaceToScreenPosition", [0, 0]);
+  if (!Array.isArray(spaceProbe) || spaceProbe.length < 2) return null;
 
   function getNodeHoverScreenRadius(idx) {
     var i = Number(idx);
     if (!isFiniteNumber(i) || i < 0 || i >= STATE.activeNodes.length) return 8;
     var radiusPx = NaN;
-    if (STATE.graph && typeof STATE.graph.getPointScreenRadiusByIndex === "function") {
-      radiusPx = Number(STATE.graph.getPointScreenRadiusByIndex(i));
-    }
+    radiusPx = Number(callEngineGraph("getPointScreenRadiusByIndex", i));
     if (!isFiniteNumber(radiusPx) || radiusPx <= 0) {
       var baseSize = Number((STATE.pointStyleSizes && STATE.pointStyleSizes.length > i) ? STATE.pointStyleSizes[i] : 0);
       if (!isFiniteNumber(baseSize) || baseSize <= 0) baseSize = 1;
-      radiusPx = STATE.graph.spaceToScreenRadius(baseSize);
+      radiusPx = Number(callEngineGraph("spaceToScreenRadius", baseSize));
     }
     if (!isFiniteNumber(radiusPx) || radiusPx <= 0) radiusPx = 8;
     var node = STATE.activeNodes && STATE.activeNodes.length > i ? STATE.activeNodes[i] : null;
@@ -182,7 +191,7 @@ function findHoverCandidateAtPointer() {
     return Math.max(8, radiusPx + 6);
   }
 
-  var pos = STATE.graph.getPointPositions();
+  var pos = callEngineGraph("getPointPositions");
   if (!Array.isArray(pos) || !pos.length) return null;
 
   var bestIdx = -1;
@@ -194,7 +203,7 @@ function findHoverCandidateAtPointer() {
     var ny = Number(pos[(i * 2) + 1]);
     if (!isFiniteNumber(nx) || !isFiniteNumber(ny)) continue;
 
-    var sp = STATE.graph.spaceToScreenPosition([nx, ny]);
+    var sp = callEngineGraph("spaceToScreenPosition", [nx, ny]);
     if (!Array.isArray(sp) || sp.length < 2) continue;
     var sx = Number(sp[0]);
     var sy = Number(sp[1]);
@@ -300,11 +309,9 @@ function persistCardSetting(key, value) {
 // === Status panel ============================================================
 function selectedNodeForStatus() {
   var idx = NaN;
-  if (STATE.graph && typeof STATE.graph.getSelectedIndices === "function") {
-    var selected = STATE.graph.getSelectedIndices();
-    if (Array.isArray(selected) && selected.length) idx = Number(selected[0]);
-    else return null;
-  } else {
+  var selected = callEngineGraph("getSelectedIndices");
+  if (Array.isArray(selected) && selected.length) idx = Number(selected[0]);
+  else {
     idx = Number(STATE.selectedPointIndex);
     if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) {
       if (STATE.activeIndexById && STATE.selectedNodeId !== null && STATE.selectedNodeId !== undefined) {
@@ -529,8 +536,8 @@ function updateStatus(extraText) {
   if (DOM.statusExtraText) DOM.statusExtraText.textContent = "";
   renderActiveDetails();
 
-  if (STATE.graph && DOM.statusZoom) {
-    var zoom = STATE.graph.getZoomLevel();
+  if (DOM.statusZoom) {
+    var zoom = callEngineGraph("getZoomLevel");
     DOM.statusZoom.textContent = "Zoom: " + Number(zoom || 1).toFixed(2) + "x";
   }
   if (typeof syncDebugPerfMonitor === "function") syncDebugPerfMonitor();
@@ -1401,7 +1408,7 @@ function buildConfigFromSpec(specList, values) {
 }
 
 function applyEngineSettingsToGraph() {
-  if (!STATE.graph) return;
+  if (!hasEnginePort("graphCall")) return;
 
   var engineValues = collectEngineRuntimeSettings(STATE.engine || {});
   var solverValues = collectSolverSettings(STATE.solver || {});
@@ -1413,13 +1420,10 @@ function applyEngineSettingsToGraph() {
   var engineCfg = buildConfigFromSpec(engineSpec(), engineValues);
   var solverCfg = buildConfigFromSpec(solverSpec(), solverValues);
   var rendererCfg = buildConfigFromSpec(rendererSpec(), rendererValues);
-  STATE.graph.setConfig({ engine: engineCfg, solver: solverCfg, renderer: rendererCfg });
+  callEngineGraph("setConfig", { engine: engineCfg, solver: solverCfg, renderer: rendererCfg });
 
   if (Object.prototype.hasOwnProperty.call(solverCfg, "layout_enabled")
-      && !solverCfg.layout_enabled
-      && typeof STATE.graph.stop === "function") {
-    STATE.graph.stop();
-  }
+      && !solverCfg.layout_enabled) callEngineGraph("stop");
 }
 
 function ensureCardsSettingsUi() {
@@ -1573,10 +1577,8 @@ function renderSettingsList(container, groupKey, specList, defaultsGetter) {
           applyUiSettingsNoRebuild(true);
         } else {
           applyEngineSettingsToGraph();
-          if (STATE.graph && typeof STATE.graph.start === "function" && STATE.solver && STATE.solver.layout_enabled) {
-            STATE.graph.start(0.4);
-          }
-          if (STATE.graph) STATE.graph.render(0.08);
+          if (STATE.solver && STATE.solver.layout_enabled) callEngineGraph("start", 0.4);
+          callEngineGraph("render", 0.08);
         }
       }
 
@@ -1637,11 +1639,8 @@ function scheduleGraphViewportSync() {
     if (typeof ensureFlowCanvasSize === "function") {
       ensureFlowCanvasSize();
     }
-    if (STATE.graph && typeof STATE.graph.resize === "function") {
-      STATE.graph.resize();
-    } else if (STATE.graph && typeof STATE.graph.render === "function") {
-      STATE.graph.render(0.08);
-    }
+    var resized = callEngineGraph("resize");
+    if (resized === undefined) callEngineGraph("render", 0.08);
   }
 
   window.requestAnimationFrame(runSync);
@@ -1845,9 +1844,7 @@ function wireDom() {
 
   if (DOM.btnFit) {
     DOM.btnFit.addEventListener("click", function () {
-      if (STATE.graph) {
-        STATE.graph.fitView(380, 0.14);
-      }
+      callEngineGraph("fitView", 380, 0.14);
     });
   }
 

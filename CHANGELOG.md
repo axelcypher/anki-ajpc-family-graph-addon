@@ -21,8 +21,9 @@
 - Fixed bidirectional note-link duplication in delta slices by coalescing opposite note-link directions into one visual edge (+ reverse flow-only edge metadata path).
 - Fixed flow animation startup for active selection after delta by reapplying visual/runtime flow masks immediately after patch.
 - Fixed delta note-edit lag spikes and small node jumps by removing per-delta physics config re-apply (no solver re-init inside `applyGraphDeltaOps`).
-- Added alpha-only solver reheat for edge-changing delta updates (`STATE.graph.reheat(0.25)`), so delta edge changes can nudge physics without rebuilding the solver simulation.
+- Added alpha-only solver reheat for edge-changing delta updates (`reheat(1.25)`), so delta edge changes can nudge physics without rebuilding the solver simulation.
 - Added explicit delta reheat logs (trigger/skip/failure with rev/edge op counts/requested alpha) and solver reheat logs with the effective applied alpha.
+- Routed all city->engine runtime graph method calls through adapter engine port `graphCall(...)` and removed direct city-side `STATE.graph.*` calls.
 - Limited delta neighbor expansion to one hop from changed notes to prevent transitive recursive slice blowups on context link/unlink operations.
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.

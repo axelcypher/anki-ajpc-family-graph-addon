@@ -8,6 +8,23 @@ function flowClamp(v, minV, maxV) {
   return n;
 }
 
+function flowHasEnginePort(name) {
+  return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
+}
+
+function flowCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
+function flowCallEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return flowCallEngine.apply(null, args);
+}
+
 function stopFlowParticles() {
   if (STATE.flowRaf) {
     window.cancelAnimationFrame(STATE.flowRaf);
@@ -18,7 +35,7 @@ function stopFlowParticles() {
 
 function hasShaderFlowCandidates() {
   if (!OVERLAY_EFFECTS_ENABLED) return false;
-  if (!STATE.graph || !Array.isArray(STATE.activeEdges) || !STATE.activeEdges.length) return false;
+  if (!flowHasEnginePort("graphCall") || !Array.isArray(STATE.activeEdges) || !STATE.activeEdges.length) return false;
   var speed = flowClamp(STATE.layerFlowSpeed, 0, 3);
   if (speed <= 0.001) return false;
   if (STATE.lastStyleHasFocus) return true;
@@ -41,10 +58,8 @@ function drawFlowShaderFrames(ts) {
     return;
   }
   if (!STATE.flowStartTs) STATE.flowStartTs = ts;
-  if (STATE.graph && typeof STATE.graph.requestFrame === "function") {
-    // Keep edge shader time uniforms moving even when layout is idle.
-    STATE.graph.requestFrame();
-  }
+  // Keep edge shader time uniforms moving even when layout is idle.
+  flowCallEngineGraph("requestFrame");
   STATE.flowRaf = window.requestAnimationFrame(drawFlowShaderFrames);
 }
 

@@ -11,6 +11,13 @@ function hasEnginePort(name) {
   return !!(window && window.GraphAdapter && typeof window.GraphAdapter.hasEnginePort === "function" && window.GraphAdapter.hasEnginePort(name));
 }
 
+function callEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return adapterCallEngine.apply(null, args);
+}
+
 function resolveApplyGraphData() {
   if (!hasEnginePort("applyGraphData")) return null;
   return function (fitView) {
@@ -178,30 +185,29 @@ function applyDeltaPayload(payload) {
     var hasEdgeDelta = counts.edge_upsert > 0 || counts.edge_drop > 0;
     if (hasEdgeDelta) {
       var deltaReheatAlpha = 1.25;
-      var hasGraph = !!STATE.graph;
-      var hasReheat = hasGraph && typeof STATE.graph.reheat === "function";
+      var hasGraphCall = hasEnginePort("graphCall");
       var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
-      if (hasReheat && layoutEnabled) {
+      if (hasGraphCall && layoutEnabled) {
         log(
           "delta reheat trigger rev=" + String(incomingRev)
           + " alpha=" + String(deltaReheatAlpha)
           + " edge_upsert=" + String(counts.edge_upsert)
           + " edge_drop=" + String(counts.edge_drop)
         );
-        var reheatOk = STATE.graph.reheat(deltaReheatAlpha);
-        if (reheatOk === false) {
+        var reheatOk = callEngineGraph("reheat", deltaReheatAlpha);
+        if (reheatOk !== true) {
+          var failReason = (reheatOk === false) ? "solver_reheat_false" : "graph_call_unavailable";
           log(
             "delta reheat failed rev=" + String(incomingRev)
             + " alpha=" + String(deltaReheatAlpha)
-            + " reason=solver_reheat_false"
+            + " reason=" + failReason
           );
         }
       } else {
         log(
           "delta reheat skipped rev=" + String(incomingRev)
           + " alpha=" + String(deltaReheatAlpha)
-          + " graph=" + String(hasGraph)
-          + " reheat_fn=" + String(hasReheat)
+          + " graph_call_port=" + String(hasGraphCall)
           + " layout_enabled=" + String(layoutEnabled)
         );
       }

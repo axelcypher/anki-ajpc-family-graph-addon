@@ -118,6 +118,19 @@ function syncCardSettingsFromMeta() {
   STATE.cards = collectCardSettings(merged);
 }
 
+function payloadCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
+function payloadCallEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return payloadCallEngine.apply(null, args);
+}
+
 // === Link Settings Contracts =================================================
 var AJPC_LINK_SETTINGS_DEFAULTS = {
   layer_flow_speed: 0.35,
@@ -2030,8 +2043,8 @@ function buildLinkScalarArrays(edgeRecords, baseStrengths) {
 }
 
 function persistCurrentPositions() {
-  if (!STATE.graph || STATE.activeNodes.length === 0) return;
-  var pos = STATE.graph.getPointPositions();
+  if (STATE.activeNodes.length === 0) return;
+  var pos = payloadCallEngineGraph("getPointPositions");
   if (!Array.isArray(pos) || pos.length < STATE.activeNodes.length * 2) return;
 
   var i;
@@ -2222,7 +2235,7 @@ function buildRuntimeVisibilityMasks(nodes, edges, indexById) {
 }
 
 function applyRuntimeUiSettings(solverRestartLayout) {
-  if (!STATE.graph || !Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
+  if (!Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
 
   var nodes = STATE.activeNodes;
   var edges = Array.isArray(STATE.activeEdges) ? STATE.activeEdges : [];
@@ -2323,28 +2336,23 @@ function applyRuntimeUiSettings(solverRestartLayout) {
     edges: visibleEdgeCount
   };
 
-  if (typeof STATE.graph.setPointColors === "function") STATE.graph.setPointColors(stylePointColors);
-  if (typeof STATE.graph.setPointSizes === "function") STATE.graph.setPointSizes(stylePointSizes);
-  if (typeof STATE.graph.setLinkColors === "function") STATE.graph.setLinkColors(styleLinkColors);
-  if (typeof STATE.graph.setLinkWidths === "function") STATE.graph.setLinkWidths(linkWidths);
-  if (typeof STATE.graph.setLinkStrength === "function") STATE.graph.setLinkStrength(linkStrength);
-  if (typeof STATE.graph.setLinkStyleCodes === "function") STATE.graph.setLinkStyleCodes(linkStyleCodes);
-  if (typeof STATE.graph.setLinkFlowMask === "function") STATE.graph.setLinkFlowMask(edgeFlowMask);
-  if (typeof STATE.graph.setLinkBidirMask === "function") STATE.graph.setLinkBidirMask(edgeBidirMask);
-  if (typeof STATE.graph.setLinkDistance === "function") STATE.graph.setLinkDistance(linkDistance);
+  payloadCallEngineGraph("setPointColors", stylePointColors);
+  payloadCallEngineGraph("setPointSizes", stylePointSizes);
+  payloadCallEngineGraph("setLinkColors", styleLinkColors);
+  payloadCallEngineGraph("setLinkWidths", linkWidths);
+  payloadCallEngineGraph("setLinkStrength", linkStrength);
+  payloadCallEngineGraph("setLinkStyleCodes", linkStyleCodes);
+  payloadCallEngineGraph("setLinkFlowMask", edgeFlowMask);
+  payloadCallEngineGraph("setLinkBidirMask", edgeBidirMask);
+  payloadCallEngineGraph("setLinkDistance", linkDistance);
 
-  var adapter = window && window.GraphAdapter;
   var handledByEngineAdapter = false;
-  if (adapter && typeof adapter.callEngine === "function") {
-    var res = adapter.callEngine("applyVisualStyles", 0.08);
-    handledByEngineAdapter = (res !== undefined);
-  }
-  if (!handledByEngineAdapter && typeof STATE.graph.render === "function") {
-    STATE.graph.render(0.08);
-  }
+  var res = payloadCallEngine("applyVisualStyles", 0.08);
+  handledByEngineAdapter = (res !== undefined);
+  if (!handledByEngineAdapter) payloadCallEngineGraph("render", 0.08);
 
-  if (solverRestartLayout !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
-    STATE.graph.start(0.25);
+  if (solverRestartLayout !== false && STATE.solver && STATE.solver.layout_enabled) {
+    payloadCallEngineGraph("start", 0.25);
   }
   if (DOM && DOM.graphEmpty) {
     DOM.graphEmpty.style.display = visibleNodeCount ? "none" : "block";
@@ -2370,7 +2378,7 @@ function applyRuntimeUiSettings(solverRestartLayout) {
 }
 
 function applyRuntimeLinkDistances(solverRestart) {
-  if (!STATE.graph || !STATE.activeNodes || !STATE.activeNodes.length) return false;
+  if (!STATE.activeNodes || !STATE.activeNodes.length) return false;
   var edgeRecords = buildRuntimeEdgeRecords();
   var visibleMask = (STATE.runtimeEdgeVisibleMask && STATE.runtimeEdgeVisibleMask.length === edgeRecords.length)
     ? STATE.runtimeEdgeVisibleMask
@@ -2383,18 +2391,10 @@ function applyRuntimeLinkDistances(solverRestart) {
     baseStrengths[i] = baseStrength;
   }
   var algoScalars = buildLinkScalarArrays(edgeRecords, baseStrengths);
-  if (typeof STATE.graph.setLinkDistance === "function") {
-    STATE.graph.setLinkDistance(algoScalars.linkDistance);
-  }
-  if (typeof STATE.graph.setLinkStrength === "function") {
-    STATE.graph.setLinkStrength(algoScalars.linkStrength);
-  }
-  if (typeof STATE.graph.render === "function") {
-    STATE.graph.render(0.08);
-  }
-  if (solverRestart !== false && STATE.solver && STATE.solver.layout_enabled && typeof STATE.graph.start === "function") {
-    STATE.graph.start();
-  }
+  payloadCallEngineGraph("setLinkDistance", algoScalars.linkDistance);
+  payloadCallEngineGraph("setLinkStrength", algoScalars.linkStrength);
+  payloadCallEngineGraph("render", 0.08);
+  if (solverRestart !== false && STATE.solver && STATE.solver.layout_enabled) payloadCallEngineGraph("start");
   return true;
 }
 

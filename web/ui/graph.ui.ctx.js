@@ -46,6 +46,19 @@ function logCtxIcon(level, msg) {
   }
 }
 
+function ctxCallEngine(name) {
+  var adapter = window && window.GraphAdapter;
+  if (!adapter || typeof adapter.callEngine !== "function") return undefined;
+  return adapter.callEngine.apply(adapter, arguments);
+}
+
+function ctxCallEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return ctxCallEngine.apply(null, args);
+}
+
 function isValidCtxIconColor(value) {
   var color = String(value || "").trim();
   if (!color) return false;
@@ -960,7 +973,7 @@ function showContextMenu(node, evt) {
       cb: function () {
         node.fx = null;
         node.fy = null;
-        if (STATE.graph && typeof STATE.graph.start === "function") STATE.graph.start();
+        ctxCallEngineGraph("start");
         showCtxMessage("Node unpinned");
       }
     });

@@ -24,6 +24,13 @@ function debugCallEngine(name) {
   return adapter.callEngine.apply(adapter, arguments);
 }
 
+function debugCallEngineGraph(methodName) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  args.unshift(methodName);
+  args.unshift("graphCall");
+  return debugCallEngine.apply(null, args);
+}
+
 function ensureDebugCoordRows() {
   if (!DOM.debugCoords || DOM.debugCoordCells) return;
   DOM.debugCoordCells = {};
@@ -241,7 +248,7 @@ function updateCoordsStatus() {
       }
     }
   }
-  if (!STATE.graph || !DOM.graph) {
+  if (!DOM.graph) {
     setOff();
     return;
   }
@@ -263,11 +270,6 @@ function updateCoordsStatus() {
     return;
   }
 
-  if (typeof STATE.graph.screenToSpacePosition !== "function") {
-    setOff();
-    return;
-  }
-
   function spaceScore(space) {
     if (!Array.isArray(space) || space.length < 2 || !isFiniteNumber(space[0]) || !isFiniteNumber(space[1])) return Number.POSITIVE_INFINITY;
     var x = Number(space[0]);
@@ -283,8 +285,8 @@ function updateCoordsStatus() {
     return (ox * ox) + (oy * oy);
   }
 
-  var spaceViewport = STATE.graph.screenToSpacePosition([vx, vy]);
-  var spaceClient = STATE.graph.screenToSpacePosition([Number(STATE.pointerClientX), Number(STATE.pointerClientY)]);
+  var spaceViewport = debugCallEngineGraph("screenToSpacePosition", [vx, vy]);
+  var spaceClient = debugCallEngineGraph("screenToSpacePosition", [Number(STATE.pointerClientX), Number(STATE.pointerClientY)]);
   var scoreViewport = spaceScore(spaceViewport);
   var scoreClient = spaceScore(spaceClient);
   var space = scoreViewport <= scoreClient ? spaceViewport : spaceClient;
@@ -301,13 +303,11 @@ function updateCoordsStatus() {
     var camX = "--";
     var camY = "--";
     var camR = "--";
-    if (STATE.graph && typeof STATE.graph.getCameraState === "function") {
-      var cam = STATE.graph.getCameraState();
-      if (cam && isFiniteNumber(cam.x) && isFiniteNumber(cam.y) && isFiniteNumber(cam.ratio)) {
-        camX = Number(cam.x).toFixed(3);
-        camY = Number(cam.y).toFixed(3);
-        camR = Number(cam.ratio).toFixed(4);
-      }
+    var cam = debugCallEngineGraph("getCameraState");
+    if (cam && isFiniteNumber(cam.x) && isFiniteNumber(cam.y) && isFiniteNumber(cam.ratio)) {
+      camX = Number(cam.x).toFixed(3);
+      camY = Number(cam.y).toFixed(3);
+      camR = Number(cam.ratio).toFixed(4);
     }
     var hd = STATE.hoverDebug || {};
     var hReason = String(hd.reason || "--");
