@@ -27,6 +27,7 @@
 - Kept `_FORCE_LOGGING` as API-outage fallback and enabled automatic debug-level logging when tools API config is unavailable.
 - Added API debug payload fields in AJpC Tools graph config response (`debug.level`, `debug.module_logs`, `debug.module_levels`) for graph-side level/module filtering.
 - Added a context-menu connect option for `active note + context family hub`, so selected family hubs can now add their family directly to the active note.
+- Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/ui/graph.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
 
 ## 1.0.0-beta.1 - 2026-02-14
 
