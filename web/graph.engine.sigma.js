@@ -1357,6 +1357,10 @@ SigmaGraphCompat.prototype.reheat = function (alpha) {
   if (!this.solver || typeof this.solver.reheat !== "function") return false;
   return this.solver.reheat(alpha);
 };
+SigmaGraphCompat.prototype.runSubsetNoDampingPull = function (nodeIds, options) {
+  if (!this.solver || typeof this.solver.runSubsetNoDampingPull !== "function") return false;
+  return this.solver.runSubsetNoDampingPull(nodeIds, options);
+};
 
 SigmaGraphCompat.prototype.selectPointByIndex = function (idx) {
   var i = Number(idx);
@@ -2655,6 +2659,14 @@ function applyGraphDeltaOps(ops, arrays, options) {
 
 var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze({
   reheat: { args: [{ name: "alpha", type: "number", required: false }], returns: "boolean|undefined", desc: "Alpha-only solver nudge on running simulation." },
+  runSubsetNoDampingPull: {
+    args: [
+      { name: "nodeIds", type: "array", required: true },
+      { name: "options", type: "object", required: false }
+    ],
+    returns: "object|boolean",
+    desc: "Run subset-only d3 pull simulation with velocityDecay(0) and write back positions."
+  },
   requestFrame: { args: [], returns: "undefined", desc: "Request one render frame for shader uniforms." },
   getPointPositions: { args: [], returns: "array|typedarray|null", desc: "Get flattened [x,y] pairs for active nodes." },
   spaceToScreenPosition: { args: [{ name: "spacePoint", type: "array2", required: true }], returns: "array", desc: "Project graph-space position to viewport-space." },
