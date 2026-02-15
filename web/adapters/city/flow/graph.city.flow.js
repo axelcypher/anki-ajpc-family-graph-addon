@@ -13,6 +13,12 @@ function flowGateway() {
   return (gw && typeof gw === "object") ? gw : null;
 }
 
+function flowCityPortContract(name) {
+  var contracts = window && window.AjpcGraphContracts;
+  if (!contracts || typeof contracts.getCityPortContract !== "function") return null;
+  return contracts.getCityPortContract(name);
+}
+
 function flowHasEnginePort(name) {
   var gw = flowGateway();
   return !!(gw && typeof gw.hasEnginePort === "function" && gw.hasEnginePort(name));
@@ -86,12 +92,8 @@ function ensureFlowParticlesLoop() {
 (function registerFlowAdapterPorts() {
   var gw = flowGateway();
   if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
-  var contracts = {
-    ensureFlowCanvasSize: { args: [], returns: "undefined", desc: "Flow canvas compatibility stub (no-op in shader flow mode)." },
-    ensureFlowParticlesLoop: { args: [], returns: "undefined", desc: "Ensure shader-flow RAF loop is running when flow is active." }
-  };
   function reg(name, fn) {
-    gw.registerCityPortWithContract(name, fn, contracts[name] || null);
+    gw.registerCityPortWithContract(name, fn, flowCityPortContract(name));
   }
   reg("ensureFlowCanvasSize", ensureFlowCanvasSize);
   reg("ensureFlowParticlesLoop", ensureFlowParticlesLoop);

@@ -2657,184 +2657,64 @@ function applyGraphDeltaOps(ops, arrays, options) {
   return true;
 }
 
-var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze({
-  reheat: {
-    args: [
-      { name: "alpha", type: "number", required: false }
-    ],
-    returns: "boolean|undefined",
-    desc: "Alpha-only solver nudge on running simulation."
-  },
-  runSubsetNoDampingPull: {
-    args: [
-      { name: "nodeIds", type: "array", required: true },
-      { name: "options", type: "object", required: false }
-    ],
-    returns: "object|boolean",
-    desc: "Run subset-only d3 pull simulation with velocityDecay(0) and write back positions."
-  },
-  requestFrame: {
-    args: [],
-    returns: "undefined",
-    desc: "Request one render frame for shader uniforms."
-  },
-  getPointPositions: {
-    args: [],
-    returns: "array|typedarray|null",
-    desc: "Get flattened [x,y] pairs for active nodes."
-  },
-  spaceToScreenPosition: {
-    args: [
-      { name: "spacePoint", type: "array2", required: true }
-    ],
-    returns: "array",
-    desc: "Project graph-space position to viewport-space."
-  },
-  getPointScreenRadiusByIndex: {
-    args: [
-      { name: "index", type: "number", required: true }
-    ],
-    returns: "number",
-    desc: "Get rendered point radius in pixels."
-  },
-  spaceToScreenRadius: {
-    args: [
-      { name: "radius", type: "number", required: true }
-    ],
-    returns: "number",
-    desc: "Project graph-space radius to viewport-space."
-  },
-  getSelectedIndices: {
-    args: [],
-    returns: "array|null",
-    desc: "Return selected node indices."
-  },
-  getZoomLevel: {
-    args: [],
-    returns: "number",
-    desc: "Return camera zoom ratio."
-  },
-  setConfig: {
-    args: [
-      { name: "configPatch", type: "object", required: true }
-    ],
-    returns: "undefined",
-    desc: "Apply runtime engine/solver/renderer config patch."
-  },
-  stop: {
-    args: [
-      { name: "destroySupervisor", type: "boolean", required: false }
-    ],
-    returns: "undefined",
-    desc: "Stop layout simulation."
-  },
-  start: {
-    args: [
-      { name: "alpha", type: "number", required: false }
-    ],
-    returns: "undefined",
-    desc: "Start/restart layout simulation."
-  },
-  render: {
-    args: [
-      { name: "alpha", type: "number", required: false }
-    ],
-    returns: "undefined",
-    desc: "Render frame with optional interpolation alpha."
-  },
-  resize: {
-    args: [],
-    returns: "undefined",
-    desc: "Resize renderer to host viewport."
-  },
-  fitView: {
-    args: [
-      { name: "durationMs", type: "number", required: false },
-      { name: "paddingRatio", type: "number", required: false }
-    ],
-    returns: "undefined",
-    desc: "Fit camera to graph bounds."
-  },
-  setPointColors: {
-    args: [
-      { name: "colors", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set flattened RGBA point colors."
-  },
-  setPointSizes: {
-    args: [
-      { name: "sizes", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set point sizes by index."
-  },
-  setLinkColors: {
-    args: [
-      { name: "colors", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set flattened RGBA edge colors."
-  },
-  setLinkWidths: {
-    args: [
-      { name: "widths", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set edge widths by index."
-  },
-  setLinkStrength: {
-    args: [
-      { name: "strengths", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set solver link strengths by index."
-  },
-  setLinkStyleCodes: {
-    args: [
-      { name: "styleCodes", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set edge style code array."
-  },
-  setLinkFlowMask: {
-    args: [
-      { name: "flowMask", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set per-edge shader flow mask."
-  },
-  setLinkBidirMask: {
-    args: [
-      { name: "bidirMask", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set per-edge bidirectional mask."
-  },
-  setLinkDistance: {
-    args: [
-      { name: "distances", type: "typedarray|array", required: true }
-    ],
-    returns: "undefined",
-    desc: "Set solver link distances by index."
-  },
-  screenToSpacePosition: {
-    args: [
-      { name: "screenPoint", type: "array2", required: true }
-    ],
-    returns: "array",
-    desc: "Project viewport-space position to graph-space."
-  },
-  getCameraState: {
-    args: [],
-    returns: "object|null",
-    desc: "Get current camera state."
-  }
-});
+function engineContractsRegistry() {
+  var contracts = window && window.AjpcGraphContracts;
+  return (contracts && typeof contracts === "object") ? contracts : null;
+}
+
+function engineGraphMethodContracts() {
+  var contracts = engineContractsRegistry();
+  if (!contracts || typeof contracts.listEngineGraphMethodContracts !== "function") return {};
+  var map = contracts.listEngineGraphMethodContracts();
+  return (map && typeof map === "object") ? map : {};
+}
+
+function enginePortContract(name) {
+  var contracts = engineContractsRegistry();
+  if (!contracts || typeof contracts.getEnginePortContract !== "function") return null;
+  return contracts.getEnginePortContract(name);
+}
+
+var ENGINE_GRAPH_CALL_CONTRACTS = Object.freeze(engineGraphMethodContracts());
+
+var ENGINE_GRAPH_METHOD_FALLBACK_NAMES = Object.freeze([
+  "reheat",
+  "runSubsetNoDampingPull",
+  "requestFrame",
+  "getPointPositions",
+  "spaceToScreenPosition",
+  "getPointScreenRadiusByIndex",
+  "spaceToScreenRadius",
+  "getSelectedIndices",
+  "getZoomLevel",
+  "setConfig",
+  "stop",
+  "start",
+  "render",
+  "resize",
+  "fitView",
+  "setPointColors",
+  "setPointSizes",
+  "setLinkColors",
+  "setLinkWidths",
+  "setLinkStrength",
+  "setLinkStyleCodes",
+  "setLinkFlowMask",
+  "setLinkBidirMask",
+  "setLinkDistance",
+  "screenToSpacePosition",
+  "getCameraState"
+]);
+
+var ENGINE_GRAPH_METHOD_PORT_NAMES = Object.freeze((function () {
+  var names = Object.keys(ENGINE_GRAPH_CALL_CONTRACTS);
+  if (names.length) return names.slice();
+  return ENGINE_GRAPH_METHOD_FALLBACK_NAMES.slice();
+})());
 
 var ENGINE_GRAPH_CALL_ALLOWLIST = Object.freeze((function () {
   var out = Object.create(null);
-  Object.keys(ENGINE_GRAPH_CALL_CONTRACTS).forEach(function (name) {
+  ENGINE_GRAPH_METHOD_PORT_NAMES.forEach(function (name) {
     out[name] = true;
   });
   return out;
@@ -2921,59 +2801,21 @@ window.applyPhysicsToGraph = applyPhysicsToGraph;
   var gw = window && window.AjpcEngineGateway;
   if (!gw || typeof gw.registerEnginePortWithContract !== "function") return;
 
-  gw.registerEnginePortWithContract("applyGraphData", applyGraphData, {
-    args: [{ name: "fitView", type: "boolean", required: false }],
-    returns: "undefined"
-  });
-  gw.registerEnginePortWithContract("applyGraphDeltaOps", applyGraphDeltaOps, {
-    args: [
-      { name: "ops", type: "object", required: false },
-      { name: "arrays", type: "object", required: false },
-      { name: "options", type: "object", required: false }
-    ],
-    returns: "boolean"
-  });
-  gw.registerEnginePortWithContract("applyVisualStyles", applyVisualStyles, {
-    args: [{ name: "renderAlpha", type: "number", required: false }],
-    returns: "undefined"
-  });
-  gw.registerEnginePortWithContract("applyPhysicsToGraph", applyPhysicsToGraph, {
-    args: [],
-    returns: "undefined"
-  });
-  gw.registerEnginePortWithContract("createGraphEngineSigma", createGraphEngineSigma, {
-    args: [
-      { name: "container", type: "object", required: true },
-      { name: "config", type: "object", required: false }
-    ],
-    returns: "object"
-  });
-  gw.registerEnginePortWithContract("focusNodeById", focusNodeById, {
-    args: [
-      { name: "nodeId", type: "string|number", required: true },
-      { name: "fromSearch", type: "boolean", required: false }
-    ],
-    returns: "undefined"
-  });
-  gw.registerEnginePortWithContract("edgeCurvByStyle", edgeCurvByStyle, {
-    args: [
-      { name: "styleCode", type: "number", required: true },
-      { name: "edgeIndex", type: "number", required: false }
-    ],
-    returns: "number"
-  });
-  Object.keys(ENGINE_GRAPH_CALL_CONTRACTS).forEach(function (methodName) {
+  gw.registerEnginePortWithContract("applyGraphData", applyGraphData, enginePortContract("applyGraphData"));
+  gw.registerEnginePortWithContract("applyGraphDeltaOps", applyGraphDeltaOps, enginePortContract("applyGraphDeltaOps"));
+  gw.registerEnginePortWithContract("applyVisualStyles", applyVisualStyles, enginePortContract("applyVisualStyles"));
+  gw.registerEnginePortWithContract("applyPhysicsToGraph", applyPhysicsToGraph, enginePortContract("applyPhysicsToGraph"));
+  gw.registerEnginePortWithContract("createGraphEngineSigma", createGraphEngineSigma, enginePortContract("createGraphEngineSigma"));
+  gw.registerEnginePortWithContract("focusNodeById", focusNodeById, enginePortContract("focusNodeById"));
+  gw.registerEnginePortWithContract("edgeCurvByStyle", edgeCurvByStyle, enginePortContract("edgeCurvByStyle"));
+  ENGINE_GRAPH_METHOD_PORT_NAMES.forEach(function (methodName) {
     if (!methodName) return;
     gw.registerEnginePortWithContract(
       methodName,
       graphCallMethodPort(methodName),
-      ENGINE_GRAPH_CALL_CONTRACTS[methodName]
+      ENGINE_GRAPH_CALL_CONTRACTS[methodName] || null
     );
   });
-  gw.registerEnginePortWithContract("graphCall", graphCall, {
-    args: [{ name: "methodName", type: "string", required: true }],
-    returns: "any",
-    methods: ENGINE_GRAPH_CALL_CONTRACTS
-  });
+  gw.registerEnginePortWithContract("graphCall", graphCall, enginePortContract("graphCall"));
 })();
 

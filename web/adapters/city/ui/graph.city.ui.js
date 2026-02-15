@@ -64,6 +64,12 @@ function uiGateway() {
   return (gw && typeof gw === "object") ? gw : null;
 }
 
+function uiCityPortContract(name) {
+  var contracts = window && window.AjpcGraphContracts;
+  if (!contracts || typeof contracts.getCityPortContract !== "function") return null;
+  return contracts.getCityPortContract(name);
+}
+
 function adapterCallCity(name) {
   var gw = uiGateway();
   if (!gw || typeof gw.callCity !== "function") return undefined;
@@ -1947,20 +1953,8 @@ function wireDom() {
   var gw = uiGateway();
   if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
 
-  var contracts = {
-    updateStatus: { args: [{ name: "extraText", type: "string|number|boolean", required: false }], returns: "undefined", desc: "Update toolbar/status text and active-node summary." },
-    showTooltip: { args: [{ name: "node", type: "object", required: false }, { name: "eventPos", type: "object", required: false }], returns: "undefined", desc: "Show hover tooltip for current node." },
-    moveTooltip: { args: [{ name: "clientX", type: "number", required: true }, { name: "clientY", type: "number", required: true }], returns: "undefined", desc: "Move tooltip to pointer coordinates." },
-    setHoverDebug: { args: [{ name: "reason", type: "string", required: false }, { name: "details", type: "object", required: false }], returns: "undefined", desc: "Store hover-debug diagnostics in STATE." },
-    clearHoverNodeState: { args: [{ name: "reason", type: "string", required: false }, { name: "details", type: "object", required: false }], returns: "undefined", desc: "Clear hover selection and tooltip." },
-    hideTooltip: { args: [], returns: "undefined", desc: "Hide hover tooltip UI." },
-    hideContextMenu: { args: [{ name: "suppressStateClear", type: "boolean", required: false }], returns: "undefined", desc: "Hide node context menu UI." },
-    buildSearchEntries: { args: [], returns: "undefined", desc: "Rebuild search suggestion index from active nodes." },
-    hideSuggest: { args: [], returns: "undefined", desc: "Hide search suggestion dropdown." }
-  };
-
   function reg(name, fn) {
-    gw.registerCityPortWithContract(name, fn, contracts[name] || null);
+    gw.registerCityPortWithContract(name, fn, uiCityPortContract(name));
   }
 
   reg("updateStatus", updateStatus);

@@ -226,12 +226,14 @@ function utilsGateway() {
   return (gw && typeof gw === "object") ? gw : null;
 }
 
+function utilsCityPortContract(name) {
+  var contracts = window && window.AjpcGraphContracts;
+  if (!contracts || typeof contracts.getCityPortContract !== "function") return null;
+  return contracts.getCityPortContract(name);
+}
+
 (function registerUtilsAdapterPorts() {
   var gw = utilsGateway();
   if (!gw || typeof gw.registerCityPortWithContract !== "function") return;
-  gw.registerCityPortWithContract("seededPos", seededPos, {
-    args: [{ name: "id", type: "string|number", required: true }],
-    returns: "array",
-    desc: "Return deterministic seeded graph-space position for node id."
-  });
+  gw.registerCityPortWithContract("seededPos", seededPos, utilsCityPortContract("seededPos"));
 })();

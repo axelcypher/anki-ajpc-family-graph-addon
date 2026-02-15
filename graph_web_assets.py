@@ -61,6 +61,7 @@ def render_graph_html(_payload: dict[str, Any]) -> str:
         "__GRAPH_BRIDGE_JS__": asset_url("adapters/city/host/graph.city.bridge.js"),
         "__GRAPH_ADAPTER_JS__": asset_url("graph.adapter.js"),
         "__GRAPH_CITY_GATEWAY_JS__": asset_url("adapters/city/gateway/graph.city.gateway.js"),
+        "__GRAPH_CONTRACTS_JS__": asset_url("core/contracts/graph.contracts.js"),
         "__GRAPH_UTILS_JS__": asset_url("adapters/city/utils/graph.city.utils.js"),
         "__GRAPH_PAYLOAD_JS__": asset_url("adapters/city/payload/graph.city.payload.js"),
         "__GRAPH_FLOW_JS__": asset_url("adapters/city/flow/graph.city.flow.js"),
