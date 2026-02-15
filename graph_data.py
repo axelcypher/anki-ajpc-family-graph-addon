@@ -722,6 +722,7 @@ def build_note_delta_slice(
     linked_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_linked_fields") or {})
     tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
     selected_decks = graph_cfg.get("selected_decks") or []
+    show_unlinked = bool(graph_cfg.get("show_unlinked", False))
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -739,6 +740,8 @@ def build_note_delta_slice(
     family_default_prio = int(family_cfg.get("default_prio") or 0)
     family_note_types = family_cfg.get("note_types") or {}
     family_note_type_ids = {str(k) for k in family_note_types.keys() if str(k).strip()}
+    reason_norm = str(reason or "").strip().lower()
+    recursive_neighbor_expand = not reason_norm.startswith("note change")
 
     nodes_by_id: dict[str, dict[str, Any]] = {}
     edges_by_id: dict[str, dict[str, Any]] = {}
@@ -1021,10 +1024,12 @@ def build_note_delta_slice(
 
                 if source_nid not in expanded_nids:
                     expanded_nids.add(source_nid)
-                    frontier.add(source_nid)
+                    if recursive_neighbor_expand:
+                        frontier.add(source_nid)
                 if target_nid not in expanded_nids:
                     expanded_nids.add(target_nid)
-                    frontier.add(target_nid)
+                    if recursive_neighbor_expand:
+                        frontier.add(target_nid)
 
         for nid in current:
             if not _ensure_note_node(nid):
@@ -1039,6 +1044,11 @@ def build_note_delta_slice(
                     fid_txt = str(fid or "").strip()
                     if not fid_txt:
                         continue
+                    members = _family_members(fid_txt)
+                    if len(members) < 2 and not show_unlinked:
+                        # Keep delta family behavior aligned with full-build family gate:
+                        # singleton families are hidden unless unlinked nodes are shown.
+                        continue
                     hub_id = _ensure_family_hub(fid_txt)
                     _add_edge(
                         str(nid),
@@ -1049,7 +1059,6 @@ def build_note_delta_slice(
                         prio=int(prio),
                     )
                     _add_layer(str(nid), "families")
-                    members = _family_members(fid_txt)
                     for other_nid, other_prio in members.items():
                         if other_nid <= 0 or other_nid == nid:
                             continue
@@ -1075,7 +1084,8 @@ def build_note_delta_slice(
                         _add_layer(str(right), "priority")
                         if other_nid not in expanded_nids:
                             expanded_nids.add(other_nid)
-                            frontier.add(other_nid)
+                            if recursive_neighbor_expand:
+                                frontier.add(other_nid)
 
             for target_nid, label in _outgoing_manual_links(nid):
                 if not _ensure_note_node(target_nid):
@@ -1091,7 +1101,8 @@ def build_note_delta_slice(
                 _add_layer(str(target_nid), "note_links")
                 if target_nid not in expanded_nids:
                     expanded_nids.add(target_nid)
-                    frontier.add(target_nid)
+                    if recursive_neighbor_expand:
+                        frontier.add(target_nid)
 
             for source_nid, label in _incoming_manual_links(nid):
                 if not _ensure_note_node(source_nid):
@@ -1107,7 +1118,8 @@ def build_note_delta_slice(
                 _add_layer(str(nid), "note_links")
                 if source_nid not in expanded_nids:
                     expanded_nids.add(source_nid)
-                    frontier.add(source_nid)
+                    if recursive_neighbor_expand:
+                        frontier.add(source_nid)
 
     for edge in edges_by_id.values():
         src = str(edge.get("source") or "")
@@ -1147,6 +1159,8 @@ def build_note_delta_slice(
         changed_out,
         "expanded=",
         len(expanded_out),
+        "recursive=",
+        recursive_neighbor_expand,
         "nodes=",
         len(nodes_raw),
         "edges=",

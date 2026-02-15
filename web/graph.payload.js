@@ -766,11 +766,9 @@ function prepareDeltaSlice(payload) {
   var expanded = normalizeNidList(raw.expanded_nids);
   var touched = new Set(changed.concat(expanded));
   var edges = dedupeEdges(Array.isArray(modded.edges) ? modded.edges : []);
-  edges.forEach(function (edge) {
-    if (!edge) return;
-    if (edge.source !== undefined && edge.source !== null) touched.add(String(edge.source));
-    if (edge.target !== undefined && edge.target !== null) touched.add(String(edge.target));
-  });
+  // Keep touched strictly bound to changed/expanded nids.
+  // Auto-extending via edge endpoints pulls in hubs/neighbors and creates
+  // noisy edge upsert/drop ops on pure node-field edits.
   return {
     rev: Number(raw.rev) || 0,
     reason: String(raw.reason || ""),
@@ -839,9 +837,25 @@ function edgeRecordEquals(prevEdge, nextEdge) {
 
 function buildDeltaOps(slice) {
   var data = slice && typeof slice === "object" ? slice : {};
-  var touched = new Set(normalizeNidList(data.touched_ids));
-  normalizeNidList(data.changed_nids).forEach(function (id) { touched.add(id); });
-  normalizeNidList(data.expanded_nids).forEach(function (id) { touched.add(id); });
+  var changedIds = normalizeNidList(data.changed_nids);
+  var changedSet = new Set(changedIds);
+  var touched = new Set(changedIds);
+  var meta = data.meta && typeof data.meta === "object" ? data.meta : {};
+  var providerLayers = (meta.provider_layers && typeof meta.provider_layers === "object") ? meta.provider_layers : {};
+  var authoritativeLayers = new Set(["note_links", "families", "priority"]);
+  Object.keys(providerLayers).forEach(function (layerKey) {
+    var key = normalizeLayerKey(layerKey, "edge");
+    if (key) authoritativeLayers.add(key);
+  });
+  function isAuthoritativeLayer(layer) {
+    var key = normalizeLayerKey(layer, "edge");
+    if (!key) return false;
+    // Full-build can aggregate Mass Linker edges into hubs and drop member nodes.
+    // Delta slices do not run that aggregation, so treating this layer as
+    // authoritative causes rev-1 churn (node_add/edge_upsert burst).
+    if (key === "provider_mass_linker") return false;
+    return authoritativeLayers.has(key);
+  }
 
   var currentNodes = indexNodesById((STATE && STATE.raw && Array.isArray(STATE.raw.nodes)) ? STATE.raw.nodes : []);
   var currentEdges = indexEdgesByKey((STATE && STATE.raw && Array.isArray(STATE.raw.edges)) ? STATE.raw.edges : []);
@@ -880,19 +894,20 @@ function buildDeltaOps(slice) {
     if (!edge) return;
     var src = String(edge.source || "");
     var dst = String(edge.target || "");
-    if (touched.has(src) || touched.has(dst)) touchedEdgeKeys.add(key);
+    if (changedSet.has(src) || changedSet.has(dst)) touchedEdgeKeys.add(key);
   });
   nextEdges.forEach(function (edge, key) {
     if (!edge) return;
     var src = String(edge.source || "");
     var dst = String(edge.target || "");
-    if (touched.has(src) || touched.has(dst)) touchedEdgeKeys.add(key);
+    if (changedSet.has(src) || changedSet.has(dst)) touchedEdgeKeys.add(key);
   });
 
   touchedEdgeKeys.forEach(function (key) {
     var prev = currentEdges.get(key);
     var next = nextEdges.get(key);
     if (!prev && next) {
+      if (!isAuthoritativeLayer(next.layer)) return;
       ops.edge_upsert.push({
         key: key,
         source: String(next.source || ""),
@@ -902,10 +917,12 @@ function buildDeltaOps(slice) {
       return;
     }
     if (prev && !next) {
+      if (!isAuthoritativeLayer(prev.layer)) return;
       ops.edge_drop.push(String(key));
       return;
     }
     if (!prev || !next) return;
+    if (!isAuthoritativeLayer(next.layer) && !isAuthoritativeLayer(prev.layer)) return;
     if (!edgeRecordEquals(prev, next)) {
       ops.edge_upsert.push({
         key: key,
@@ -914,6 +931,29 @@ function buildDeltaOps(slice) {
         attrs: { layer: String(next.layer || ""), meta: next.meta && typeof next.meta === "object" ? next.meta : {} }
       });
     }
+  });
+
+  // Ensure edge upserts never fail due to missing endpoint nodes.
+  // Endpoints are added only when present in the incoming slice and absent in current state.
+  var scheduledNodeAdds = new Set(
+    ops.node_add.map(function (entry) {
+      return entry && entry.id !== undefined && entry.id !== null ? String(entry.id) : "";
+    }).filter(Boolean)
+  );
+  function ensureNodeAdd(nodeId) {
+    var id = String(nodeId || "");
+    if (!id) return;
+    if (currentNodes.has(id)) return;
+    if (scheduledNodeAdds.has(id)) return;
+    var nextNode = nextNodes.get(id);
+    if (!nextNode) return;
+    ops.node_add.push({ id: id, attrs: nextNode });
+    scheduledNodeAdds.add(id);
+  }
+  ops.edge_upsert.forEach(function (entry) {
+    if (!entry || typeof entry !== "object") return;
+    ensureNodeAdd(entry.source);
+    ensureNodeAdd(entry.target);
   });
 
   return ops;
