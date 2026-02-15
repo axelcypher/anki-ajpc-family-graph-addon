@@ -2401,43 +2401,89 @@ function applyRuntimeLinkDistances(solverRestart) {
 window.applyRuntimeLinkDistances = applyRuntimeLinkDistances;
 window.applyRuntimeUiSettings = applyRuntimeUiSettings;
 
+var PAYLOAD_CITY_PORT_CONTRACTS = Object.freeze({
+  getEngineSolverDefaults: { args: [], returns: "object", desc: "Return default solver runtime settings." },
+  getEngineRuntimeDefaults: { args: [], returns: "object", desc: "Return default engine runtime settings." },
+  getEngineRendererDefaults: { args: [], returns: "object", desc: "Return default renderer settings." },
+  getEngineSolverSpec: { args: [], returns: "array", desc: "Return solver settings specification list." },
+  getEngineRuntimeSpec: { args: [], returns: "array", desc: "Return engine runtime settings specification list." },
+  getEngineRendererSpec: { args: [], returns: "array", desc: "Return renderer settings specification list." },
+  collectSolverSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw solver settings input." },
+  collectEngineRuntimeSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw engine runtime settings input." },
+  collectRendererSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw renderer settings input." },
+  getNodeSettingsDefaults: { args: [], returns: "object", desc: "Return default node settings." },
+  getNodeSettingsSpec: { args: [], returns: "array", desc: "Return node settings specification list." },
+  collectNodeSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw node settings input." },
+  getCardSettingsDefaults: { args: [], returns: "object", desc: "Return default card settings." },
+  getCardSettingsSpec: { args: [], returns: "array", desc: "Return card settings specification list." },
+  collectCardSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw card settings input." },
+  cardSettingsFromMeta: { args: [], returns: "object", desc: "Extract card settings snapshot from payload meta." },
+  syncCardSettingsFromMeta: { args: [], returns: "undefined", desc: "Sync STATE.cards from payload meta and defaults." },
+  getLinkSettingsDefaults: { args: [], returns: "object", desc: "Return default link settings." },
+  getLinkSettingsSpec: { args: [], returns: "array", desc: "Return link settings specification list." },
+  collectLinkSettings: { args: [{ name: "input", type: "object", required: false }], returns: "object", desc: "Normalize raw link settings input." },
+  linkSettingsFromMeta: { args: [], returns: "object", desc: "Extract link settings snapshot from payload meta." },
+  syncLinkSettingsFromMeta: { args: [], returns: "undefined", desc: "Sync STATE.linkSettings from payload meta and defaults." },
+  stableEdgeKey: { args: [{ name: "edge", type: "object", required: true }], returns: "string", desc: "Build stable edge identity key from edge record." },
+  applyNodeMods: { args: [{ name: "data", type: "object", required: true }, { name: "cfg", type: "object", required: false }, { name: "runtimeCtx", type: "object", required: false }], returns: "object", desc: "Apply node-level payload modifications." },
+  applyEdgeMods: { args: [{ name: "data", type: "object", required: true }, { name: "cfg", type: "object", required: false }, { name: "runtimeCtx", type: "object", required: false }], returns: "object", desc: "Apply edge-level payload modifications." },
+  applyLayerProviderMods: { args: [{ name: "data", type: "object", required: true }, { name: "cfg", type: "object", required: false }, { name: "runtimeCtx", type: "object", required: false }], returns: "object", desc: "Apply provider-layer payload modifications." },
+  applyHubGroupingMods: { args: [{ name: "data", type: "object", required: true }, { name: "cfg", type: "object", required: false }, { name: "runtimeCtx", type: "object", required: false }], returns: "object", desc: "Apply hub-grouping payload modifications." },
+  applyDerivedVisualMods: { args: [{ name: "data", type: "object", required: true }, { name: "cfg", type: "object", required: false }, { name: "runtimeCtx", type: "object", required: false }], returns: "object", desc: "Apply derived visual payload modifications." },
+  prepareDeltaSlice: { args: [{ name: "payload", type: "object", required: false }], returns: "object", desc: "Normalize/annotate incoming delta payload slice." },
+  buildDeltaOps: { args: [{ name: "slice", type: "object", required: false }], returns: "object", desc: "Build node/edge delta operations from normalized slice." },
+  applyDeltaOpsToState: { args: [{ name: "ops", type: "object", required: false }, { name: "slice", type: "object", required: false }], returns: "undefined", desc: "Mutate STATE.raw with prepared delta operations." },
+  AjpcNodeBaseSize: { args: [{ name: "node", type: "object", required: false }], returns: "number", desc: "Resolve runtime base node size scalar." },
+  buildGraphArrays: { args: [{ name: "active", type: "object", required: true }], returns: "object", desc: "Build renderer/solver arrays from active graph state." },
+  applyRuntimeUiSettings: { args: [{ name: "solverRestartLayout", type: "boolean", required: false }], returns: "boolean", desc: "Apply runtime visibility/style arrays to engine." },
+  applyRuntimeLinkDistances: { args: [{ name: "solverRestart", type: "boolean", required: false }], returns: "boolean", desc: "Apply runtime link distances/strengths to engine." }
+});
+
 (function registerPayloadAdapterPorts() {
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerCityPort !== "function") return;
 
-  adapter.registerCityPort("getEngineSolverDefaults", getEngineSolverDefaults);
-  adapter.registerCityPort("getEngineRuntimeDefaults", getEngineRuntimeDefaults);
-  adapter.registerCityPort("getEngineRendererDefaults", getEngineRendererDefaults);
-  adapter.registerCityPort("getEngineSolverSpec", getEngineSolverSpec);
-  adapter.registerCityPort("getEngineRuntimeSpec", getEngineRuntimeSpec);
-  adapter.registerCityPort("getEngineRendererSpec", getEngineRendererSpec);
-  adapter.registerCityPort("collectSolverSettings", collectSolverSettings);
-  adapter.registerCityPort("collectEngineRuntimeSettings", collectEngineRuntimeSettings);
-  adapter.registerCityPort("collectRendererSettings", collectRendererSettings);
-  adapter.registerCityPort("getNodeSettingsDefaults", getNodeSettingsDefaults);
-  adapter.registerCityPort("getNodeSettingsSpec", getNodeSettingsSpec);
-  adapter.registerCityPort("collectNodeSettings", collectNodeSettings);
-  adapter.registerCityPort("getCardSettingsDefaults", getCardSettingsDefaults);
-  adapter.registerCityPort("getCardSettingsSpec", getCardSettingsSpec);
-  adapter.registerCityPort("collectCardSettings", collectCardSettings);
-  adapter.registerCityPort("cardSettingsFromMeta", cardSettingsFromMeta);
-  adapter.registerCityPort("syncCardSettingsFromMeta", syncCardSettingsFromMeta);
-  adapter.registerCityPort("getLinkSettingsDefaults", getLinkSettingsDefaults);
-  adapter.registerCityPort("getLinkSettingsSpec", getLinkSettingsSpec);
-  adapter.registerCityPort("collectLinkSettings", collectLinkSettings);
-  adapter.registerCityPort("linkSettingsFromMeta", linkSettingsFromMeta);
-  adapter.registerCityPort("syncLinkSettingsFromMeta", syncLinkSettingsFromMeta);
-  adapter.registerCityPort("stableEdgeKey", stableEdgeKey);
-  adapter.registerCityPort("applyNodeMods", applyNodeMods);
-  adapter.registerCityPort("applyEdgeMods", applyEdgeMods);
-  adapter.registerCityPort("applyLayerProviderMods", applyLayerProviderMods);
-  adapter.registerCityPort("applyHubGroupingMods", applyHubGroupingMods);
-  adapter.registerCityPort("applyDerivedVisualMods", applyDerivedVisualMods);
-  adapter.registerCityPort("prepareDeltaSlice", prepareDeltaSlice);
-  adapter.registerCityPort("buildDeltaOps", buildDeltaOps);
-  adapter.registerCityPort("applyDeltaOpsToState", applyDeltaOpsToState);
-  adapter.registerCityPort("AjpcNodeBaseSize", ajpcNodeBaseSize);
-  adapter.registerCityPort("buildGraphArrays", buildGraphArrays);
-  adapter.registerCityPort("applyRuntimeUiSettings", applyRuntimeUiSettings);
-  adapter.registerCityPort("applyRuntimeLinkDistances", applyRuntimeLinkDistances);
+  function reg(name, fn) {
+    adapter.registerCityPort(name, fn);
+    if (typeof adapter.registerCityContract !== "function") return;
+    var contract = PAYLOAD_CITY_PORT_CONTRACTS[name];
+    if (!contract) return;
+    adapter.registerCityContract(name, contract);
+  }
+
+  reg("getEngineSolverDefaults", getEngineSolverDefaults);
+  reg("getEngineRuntimeDefaults", getEngineRuntimeDefaults);
+  reg("getEngineRendererDefaults", getEngineRendererDefaults);
+  reg("getEngineSolverSpec", getEngineSolverSpec);
+  reg("getEngineRuntimeSpec", getEngineRuntimeSpec);
+  reg("getEngineRendererSpec", getEngineRendererSpec);
+  reg("collectSolverSettings", collectSolverSettings);
+  reg("collectEngineRuntimeSettings", collectEngineRuntimeSettings);
+  reg("collectRendererSettings", collectRendererSettings);
+  reg("getNodeSettingsDefaults", getNodeSettingsDefaults);
+  reg("getNodeSettingsSpec", getNodeSettingsSpec);
+  reg("collectNodeSettings", collectNodeSettings);
+  reg("getCardSettingsDefaults", getCardSettingsDefaults);
+  reg("getCardSettingsSpec", getCardSettingsSpec);
+  reg("collectCardSettings", collectCardSettings);
+  reg("cardSettingsFromMeta", cardSettingsFromMeta);
+  reg("syncCardSettingsFromMeta", syncCardSettingsFromMeta);
+  reg("getLinkSettingsDefaults", getLinkSettingsDefaults);
+  reg("getLinkSettingsSpec", getLinkSettingsSpec);
+  reg("collectLinkSettings", collectLinkSettings);
+  reg("linkSettingsFromMeta", linkSettingsFromMeta);
+  reg("syncLinkSettingsFromMeta", syncLinkSettingsFromMeta);
+  reg("stableEdgeKey", stableEdgeKey);
+  reg("applyNodeMods", applyNodeMods);
+  reg("applyEdgeMods", applyEdgeMods);
+  reg("applyLayerProviderMods", applyLayerProviderMods);
+  reg("applyHubGroupingMods", applyHubGroupingMods);
+  reg("applyDerivedVisualMods", applyDerivedVisualMods);
+  reg("prepareDeltaSlice", prepareDeltaSlice);
+  reg("buildDeltaOps", buildDeltaOps);
+  reg("applyDeltaOpsToState", applyDeltaOpsToState);
+  reg("AjpcNodeBaseSize", ajpcNodeBaseSize);
+  reg("buildGraphArrays", buildGraphArrays);
+  reg("applyRuntimeUiSettings", applyRuntimeUiSettings);
+  reg("applyRuntimeLinkDistances", applyRuntimeLinkDistances);
 })();

@@ -1942,15 +1942,35 @@ function wireDom() {
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerCityPort !== "function") return;
 
-  adapter.registerCityPort("updateStatus", updateStatus);
-  adapter.registerCityPort("showTooltip", showTooltip);
-  adapter.registerCityPort("moveTooltip", moveTooltip);
-  adapter.registerCityPort("setHoverDebug", setHoverDebug);
-  adapter.registerCityPort("clearHoverNodeState", clearHoverNodeState);
-  adapter.registerCityPort("hideTooltip", hideTooltip);
-  adapter.registerCityPort("hideContextMenu", hideContextMenu);
-  adapter.registerCityPort("buildSearchEntries", buildSearchEntries);
-  adapter.registerCityPort("hideSuggest", hideSuggest);
+  var contracts = {
+    updateStatus: { args: [{ name: "extraText", type: "string|number|boolean", required: false }], returns: "undefined", desc: "Update toolbar/status text and active-node summary." },
+    showTooltip: { args: [{ name: "node", type: "object", required: false }, { name: "eventPos", type: "object", required: false }], returns: "undefined", desc: "Show hover tooltip for current node." },
+    moveTooltip: { args: [{ name: "clientX", type: "number", required: true }, { name: "clientY", type: "number", required: true }], returns: "undefined", desc: "Move tooltip to pointer coordinates." },
+    setHoverDebug: { args: [{ name: "reason", type: "string", required: false }, { name: "details", type: "object", required: false }], returns: "undefined", desc: "Store hover-debug diagnostics in STATE." },
+    clearHoverNodeState: { args: [{ name: "reason", type: "string", required: false }, { name: "details", type: "object", required: false }], returns: "undefined", desc: "Clear hover selection and tooltip." },
+    hideTooltip: { args: [], returns: "undefined", desc: "Hide hover tooltip UI." },
+    hideContextMenu: { args: [{ name: "suppressStateClear", type: "boolean", required: false }], returns: "undefined", desc: "Hide node context menu UI." },
+    buildSearchEntries: { args: [], returns: "undefined", desc: "Rebuild search suggestion index from active nodes." },
+    hideSuggest: { args: [], returns: "undefined", desc: "Hide search suggestion dropdown." }
+  };
+
+  function reg(name, fn) {
+    adapter.registerCityPort(name, fn);
+    if (typeof adapter.registerCityContract !== "function") return;
+    var contract = contracts[name];
+    if (!contract) return;
+    adapter.registerCityContract(name, contract);
+  }
+
+  reg("updateStatus", updateStatus);
+  reg("showTooltip", showTooltip);
+  reg("moveTooltip", moveTooltip);
+  reg("setHoverDebug", setHoverDebug);
+  reg("clearHoverNodeState", clearHoverNodeState);
+  reg("hideTooltip", hideTooltip);
+  reg("hideContextMenu", hideContextMenu);
+  reg("buildSearchEntries", buildSearchEntries);
+  reg("hideSuggest", hideSuggest);
 })();
 
 

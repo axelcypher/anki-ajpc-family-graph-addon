@@ -117,6 +117,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - Engine port contracts: `GraphAdapter.listEngineContracts()` / `GraphAdapter.getEngineContract(name)`
   - City port contracts: `GraphAdapter.listCityContracts()` / `GraphAdapter.getCityContract(name)`
   - `graphCall` method-level args/returns are declared in `web/graph.engine.sigma.js` (`ENGINE_GRAPH_CALL_CONTRACTS`).
+  - City contracts are registered by `web/graph.payload.js`, `web/graph.ui.js`, `web/graph.flow.js`, and `web/graph.utils.js`.
 - `window.ajpcEngineSettings` is split into `engine`, `solver`, and `renderer` groups for runtime UI injection.
 - Runtime settings are persisted with grouped hooks (`solver:*`, `renderer:*`, `engine:*`, `node:*`).
 - Active layout solver is `d3-force` (`web/libs/d3-force.min.js`) via `web/graph.solver.d3.js`.

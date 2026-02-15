@@ -81,6 +81,17 @@ function ensureFlowParticlesLoop() {
 (function registerFlowAdapterPorts() {
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerCityPort !== "function") return;
-  adapter.registerCityPort("ensureFlowCanvasSize", ensureFlowCanvasSize);
-  adapter.registerCityPort("ensureFlowParticlesLoop", ensureFlowParticlesLoop);
+  var contracts = {
+    ensureFlowCanvasSize: { args: [], returns: "undefined", desc: "Flow canvas compatibility stub (no-op in shader flow mode)." },
+    ensureFlowParticlesLoop: { args: [], returns: "undefined", desc: "Ensure shader-flow RAF loop is running when flow is active." }
+  };
+  function reg(name, fn) {
+    adapter.registerCityPort(name, fn);
+    if (typeof adapter.registerCityContract !== "function") return;
+    var contract = contracts[name];
+    if (!contract) return;
+    adapter.registerCityContract(name, contract);
+  }
+  reg("ensureFlowCanvasSize", ensureFlowCanvasSize);
+  reg("ensureFlowParticlesLoop", ensureFlowParticlesLoop);
 })();

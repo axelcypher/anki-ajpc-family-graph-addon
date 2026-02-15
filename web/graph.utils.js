@@ -225,4 +225,11 @@ function seededPos(id) {
   var adapter = window && window.GraphAdapter;
   if (!adapter || typeof adapter.registerCityPort !== "function") return;
   adapter.registerCityPort("seededPos", seededPos);
+  if (typeof adapter.registerCityContract === "function") {
+    adapter.registerCityContract("seededPos", {
+      args: [{ name: "id", type: "string|number", required: true }],
+      returns: "array",
+      desc: "Return deterministic seeded graph-space position for node id."
+    });
+  }
 })();
