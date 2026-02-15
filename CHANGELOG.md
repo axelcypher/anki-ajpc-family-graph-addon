@@ -26,6 +26,7 @@
 - Etappe 2 refactor: extracted city use-case logic from bootstrap into dedicated modules (`graph.city.usecase.engine.ports.js`, `graph.city.usecase.payload.apply.js`, `graph.city.usecase.delta.apply.js`) and reduced bootstrap to entrypoint wiring.
 - Etappe 3 refactor: centralized adapter contract specs in `web/core/contracts/graph.contracts.js` and switched City/Engine runtime modules to read contracts from this shared source.
 - Etappe 4 hardening: added automated frontend architecture check script (`scripts/check_frontend_runtime_contracts.js`) for contract coverage and asset/load-order consistency.
+- Etappe 5 hardening: added automated delta/reheat pipeline check script (`scripts/check_frontend_delta_reheat_pipeline.js`) for bootstrap/usecase wiring, delta-apply invariants, engine bridge, and solver reheat behavior.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
