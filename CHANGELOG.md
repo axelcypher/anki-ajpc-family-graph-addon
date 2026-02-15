@@ -28,6 +28,7 @@
 - Etappe 4 hardening: added automated frontend architecture check script (`scripts/check_frontend_runtime_contracts.js`) for contract coverage and asset/load-order consistency.
 - Etappe 5 hardening: added automated delta/reheat pipeline check script (`scripts/check_frontend_delta_reheat_pipeline.js`) for bootstrap/usecase wiring, delta-apply invariants, engine bridge, and solver reheat behavior.
 - Etappe 6 hardening: added unified smoke suite runner (`scripts/check_graph_smoke_suite.py`) that executes frontend contract/pipeline checks and backend delta one-hop guard validation in one command.
+- Etappe 7 integration: added CI workflow (`.github/workflows/smoke-checks.yml`) to run `python scripts/check_graph_smoke_suite.py` on `push/pull_request` for `main` and `dev`.
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
