@@ -167,14 +167,11 @@ AjpcGraphSolverD3.prototype._applyTick = function () {
   }
 };
 
-AjpcGraphSolverD3.prototype._buildSimulation = function (options) {
+AjpcGraphSolverD3.prototype._buildSimulation = function () {
   var d3 = this._d3();
   if (!d3) return false;
 
   var cfg = this._settings();
-  var opts = options && typeof options === "object" ? options : {};
-  var isDeltaReheat = !!opts.delta_reheat;
-  var effectiveWarmupTicks = isDeltaReheat ? 0 : cfg.d3_warmup_ticks;
   var model = this._buildModel();
   this.nodes = model.nodes;
   this.links = model.links;
@@ -213,9 +210,9 @@ AjpcGraphSolverD3.prototype._buildSimulation = function (options) {
   this._cooldownTicks = cfg.d3_cooldown_ticks;
   this._cooldownTimeMs = cfg.d3_cooldown_time_ms;
 
-  if (effectiveWarmupTicks > 0) {
+  if (cfg.d3_warmup_ticks > 0) {
     sim.stop();
-    sim.tick(effectiveWarmupTicks);
+    sim.tick(cfg.d3_warmup_ticks);
     this._applyTick();
   }
 
@@ -223,7 +220,7 @@ AjpcGraphSolverD3.prototype._buildSimulation = function (options) {
   return true;
 };
 
-AjpcGraphSolverD3.prototype.start = function (alpha, options) {
+AjpcGraphSolverD3.prototype.start = function (alpha) {
   var cfg = this._settings();
   if (!cfg.layout_enabled) return;
 
@@ -234,7 +231,7 @@ AjpcGraphSolverD3.prototype.start = function (alpha, options) {
   }
 
   this.stop(true);
-  if (!this._buildSimulation(options || {})) return;
+  if (!this._buildSimulation()) return;
 
   if (!this.simulation) return;
   var a = Number(alpha);

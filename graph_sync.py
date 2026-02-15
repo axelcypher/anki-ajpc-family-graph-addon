@@ -310,7 +310,6 @@ class GraphSyncMixin:
 
     def _on_operation_did_execute(self, changes, handler) -> None:
         try:
-            logger.info("delta hook fired")
             self._sync_embedded_editor_on_operation(changes, handler)
             if not self._graph_ready:
                 return
