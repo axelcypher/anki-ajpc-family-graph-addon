@@ -285,6 +285,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   var moved = 0;
   var ofs = off();
   var indexById = owner.indexById && typeof owner.indexById.get === "function" ? owner.indexById : null;
+  var movedById = new Map();
   for (i = 0; i < nodes.length; i += 1) {
     var n = nodes[i];
     if (!n || !graph.hasNode(n.id)) continue;
@@ -299,7 +300,33 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
         owner.pointPositions[(posIdx * 2) + 1] = ny + ofs;
       }
     }
+    movedById.set(String(n.id), {
+      x: nx,
+      y: ny,
+      vx: Number(n.vx || 0),
+      vy: Number(n.vy || 0)
+    });
     moved += 1;
+  }
+
+  var liveUpdated = 0;
+  if (this.simulation && Array.isArray(this.nodes) && this.nodes.length && movedById.size) {
+    for (i = 0; i < this.nodes.length; i += 1) {
+      var liveNode = this.nodes[i];
+      if (!liveNode || liveNode.id === undefined || liveNode.id === null) continue;
+      var liveMove = movedById.get(String(liveNode.id));
+      if (!liveMove) continue;
+      liveNode.x = Number(liveMove.x);
+      liveNode.y = Number(liveMove.y);
+      liveNode.vx = Number(liveMove.vx);
+      liveNode.vy = Number(liveMove.vy);
+      liveUpdated += 1;
+    }
+    if (liveUpdated > 0) {
+      try {
+        this.simulation.alpha(Math.max(Number(this.simulation.alpha() || 0), cfg.d3_alpha_min));
+      } catch (_eAlpha) {}
+    }
   }
 
   try { sim.stop(); } catch (_e) {}
@@ -315,6 +342,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
       + " attract=" + String(attractStrength)
       + " center=" + String(centerStrength)
       + " moved=" + String(moved)
+      + " live_synced=" + String(liveUpdated)
   );
 
   return {

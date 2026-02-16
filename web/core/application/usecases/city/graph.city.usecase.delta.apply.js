@@ -187,11 +187,13 @@ function cityUsecaseApplyDeltaPayload(payload) {
     if (hasEdgeDelta) {
       var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
       var subsetNodeIds = cityUsecaseCollectEdgeDeltaNodeIds(ops, slice && slice.changed_nids, rawEdgesBefore);
+      var subsetNodeSample = subsetNodeIds.slice(0, 8).join(",");
       var hasSubsetPullPort = cityUsecaseHasEnginePort("runSubsetNoDampingPull");
       if (hasSubsetPullPort && layoutEnabled && subsetNodeIds.length >= 2) {
         log(
           "delta subset pull trigger rev=" + String(incomingRev)
           + " nodes=" + String(subsetNodeIds.length)
+          + " sample=" + subsetNodeSample
           + " edge_upsert=" + String(counts.edge_upsert)
           + " edge_drop=" + String(counts.edge_drop)
         );
@@ -222,6 +224,7 @@ function cityUsecaseApplyDeltaPayload(payload) {
         log(
           "delta subset pull skipped rev=" + String(incomingRev)
           + " nodes=" + String(subsetNodeIds.length)
+          + " sample=" + subsetNodeSample
           + " subset_port=" + String(hasSubsetPullPort)
           + " layout_enabled=" + String(layoutEnabled)
         );
