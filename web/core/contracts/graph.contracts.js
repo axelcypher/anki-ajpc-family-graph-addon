@@ -140,7 +140,7 @@
     runSubsetNoDampingPull: {
       args: [{ name: "nodeIds", type: "array", required: true }, { name: "options", type: "object", required: false }],
       returns: "object|boolean",
-      desc: "Run subset-only d3 pull simulation with velocityDecay(0.01) and write back positions."
+      desc: "Run subset-only d3 pull simulation with velocityDecay(0) and write back positions."
     },
     requestFrame: { args: [], returns: "undefined", desc: "Request one render frame for shader uniforms." },
     getPointPositions: { args: [], returns: "array|typedarray|null", desc: "Get flattened [x,y] pairs for active nodes." },
