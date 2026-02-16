@@ -197,7 +197,7 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " edge_upsert=" + String(counts.edge_upsert)
           + " edge_drop=" + String(counts.edge_drop)
         );
-        var subsetRes = cityUsecaseCallEngineMethod("runSubsetNoDampingPull", subsetNodeIds, { include_links: true, ticks: 0 });
+        var subsetRes = cityUsecaseCallEngineMethod("runSubsetNoDampingPull", subsetNodeIds, { include_links: true, ticks: 1 });
         var subsetOk = false;
         if (subsetRes === true) subsetOk = true;
         if (subsetRes && typeof subsetRes === "object" && subsetRes.ok === true) subsetOk = true;
