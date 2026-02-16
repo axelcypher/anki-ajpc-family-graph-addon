@@ -134,6 +134,54 @@ AjpcGraphSolverD3.prototype._edgeStrength = function (link, cfg) {
   return cl(cfg.d3_link_strength * dyn, 0, 2);
 };
 
+AjpcGraphSolverD3.prototype.syncLiveModelFromGraph = function () {
+  if (!this.simulation) return false;
+
+  var cfg = this._settings();
+  var model = this._buildModel();
+  if (!model || !Array.isArray(model.nodes) || !model.nodes.length) return false;
+
+  var prevById = new Map();
+  for (var i = 0; i < this.nodes.length; i += 1) {
+    var prev = this.nodes[i];
+    if (!prev || prev.id === undefined || prev.id === null) continue;
+    prevById.set(String(prev.id), prev);
+  }
+
+  var nodes = model.nodes;
+  for (i = 0; i < nodes.length; i += 1) {
+    var next = nodes[i];
+    if (!next) continue;
+    var keep = prevById.get(String(next.id));
+    if (!keep) continue;
+    next.x = Number(keep.x);
+    next.y = Number(keep.y);
+    next.vx = Number(keep.vx || 0);
+    next.vy = Number(keep.vy || 0);
+  }
+
+  this.nodes = nodes;
+  this.links = Array.isArray(model.links) ? model.links : [];
+  this.simulation.nodes(this.nodes);
+
+  var linkForce = this.simulation.force("link");
+  if (linkForce && typeof linkForce.links === "function") {
+    linkForce
+      .id(function (n) { return n.id; })
+      .distance((function (self) { return function (l) { return self._edgeDistance(l, cfg); }; })(this))
+      .strength((function (self) { return function (l) { return self._edgeStrength(l, cfg); }; })(this))
+      .iterations(cfg.d3_link_iterations)
+      .links(this.links);
+  }
+
+  lg(
+    "debug",
+    "d3 solver live model synced nodes=" + String(this.nodes.length)
+      + " links=" + String(this.links.length)
+  );
+  return true;
+};
+
 AjpcGraphSolverD3.prototype._cancelSubsetPullTask = function () {
   var task = this._subsetPullTask;
   if (!task || typeof task !== "object") return;

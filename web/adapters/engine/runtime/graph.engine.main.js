@@ -1059,11 +1059,14 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   var graph = this.graph;
   var cfg = options && typeof options === "object" ? options : {};
   var preserveLayout = cfg.preserve_layout !== false;
+  var hadEdgeOps = false;
+  var hadNodeOps = false;
   var selectedIds = this._collectSelectedNodeIds();
 
   this._applyArraysNoRebuild(arrays);
 
   var edgeDrop = Array.isArray(ops && ops.edge_drop) ? ops.edge_drop : [];
+  if (edgeDrop.length) hadEdgeOps = true;
   for (var i = 0; i < edgeDrop.length; i += 1) {
     var dropKey = String(edgeDrop[i] || "");
     if (!dropKey) continue;
@@ -1071,6 +1074,7 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   }
 
   var nodeDrop = Array.isArray(ops && ops.node_drop) ? ops.node_drop : [];
+  if (nodeDrop.length) hadNodeOps = true;
   for (i = 0; i < nodeDrop.length; i += 1) {
     var dropNodeId = String(nodeDrop[i] || "");
     if (!dropNodeId) continue;
@@ -1078,6 +1082,7 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   }
 
   var nodeAdd = Array.isArray(ops && ops.node_add) ? ops.node_add : [];
+  if (nodeAdd.length) hadNodeOps = true;
   for (i = 0; i < nodeAdd.length; i += 1) {
     var addEntry = nodeAdd[i];
     if (!addEntry || addEntry.id === undefined || addEntry.id === null) continue;
@@ -1104,6 +1109,7 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   }
 
   var nodeUpdate = Array.isArray(ops && ops.node_update) ? ops.node_update : [];
+  if (nodeUpdate.length) hadNodeOps = true;
   for (i = 0; i < nodeUpdate.length; i += 1) {
     var updEntry = nodeUpdate[i];
     if (!updEntry || updEntry.id === undefined || updEntry.id === null) continue;
@@ -1116,6 +1122,7 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   }
 
   var edgeUpsert = Array.isArray(ops && ops.edge_upsert) ? ops.edge_upsert : [];
+  if (edgeUpsert.length) hadEdgeOps = true;
   for (i = 0; i < edgeUpsert.length; i += 1) {
     var upsertEntry = edgeUpsert[i];
     if (!upsertEntry) continue;
@@ -1160,6 +1167,9 @@ SigmaGraphCompat.prototype.applyDeltaOps = function (ops, arrays, options) {
   }
 
   this._restoreSelectedNodeIds(selectedIds);
+  if ((hadEdgeOps || hadNodeOps) && this.solver && typeof this.solver.syncLiveModelFromGraph === "function") {
+    this.solver.syncLiveModelFromGraph();
+  }
   this.dataDirty = false;
   this.styleDirty = false;
   if (this.renderer) this.renderer.requestFrame();
