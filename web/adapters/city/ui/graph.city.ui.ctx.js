@@ -370,6 +370,203 @@ function showCtxMessage(text) {
   updateStatus(String(text || ""));
 }
 
+function normalizeFamilyIdForCtx(value) {
+  var out = String(value || "").trim();
+  try {
+    if (out && typeof out.normalize === "function") out = out.normalize("NFC");
+  } catch (_e0) {}
+  return out;
+}
+
+function validateFamilyIdRenameInputForCtx(oldFid, newFid, separator) {
+  var oldNorm = normalizeFamilyIdForCtx(oldFid);
+  var newNorm = normalizeFamilyIdForCtx(newFid);
+  var sep = String(separator || ";");
+  if (!oldNorm) return { ok: false, error: "Old Family ID is required", old_fid: oldNorm, new_fid: newNorm };
+  if (!newNorm) return { ok: false, error: "New Family ID is required", old_fid: oldNorm, new_fid: newNorm };
+  if (oldNorm === newNorm) return { ok: false, error: "Old and new Family IDs must be different", old_fid: oldNorm, new_fid: newNorm };
+  if (newNorm.indexOf("@") >= 0) return { ok: false, error: "New Family ID must not contain '@'", old_fid: oldNorm, new_fid: newNorm };
+  if (sep && newNorm.indexOf(sep) >= 0) return { ok: false, error: "New Family ID must not contain '" + sep + "'", old_fid: oldNorm, new_fid: newNorm };
+  return { ok: true, error: "", old_fid: oldNorm, new_fid: newNorm };
+}
+
+function showFamilyIdEditDialogForCtx(oldFid, pycmd, showToast) {
+  var oldNorm = normalizeFamilyIdForCtx(oldFid);
+  if (!oldNorm) {
+    if (typeof showToast === "function") showToast("Missing family id");
+    return;
+  }
+  var overlay = byId("ctx-picker");
+  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+
+  overlay = document.createElement("div");
+  overlay.id = "ctx-picker";
+  overlay.setAttribute("data-mode", "famedit");
+  overlay.setAttribute("data-old-fid", oldNorm);
+  overlay.setAttribute("data-preview-ready", "0");
+  overlay.setAttribute("data-pending-kind", "");
+  overlay.setAttribute("data-pending-old", "");
+  overlay.setAttribute("data-pending-new", "");
+
+  var dialog = document.createElement("div");
+  dialog.className = "dialog";
+
+  var heading = document.createElement("div");
+  heading.className = "title";
+  heading.textContent = "Edit Family ID";
+
+  var list = document.createElement("div");
+  list.className = "list";
+
+  var oldRow = document.createElement("div");
+  oldRow.className = "row";
+  oldRow.textContent = "Old Family ID: " + oldNorm;
+
+  var newRow = document.createElement("label");
+  newRow.className = "row";
+  var newLabel = document.createElement("span");
+  newLabel.textContent = "New Family ID:";
+  var newInput = document.createElement("input");
+  newInput.type = "text";
+  newInput.value = "";
+  newInput.placeholder = "Enter new family id";
+  newInput.style.flex = "1 1 auto";
+  newInput.style.minWidth = "0";
+  newInput.style.padding = "6px 8px";
+  newInput.style.borderRadius = "8px";
+  newInput.style.border = "1px solid var(--border-100)";
+  newInput.style.background = "var(--bg-chip-200)";
+  newInput.style.color = "var(--text-main)";
+  newRow.appendChild(newLabel);
+  newRow.appendChild(newInput);
+
+  var statusRow = document.createElement("div");
+  statusRow.className = "row";
+  statusRow.style.display = "block";
+  statusRow.style.opacity = "0.9";
+  statusRow.textContent = "Step 1: Enter new ID and run Preview.";
+
+  var summaryRow = document.createElement("div");
+  summaryRow.className = "row";
+  summaryRow.style.display = "block";
+  summaryRow.style.opacity = "0.9";
+  summaryRow.textContent = "";
+
+  list.appendChild(oldRow);
+  list.appendChild(newRow);
+  list.appendChild(statusRow);
+  list.appendChild(summaryRow);
+
+  var btnRow = document.createElement("div");
+  btnRow.className = "btn-row";
+
+  var cancelBtn = document.createElement("button");
+  cancelBtn.className = "btn";
+  cancelBtn.type = "button";
+  cancelBtn.textContent = "Cancel";
+
+  var previewBtn = document.createElement("button");
+  previewBtn.className = "btn";
+  previewBtn.type = "button";
+  previewBtn.textContent = "Preview";
+
+  var applyBtn = document.createElement("button");
+  applyBtn.className = "btn primary";
+  applyBtn.type = "button";
+  applyBtn.textContent = "Apply";
+  applyBtn.disabled = true;
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(previewBtn);
+  btnRow.appendChild(applyBtn);
+
+  dialog.appendChild(heading);
+  dialog.appendChild(list);
+  dialog.appendChild(btnRow);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  function close() {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
+  cancelBtn.addEventListener("click", function () {
+    close();
+  });
+
+  previewBtn.addEventListener("click", function () {
+    var v = validateFamilyIdRenameInputForCtx(oldNorm, newInput.value, ";");
+    if (!v.ok) {
+      overlay.setAttribute("data-preview-ready", "0");
+      applyBtn.disabled = true;
+      statusRow.textContent = v.error;
+      summaryRow.textContent = "";
+      return;
+    }
+    if (typeof pycmd !== "function") {
+      statusRow.textContent = "Bridge unavailable";
+      return;
+    }
+    overlay.setAttribute("data-preview-ready", "0");
+    overlay.setAttribute("data-pending-kind", "preview");
+    overlay.setAttribute("data-pending-old", v.old_fid);
+    overlay.setAttribute("data-pending-new", v.new_fid);
+    applyBtn.disabled = true;
+    statusRow.textContent = "Preview running...";
+    summaryRow.textContent = "";
+    pycmd("ctx:famedit_preview:" + encodeURIComponent(JSON.stringify({
+      old_fid: v.old_fid,
+      new_fid: v.new_fid
+    })));
+  });
+
+  applyBtn.addEventListener("click", function () {
+    var v = validateFamilyIdRenameInputForCtx(oldNorm, newInput.value, ";");
+    if (!v.ok) {
+      overlay.setAttribute("data-preview-ready", "0");
+      applyBtn.disabled = true;
+      statusRow.textContent = v.error;
+      return;
+    }
+    var previewReady = overlay.getAttribute("data-preview-ready") === "1";
+    var previewOld = String(overlay.getAttribute("data-preview-old") || "");
+    var previewNew = String(overlay.getAttribute("data-preview-new") || "");
+    if (!previewReady || previewOld !== v.old_fid || previewNew !== v.new_fid) {
+      statusRow.textContent = "Run Preview first before Apply.";
+      applyBtn.disabled = true;
+      return;
+    }
+    if (typeof pycmd !== "function") {
+      statusRow.textContent = "Bridge unavailable";
+      return;
+    }
+    overlay.setAttribute("data-pending-kind", "apply");
+    overlay.setAttribute("data-pending-old", v.old_fid);
+    overlay.setAttribute("data-pending-new", v.new_fid);
+    previewBtn.disabled = true;
+    applyBtn.disabled = true;
+    statusRow.textContent = "Applying rename...";
+    pycmd("ctx:famedit_apply:" + encodeURIComponent(JSON.stringify({
+      old_fid: v.old_fid,
+      new_fid: v.new_fid
+    })));
+  });
+
+  newInput.addEventListener("input", function () {
+    overlay.setAttribute("data-preview-ready", "0");
+    applyBtn.disabled = true;
+    previewBtn.disabled = false;
+    statusRow.textContent = "Step 1: Enter new ID and run Preview.";
+    summaryRow.textContent = "";
+  });
+
+  overlay.addEventListener("click", function (evt) {
+    if (evt.target === overlay) close();
+  });
+
+  newInput.focus();
+}
+
 function showFamilyPickerForCtx(title, families, onApply) {
   if (!families || !families.length) return;
   var overlay = byId("ctx-picker");
@@ -538,6 +735,23 @@ function buildContextMenuGroupsForCtx(ctx) {
   var isNodeFamily = node && node.kind === "family";
   var isDifferent = selectedNode && String(node.id) !== String(menuSelectedId);
   var isSame = selectedNode && String(node.id) === String(menuSelectedId);
+
+  var familyEditGroup = [];
+  if (isNodeFamily) {
+    familyEditGroup.push({
+      label: "Edit Family ID...",
+      iconSpec: "family_link",
+      cb: function () {
+        var hubFid = getPrimaryFamily(node);
+        if (!hubFid) {
+          showToast("Missing family id");
+          return;
+        }
+        showFamilyIdEditDialogForCtx(hubFid, pycmd, showToast);
+      }
+    });
+  }
+  groups.push(familyEditGroup);
 
   var connectGroup = [];
   if (selectedNode && isDifferent && (isNodeNote || isNodeFamily)) {
@@ -1004,6 +1218,99 @@ function showContextMenu(node, evt) {
   menu.style.left = Math.round(left) + "px";
   menu.style.top = Math.round(top) + "px";
 }
+
+window.onCtxFamilyEditPreviewResult = function (result) {
+  var overlay = byId("ctx-picker");
+  if (!overlay || overlay.getAttribute("data-mode") !== "famedit") return;
+  var pendingKind = String(overlay.getAttribute("data-pending-kind") || "");
+  if (pendingKind !== "preview") return;
+
+  var out = result && typeof result === "object" ? result : {};
+  var oldFid = normalizeFamilyIdForCtx(out.old_fid || "");
+  var newFid = normalizeFamilyIdForCtx(out.new_fid || "");
+  var expectedOld = String(overlay.getAttribute("data-pending-old") || "");
+  var expectedNew = String(overlay.getAttribute("data-pending-new") || "");
+  if (oldFid !== expectedOld || newFid !== expectedNew) return;
+  overlay.setAttribute("data-pending-kind", "");
+
+  var dialog = overlay.querySelector(".dialog");
+  if (!dialog) return;
+  var rows = dialog.querySelectorAll(".list .row");
+  if (!rows || rows.length < 4) return;
+  var statusRow = rows[2];
+  var summaryRow = rows[3];
+  var applyBtn = dialog.querySelector(".btn.primary");
+  if (!statusRow || !summaryRow || !applyBtn) return;
+
+  if (!out.ok) {
+    overlay.setAttribute("data-preview-ready", "0");
+    applyBtn.disabled = true;
+    statusRow.textContent = String(out.error || "Preview failed");
+    summaryRow.textContent = "";
+    return;
+  }
+
+  var affected = Number(out.affected_notes || 0);
+  var scanned = Number(out.scanned_notes || 0);
+  var collisions = Number(out.collisions || 0);
+  overlay.setAttribute("data-preview-ready", affected > 0 ? "1" : "0");
+  overlay.setAttribute("data-preview-old", oldFid);
+  overlay.setAttribute("data-preview-new", newFid);
+  applyBtn.disabled = !(affected > 0);
+  statusRow.textContent = affected > 0
+    ? "Step 2: Confirm Apply."
+    : "No matching notes found.";
+  summaryRow.textContent =
+    "Affected notes: " + String(affected)
+    + " | Collisions: " + String(collisions)
+    + " | Scanned: " + String(scanned);
+};
+
+window.onCtxFamilyEditApplyResult = function (result) {
+  var overlay = byId("ctx-picker");
+  if (!overlay || overlay.getAttribute("data-mode") !== "famedit") return;
+  var pendingKind = String(overlay.getAttribute("data-pending-kind") || "");
+  if (pendingKind !== "apply") return;
+
+  var out = result && typeof result === "object" ? result : {};
+  var oldFid = normalizeFamilyIdForCtx(out.old_fid || "");
+  var newFid = normalizeFamilyIdForCtx(out.new_fid || "");
+  var expectedOld = String(overlay.getAttribute("data-pending-old") || "");
+  var expectedNew = String(overlay.getAttribute("data-pending-new") || "");
+  if (oldFid !== expectedOld || newFid !== expectedNew) return;
+  overlay.setAttribute("data-pending-kind", "");
+
+  var dialog = overlay.querySelector(".dialog");
+  if (!dialog) return;
+  var rows = dialog.querySelectorAll(".list .row");
+  if (!rows || rows.length < 4) return;
+  var statusRow = rows[2];
+  var summaryRow = rows[3];
+  var previewBtn = dialog.querySelector(".btn-row .btn:nth-child(2)");
+  var applyBtn = dialog.querySelector(".btn.primary");
+  if (previewBtn) previewBtn.disabled = false;
+
+  if (!out.ok) {
+    overlay.setAttribute("data-preview-ready", "0");
+    if (applyBtn) applyBtn.disabled = true;
+    statusRow.textContent = String(out.error || "Apply failed");
+    return;
+  }
+
+  var changed = Number(out.changed_notes || 0);
+  var collisions = Number(out.collisions || 0);
+  var scanned = Number(out.scanned_notes || 0);
+  summaryRow.textContent =
+    "Changed notes: " + String(changed)
+    + " | Collisions: " + String(collisions)
+    + " | Scanned: " + String(scanned);
+  showCtxMessage(
+    changed > 0
+      ? ("Family ID renamed: " + oldFid + " -> " + newFid + " (" + String(changed) + " notes)")
+      : "Family ID rename: no changes"
+  );
+  if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+};
 
 window.hideContextMenu = hideContextMenu;
 

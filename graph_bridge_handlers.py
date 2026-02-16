@@ -1,10 +1,12 @@
 ﻿from __future__ import annotations
 
 import json
+import time
 from typing import Any
 from urllib.parse import unquote
 
 from aqt import mw
+from aqt.operations import QueryOp
 
 from . import logger
 from .graph_actions import (
@@ -64,16 +66,192 @@ from .graph_config import (
 )
 from .graph_data import _parse_family_field
 from .graph_note_ops import (
+    _apply_family_id_rename_global,
     _append_family_to_note,
     _append_link_to_note,
     _get_family_cfg,
+    _get_family_note_type_ids,
+    _normalize_family_id,
+    _preview_family_id_rename,
     _remove_family_from_note,
     _remove_link_from_note,
+    _validate_target_family_id,
 )
 from .graph_previewer import _open_preview, _open_preview_card
 
 
 class GraphBridgeHandlersMixin:
+    def _emit_ctx_family_edit_callback(self, callback_name: str, payload: dict[str, Any]) -> None:
+        try:
+            payload_json = json.dumps(payload or {}, ensure_ascii=False).replace("</", "<\\/")
+            js = (
+                "(function(){"
+                "if(window." + str(callback_name) + "){"
+                "window." + str(callback_name) + "(" + payload_json + ");"
+                "}"
+                "})();"
+            )
+            self.web.eval(js)
+        except Exception:
+            logger.dbg("ctx family edit callback failed", callback_name)
+
+    def _ctx_family_edit_request(self, payload: str) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "ok": False,
+            "old_fid": "",
+            "new_fid": "",
+            "affected_notes": 0,
+            "scanned_notes": 0,
+            "collisions": 0,
+            "changed_notes": 0,
+            "error": "",
+        }
+        try:
+            data = json.loads(unquote(payload)) if payload else {}
+            if not isinstance(data, dict):
+                data = {}
+        except Exception:
+            result["error"] = "Invalid payload"
+            return {"ok": False, "result": result}
+
+        old_fid = _normalize_family_id(str(data.get("old_fid") or ""))
+        new_fid = _normalize_family_id(str(data.get("new_fid") or ""))
+        result["old_fid"] = old_fid
+        result["new_fid"] = new_fid
+
+        family_field, sep, default_prio = _get_family_cfg()
+        note_type_ids = _get_family_note_type_ids()
+        if not family_field:
+            result["error"] = "Family field is not configured"
+            return {"ok": False, "result": result}
+        if not note_type_ids:
+            result["error"] = "Family note types are not configured"
+            return {"ok": False, "result": result}
+        if not old_fid:
+            result["error"] = "Old Family ID is required"
+            return {"ok": False, "result": result}
+        if not new_fid:
+            result["error"] = "New Family ID is required"
+            return {"ok": False, "result": result}
+        if old_fid == new_fid:
+            result["error"] = "Old and new Family IDs must be different"
+            return {"ok": False, "result": result}
+        ok_new, msg = _validate_target_family_id(new_fid, sep)
+        if not ok_new:
+            result["error"] = msg or "Invalid Family ID"
+            return {"ok": False, "result": result}
+
+        return {
+            "ok": True,
+            "result": result,
+            "old_fid": old_fid,
+            "new_fid": new_fid,
+            "family_field": family_field,
+            "sep": sep,
+            "default_prio": default_prio,
+            "note_type_ids": note_type_ids,
+        }
+
+    def _ctx_family_edit_preview(self, payload: str) -> None:
+        req = self._ctx_family_edit_request(payload)
+        if not bool(req.get("ok")):
+            self._emit_ctx_family_edit_callback("onCtxFamilyEditPreviewResult", req.get("result") or {})
+            logger.dbg("ctx family edit preview rejected", (req.get("result") or {}).get("error", ""))
+            return
+        logger.dbg("ctx family edit preview start", "old=", req["old_fid"], "new=", req["new_fid"])
+        out = _preview_family_id_rename(
+            old_fid=str(req["old_fid"]),
+            new_fid=str(req["new_fid"]),
+            field=str(req["family_field"]),
+            sep=str(req["sep"]),
+            default_prio=int(req["default_prio"]),
+            note_type_ids=set(req["note_type_ids"]),
+        )
+        out["ok"] = bool(out.get("ok", True))
+        out["changed_notes"] = 0
+        self._emit_ctx_family_edit_callback("onCtxFamilyEditPreviewResult", out)
+        logger.dbg(
+            "ctx family edit preview done",
+            "old=",
+            out.get("old_fid", ""),
+            "new=",
+            out.get("new_fid", ""),
+            "affected=",
+            out.get("affected_notes", 0),
+            "scanned=",
+            out.get("scanned_notes", 0),
+            "collisions=",
+            out.get("collisions", 0),
+        )
+
+    def _ctx_family_edit_apply(self, payload: str) -> None:
+        req = self._ctx_family_edit_request(payload)
+        if not bool(req.get("ok")):
+            self._emit_ctx_family_edit_callback("onCtxFamilyEditApplyResult", req.get("result") or {})
+            logger.dbg("ctx family edit apply rejected", (req.get("result") or {}).get("error", ""))
+            return
+
+        started = time.perf_counter()
+        logger.info("ctx family edit apply start", "old=", req["old_fid"], "new=", req["new_fid"])
+
+        def op(_col):
+            return _apply_family_id_rename_global(
+                old_fid=str(req["old_fid"]),
+                new_fid=str(req["new_fid"]),
+                field=str(req["family_field"]),
+                sep=str(req["sep"]),
+                default_prio=int(req["default_prio"]),
+                note_type_ids=set(req["note_type_ids"]),
+            )
+
+        def on_success(result: dict[str, Any]) -> None:
+            out = dict(result or {})
+            changed_nids_raw = out.pop("changed_nids", []) or []
+            changed_nids: list[int] = []
+            for raw in changed_nids_raw:
+                try:
+                    nid = int(raw)
+                except Exception:
+                    nid = 0
+                if nid > 0:
+                    changed_nids.append(nid)
+
+            changed_notes = int(out.get("changed_notes") or len(changed_nids))
+            if changed_notes > 0:
+                if changed_notes <= 250:
+                    self._enqueue_note_delta(changed_nids, "ctx family id rename")
+                    logger.info("ctx family edit refresh strategy", "mode=delta", "changed=", changed_notes)
+                else:
+                    self._schedule_refresh("ctx family id rename bulk")
+                    logger.info("ctx family edit refresh strategy", "mode=full_refresh", "changed=", changed_notes)
+
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            logger.info(
+                "ctx family edit apply done",
+                "old=",
+                out.get("old_fid", ""),
+                "new=",
+                out.get("new_fid", ""),
+                "changed=",
+                changed_notes,
+                "scanned=",
+                int(out.get("scanned_notes") or 0),
+                "collisions=",
+                int(out.get("collisions") or 0),
+                "elapsed_ms=",
+                elapsed_ms,
+            )
+            self._emit_ctx_family_edit_callback("onCtxFamilyEditApplyResult", out)
+
+        def on_failure(err: Exception) -> None:
+            out = dict(req.get("result") or {})
+            out["ok"] = False
+            out["error"] = f"Apply failed: {err!r}"
+            self._emit_ctx_family_edit_callback("onCtxFamilyEditApplyResult", out)
+            logger.error("ctx family edit apply failed", repr(err))
+
+        QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
+
     def _on_bridge_cmd(self, message: str) -> Any:
         # JS -> Python bridge: apply config changes and context actions.
         if message == "refresh":
@@ -618,6 +796,16 @@ class GraphBridgeHandlersMixin:
                     logger.dbg("ctx filter", fid)
                 except Exception:
                     logger.dbg("ctx filter failed", payload)
+            elif kind == "famedit_preview":
+                try:
+                    self._ctx_family_edit_preview(payload)
+                except Exception:
+                    logger.dbg("ctx famedit preview failed", payload)
+            elif kind == "famedit_apply":
+                try:
+                    self._ctx_family_edit_apply(payload)
+                except Exception:
+                    logger.dbg("ctx famedit apply failed", payload)
             elif kind == "connect":
                 try:
                     data = json.loads(unquote(payload)) if payload else {}
