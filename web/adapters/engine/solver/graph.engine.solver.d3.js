@@ -237,9 +237,9 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
     : Math.max(cfg.d3_alpha, cfg.d3_alpha_min);
 
   var ticksInput = Number(opt.ticks);
-  var ticksDefault = cfg.d3_warmup_ticks > 0 ? cfg.d3_warmup_ticks : 80;
+  var ticksDefault = cfg.d3_warmup_ticks > 0 ? cfg.d3_warmup_ticks : 0;
   var ticks = isFinite(ticksInput) ? Math.floor(ticksInput) : ticksDefault;
-  if (!isFinite(ticks) || ticks < 1) ticks = 1;
+  if (!isFinite(ticks) || ticks < 0) ticks = 0;
   ticks = Math.min(ticks, 5000);
 
   var centerStrengthInput = Number(opt.center_strength);
