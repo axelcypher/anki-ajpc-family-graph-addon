@@ -319,16 +319,28 @@ function persistCardSetting(key, value) {
 
 // === Status panel ============================================================
 function selectedNodeForStatus() {
+  var selectedNodeId = (STATE.selectedNodeId === null || STATE.selectedNodeId === undefined)
+    ? ""
+    : String(STATE.selectedNodeId);
+  if (!selectedNodeId) return null;
+
   var idx = NaN;
-  var selected = callEngineGraph("getSelectedIndices");
-  if (Array.isArray(selected) && selected.length) idx = Number(selected[0]);
-  else {
+
+  if (STATE.activeIndexById && typeof STATE.activeIndexById.get === "function") {
+    var mapped = STATE.activeIndexById.get(selectedNodeId);
+    if (mapped !== undefined) idx = Number(mapped);
+  }
+  if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) {
     idx = Number(STATE.selectedPointIndex);
-    if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) {
-      if (STATE.activeIndexById && STATE.selectedNodeId !== null && STATE.selectedNodeId !== undefined) {
-        var mapped = STATE.activeIndexById.get(String(STATE.selectedNodeId));
-        if (mapped !== undefined) idx = Number(mapped);
-      }
+  }
+  if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) {
+    var selected = callEngineGraph("getSelectedIndices");
+    if (Array.isArray(selected) && selected.length) idx = Number(selected[0]);
+  }
+  if (isFiniteNumber(idx) && idx >= 0 && idx < STATE.activeNodes.length) {
+    var selectedNode = STATE.activeNodes[idx];
+    if (!selectedNode || String(selectedNode.id || "") !== selectedNodeId) {
+      idx = NaN;
     }
   }
   if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) return null;
