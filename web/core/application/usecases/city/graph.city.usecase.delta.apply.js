@@ -197,7 +197,11 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " edge_upsert=" + String(counts.edge_upsert)
           + " edge_drop=" + String(counts.edge_drop)
         );
-        var subsetRes = cityUsecaseCallEngineMethod("runSubsetNoDampingPull", subsetNodeIds, { include_links: true, ticks: 18, animate: true });
+        var subsetRes = cityUsecaseCallEngineMethod(
+          "runSubsetNoDampingPull",
+          subsetNodeIds,
+          { include_links: true, ticks: 72, animate: true, ticks_per_frame: 1, alpha: 0.12, attract_strength: 22 }
+        );
         var subsetOk = false;
         if (subsetRes === true) subsetOk = true;
         if (subsetRes && typeof subsetRes === "object" && subsetRes.ok === true) subsetOk = true;

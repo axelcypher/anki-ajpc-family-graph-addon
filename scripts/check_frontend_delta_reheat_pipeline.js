@@ -49,7 +49,11 @@ function checkEntrypointsAndUsecases() {
   mustContain(deltaApply, /applyRuntimeUiSettings\(false\)/m, "delta apply disables solver restart in runtime-ui apply");
   mustContain(deltaApply, /var\s+hasEdgeDelta\s*=\s*counts\.edge_upsert\s*>\s*0\s*\|\|\s*counts\.edge_drop\s*>\s*0/m, "delta edge change detection");
   mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"runSubsetNoDampingPull\"\)/m, "delta subset pull checks explicit port");
-  mustContain(deltaApply, /cityUsecaseCallEngineMethod\(\"runSubsetNoDampingPull\",\s*subsetNodeIds,\s*\{\s*include_links:\s*true,\s*ticks:\s*18,\s*animate:\s*true\s*\}\)/m, "delta subset pull calls engine port with animated ticks");
+  mustContain(
+    deltaApply,
+    /cityUsecaseCallEngineMethod[\s\S]*?\"runSubsetNoDampingPull\"[\s\S]*?subsetNodeIds[\s\S]*?include_links:\s*true[\s\S]*?ticks:\s*72[\s\S]*?animate:\s*true[\s\S]*?ticks_per_frame:\s*1[\s\S]*?alpha:\s*0\.12[\s\S]*?attract_strength:\s*22/m,
+    "delta subset pull calls engine port with tuned animated settings"
+  );
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\"/m, "delta path must not call reheat()");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"start\"/m, "delta path must not call start()");
   mustNotContain(deltaApply, /cityUsecaseCallEngine\(\"applyGraphData\"/m, "delta path must not call full applyGraphData directly");
