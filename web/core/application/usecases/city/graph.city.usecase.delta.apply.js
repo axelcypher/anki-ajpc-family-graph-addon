@@ -27,6 +27,27 @@ function cityUsecaseCollectEdgeUpsertNodeIds(ops) {
   return Array.from(out.values());
 }
 
+function cityUsecaseCollectEdgeUpsertPairs(ops) {
+  var src = ops && typeof ops === "object" ? ops : {};
+  var out = [];
+  var seen = new Set();
+  var edgeUpsert = Array.isArray(src.edge_upsert) ? src.edge_upsert : [];
+
+  edgeUpsert.forEach(function (entry) {
+    if (!entry || typeof entry !== "object") return;
+    var source = String(entry.source || "");
+    var target = String(entry.target || "");
+    if (!source || !target || source === target) return;
+    var layer = String(entry.attrs && entry.attrs.layer ? entry.attrs.layer : "");
+    var key = source + "|" + target + "|" + layer;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ source: source, target: target, layer: layer });
+  });
+
+  return out;
+}
+
 function cityUsecaseRemapSelectionAndHover() {
   var indexById = (STATE.activeIndexById && typeof STATE.activeIndexById.get === "function") ? STATE.activeIndexById : new Map();
 
@@ -144,6 +165,9 @@ function cityUsecaseApplyDeltaPayload(payload) {
     if (hasEdgeUpsert) {
       var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
       var subsetNodeIds = cityUsecaseCollectEdgeUpsertNodeIds(ops);
+      var subsetBiasPairs = cityUsecaseCollectEdgeUpsertPairs(ops);
+      var subsetBiasMode = "weighted_degree";
+      var subsetBiasGain = 0.28;
       var subsetNodeSample = subsetNodeIds.slice(0, 8).join(",");
       var hasSubsetPullPort = cityUsecaseHasEnginePort("runSubsetNoDampingPull");
       if (hasSubsetPullPort && layoutEnabled && subsetNodeIds.length >= 2) {
@@ -153,11 +177,24 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " sample=" + subsetNodeSample
           + " edge_upsert=" + String(counts.edge_upsert)
           + " edge_drop=" + String(counts.edge_drop)
+          + " bias_mode=" + subsetBiasMode
+          + " bias_gain=" + String(subsetBiasGain)
+          + " bias_pairs=" + String(subsetBiasPairs.length)
         );
         var subsetRes = cityUsecaseCallEngineMethod(
           "runSubsetNoDampingPull",
           subsetNodeIds,
-          { include_links: true, ticks: 72, animate: true, ticks_per_frame: 1, alpha: 0.12, attract_strength: 22 }
+          {
+            include_links: true,
+            ticks: 72,
+            animate: true,
+            ticks_per_frame: 1,
+            alpha: 0.12,
+            attract_strength: 22,
+            bias_mode: subsetBiasMode,
+            bias_gain: subsetBiasGain,
+            bias_pairs: subsetBiasPairs
+          }
         );
         var subsetOk = false;
         if (subsetRes === true) subsetOk = true;
@@ -173,11 +210,17 @@ function cityUsecaseApplyDeltaPayload(payload) {
             + " nodes=" + String(isFinite(usedNodes) ? usedNodes : subsetNodeIds.length)
             + " links=" + String(isFinite(usedLinks) ? usedLinks : 0)
             + " ticks=" + String(isFinite(usedTicks) ? usedTicks : 0)
+            + " bias_mode=" + subsetBiasMode
+            + " bias_gain=" + String(subsetBiasGain)
+            + " bias_pairs=" + String(subsetBiasPairs.length)
           );
         } else {
           log(
             "delta subset pull failed rev=" + String(incomingRev)
             + " nodes=" + String(subsetNodeIds.length)
+            + " bias_mode=" + subsetBiasMode
+            + " bias_gain=" + String(subsetBiasGain)
+            + " bias_pairs=" + String(subsetBiasPairs.length)
             + " result_type=" + String(typeof subsetRes)
           );
         }
@@ -188,6 +231,9 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " sample=" + subsetNodeSample
           + " subset_port=" + String(hasSubsetPullPort)
           + " layout_enabled=" + String(layoutEnabled)
+          + " bias_mode=" + subsetBiasMode
+          + " bias_gain=" + String(subsetBiasGain)
+          + " bias_pairs=" + String(subsetBiasPairs.length)
         );
       }
     } else if (hasEdgeDelta) {

@@ -50,11 +50,16 @@ function checkEntrypointsAndUsecases() {
   mustContain(deltaApply, /var\s+hasEdgeDelta\s*=\s*counts\.edge_upsert\s*>\s*0\s*\|\|\s*counts\.edge_drop\s*>\s*0/m, "delta edge change detection");
   mustContain(deltaApply, /var\s+hasEdgeUpsert\s*=\s*counts\.edge_upsert\s*>\s*0/m, "delta edge upsert detection");
   mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"runSubsetNoDampingPull\"\)/m, "delta subset pull checks explicit port");
+  mustContain(deltaApply, /function\s+cityUsecaseCollectEdgeUpsertPairs\s*\(/m, "delta subset pull defines edge upsert pair collector");
   mustContain(
     deltaApply,
-    /cityUsecaseCallEngineMethod[\s\S]*?\"runSubsetNoDampingPull\"[\s\S]*?subsetNodeIds[\s\S]*?include_links:\s*true[\s\S]*?ticks:\s*72[\s\S]*?animate:\s*true[\s\S]*?ticks_per_frame:\s*1[\s\S]*?alpha:\s*0\.12[\s\S]*?attract_strength:\s*22/m,
-    "delta subset pull calls engine port with tuned animated settings"
+    /cityUsecaseCallEngineMethod[\s\S]*?\"runSubsetNoDampingPull\"[\s\S]*?subsetNodeIds[\s\S]*?include_links:\s*true[\s\S]*?ticks:\s*72[\s\S]*?animate:\s*true[\s\S]*?ticks_per_frame:\s*1[\s\S]*?alpha:\s*0\.12[\s\S]*?attract_strength:\s*22[\s\S]*?bias_mode:\s*subsetBiasMode[\s\S]*?bias_gain:\s*subsetBiasGain[\s\S]*?bias_pairs:\s*subsetBiasPairs/m,
+    "delta subset pull calls engine port with tuned animated and bias settings"
   );
+  mustContain(deltaApply, /var\s+subsetBiasMode\s*=\s*\"weighted_degree\"/m, "delta subset pull uses weighted-degree bias mode");
+  mustContain(deltaApply, /var\s+subsetBiasGain\s*=\s*0\.28/m, "delta subset pull uses fixed strong bias gain");
+  mustContain(deltaApply, /bias_mode=/m, "delta subset pull logs bias mode");
+  mustContain(deltaApply, /bias_gain=/m, "delta subset pull logs bias gain");
   mustContain(deltaApply, /reason=no_edge_upsert/m, "delta subset pull skips edge-drop-only deltas");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\"/m, "delta path must not call reheat()");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"start\"/m, "delta path must not call start()");
@@ -111,10 +116,21 @@ function checkSolverReheatBehavior() {
   note("solver reheat checks passed");
 }
 
+function checkSolverSubsetBiasBehavior() {
+  const solver = readText("web/adapters/engine/solver/graph.engine.solver.d3.js");
+  mustContain(solver, /function\s+buildWeightedDegreeScores\s*\(/m, "subset bias weighted-degree score helper exists");
+  mustContain(solver, /function\s+buildSubsetBiasForce\s*\(/m, "subset bias force helper exists");
+  mustContain(solver, /bias_mode/m, "subset pull parses bias mode option");
+  mustContain(solver, /sim\.force\(\"subset_bias\"/m, "subset pull registers subset_bias force");
+  mustContain(solver, /bias_pairs_active/m, "subset pull logs active bias pairs");
+  note("solver subset bias checks passed");
+}
+
 function main() {
   checkEntrypointsAndUsecases();
   checkEngineDeltaAndReheatBridge();
   checkSolverReheatBehavior();
+  checkSolverSubsetBiasBehavior();
 
   if (errors.length) {
     console.error("FAIL check_frontend_delta_reheat_pipeline");

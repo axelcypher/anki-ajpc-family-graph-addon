@@ -134,6 +134,118 @@ AjpcGraphSolverD3.prototype._edgeStrength = function (link, cfg) {
   return cl(cfg.d3_link_strength * dyn, 0, 2);
 };
 
+function buildWeightedDegreeScores(nodeById, owner, graph) {
+  var scores = new Map();
+  if (!(nodeById instanceof Map) || !nodeById.size) return scores;
+
+  nodeById.forEach(function (_node, id) {
+    scores.set(String(id), 0);
+  });
+
+  var edgeIds = Array.isArray(owner && owner.edgeIdByIndex) ? owner.edgeIdByIndex : [];
+  for (var i = 0; i < edgeIds.length; i += 1) {
+    var edgeId = edgeIds[i];
+    if (!edgeId || !graph || typeof graph.hasEdge !== "function" || !graph.hasEdge(edgeId)) continue;
+    var edgeAttrs = (typeof graph.getEdgeAttributes === "function") ? graph.getEdgeAttributes(edgeId) : null;
+    if (edgeAttrs && edgeAttrs.hidden) continue;
+
+    var source = String((typeof graph.source === "function" ? graph.source(edgeId) : "") || "");
+    var target = String((typeof graph.target === "function" ? graph.target(edgeId) : "") || "");
+    if (!source || !target || source === target) continue;
+
+    var sourceIn = nodeById.has(source);
+    var targetIn = nodeById.has(target);
+    if (!sourceIn && !targetIn) continue;
+
+    var idx = owner && owner.edgeIndexById && typeof owner.edgeIndexById.get === "function"
+      ? Number(owner.edgeIndexById.get(String(edgeId)))
+      : NaN;
+    var strength = NaN;
+    if (isFinite(idx) && idx >= 0 && owner && owner.linkStrength && owner.linkStrength.length > idx) {
+      strength = Number(owner.linkStrength[idx]);
+    }
+    if (!isFinite(strength) || strength <= 0) strength = 1;
+
+    if (sourceIn) scores.set(source, Number(scores.get(source) || 0) + strength);
+    if (targetIn) scores.set(target, Number(scores.get(target) || 0) + strength);
+  }
+
+  return scores;
+}
+
+function buildSubsetBiasForce(nodeById, biasPairs, scores, gain) {
+  var list = Array.isArray(biasPairs) ? biasPairs : [];
+  var totalPairs = list.length;
+  var g = Number(gain);
+  if (!isFinite(g) || g < 0) g = 0.28;
+  g = cl(g, 0, 5);
+
+  var directed = [];
+  var seen = new Set();
+  for (var i = 0; i < list.length; i += 1) {
+    var pair = list[i];
+    if (!pair || typeof pair !== "object") continue;
+    var source = String(pair.source || "");
+    var target = String(pair.target || "");
+    if (!source || !target || source === target) continue;
+    if (!nodeById.has(source) || !nodeById.has(target)) continue;
+
+    var sourceScore = Number(scores && scores.get ? scores.get(source) : 0);
+    var targetScore = Number(scores && scores.get ? scores.get(target) : 0);
+    if (!isFinite(sourceScore)) sourceScore = 0;
+    if (!isFinite(targetScore)) targetScore = 0;
+    if (sourceScore === targetScore) continue;
+
+    var leaderId = sourceScore > targetScore ? source : target;
+    var followerId = sourceScore > targetScore ? target : source;
+    var key = leaderId + "->" + followerId;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    directed.push({ leaderId: leaderId, followerId: followerId });
+  }
+
+  if (!directed.length) {
+    return {
+      force: null,
+      pairs_total: totalPairs,
+      pairs_active: 0,
+      bias_gain: g
+    };
+  }
+
+  function force(alpha) {
+    var a = Number(alpha);
+    if (!isFinite(a) || a <= 0) return;
+    var k = a * g;
+    for (var i = 0; i < directed.length; i += 1) {
+      var item = directed[i];
+      var leader = nodeById.get(item.leaderId);
+      var follower = nodeById.get(item.followerId);
+      if (!leader || !follower) continue;
+
+      var lx = Number(leader.x);
+      var ly = Number(leader.y);
+      var fx = Number(follower.x);
+      var fy = Number(follower.y);
+      if (!isFinite(lx) || !isFinite(ly) || !isFinite(fx) || !isFinite(fy)) continue;
+
+      var vx = cl((lx - fx) * k, -2.5, 2.5);
+      var vy = cl((ly - fy) * k, -2.5, 2.5);
+      follower.vx = Number(follower.vx || 0) + vx;
+      follower.vy = Number(follower.vy || 0) + vy;
+      leader.vx = Number(leader.vx || 0) * 0.92;
+      leader.vy = Number(leader.vy || 0) * 0.92;
+    }
+  }
+
+  return {
+    force: force,
+    pairs_total: totalPairs,
+    pairs_active: directed.length,
+    bias_gain: g
+  };
+}
+
 AjpcGraphSolverD3.prototype.syncLiveModelFromGraph = function () {
   if (!this.simulation) return false;
 
@@ -378,6 +490,30 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   var attractBase = Math.abs(Number(cfg.d3_manybody_strength || 0));
   var attractStrength = isFinite(attractInput) ? attractInput : (attractBase > 0 ? attractBase : 40);
   attractStrength = cl(attractStrength, 0, 5000);
+
+  var biasMode = String(opt.bias_mode || "").toLowerCase();
+  var biasModeLog = biasMode || "off";
+  var biasGainInput = Number(opt.bias_gain);
+  var biasGain = isFinite(biasGainInput) ? biasGainInput : 0.28;
+  if (!isFinite(biasGain) || biasGain < 0) biasGain = 0.28;
+  biasGain = cl(biasGain, 0, 5);
+  var biasPairs = Array.isArray(opt.bias_pairs) ? opt.bias_pairs : [];
+  var biasPairsTotal = biasPairs.length;
+  var biasPairsActive = 0;
+  var biasForce = null;
+  if (biasMode === "weighted_degree" && biasPairsTotal > 0) {
+    var biasScores = buildWeightedDegreeScores(nodeById, owner, graph);
+    var biasBuilt = buildSubsetBiasForce(nodeById, biasPairs, biasScores, biasGain);
+    biasForce = biasBuilt && typeof biasBuilt.force === "function" ? biasBuilt.force : null;
+    biasGain = Number(biasBuilt && biasBuilt.bias_gain);
+    if (!isFinite(biasGain) || biasGain < 0) biasGain = 0.28;
+    biasPairsTotal = Number(biasBuilt && biasBuilt.pairs_total);
+    biasPairsActive = Number(biasBuilt && biasBuilt.pairs_active);
+    if (!isFinite(biasPairsTotal) || biasPairsTotal < 0) biasPairsTotal = biasPairs.length;
+    if (!isFinite(biasPairsActive) || biasPairsActive < 0) biasPairsActive = 0;
+  } else {
+    biasModeLog = "off";
+  }
   var subsetVelocityDecay = 0;
 
   var self = this;
@@ -405,6 +541,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
       .iterations(cfg.d3_link_iterations);
     sim.force("link", linkForce);
   }
+  if (biasForce) sim.force("subset_bias", biasForce);
 
   sim.stop();
   if (!animate) {
@@ -420,6 +557,10 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
         + " attract=" + String(attractStrength)
         + " center=" + String(centerStrength)
         + " velocity_decay=" + String(subsetVelocityDecay)
+        + " bias_mode=" + String(biasModeLog)
+        + " bias_gain=" + String(biasGain)
+        + " bias_pairs_total=" + String(biasPairsTotal)
+        + " bias_pairs_active=" + String(biasPairsActive)
         + " animate=false"
         + " moved=" + String(syncRes.moved)
         + " live_synced=" + String(syncRes.liveUpdated)
@@ -432,7 +573,11 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
       ticks: ticks,
       alpha: alpha,
       attract_strength: attractStrength,
-      center_strength: centerStrength
+      center_strength: centerStrength,
+      bias_mode: biasModeLog,
+      bias_gain: biasGain,
+      bias_pairs_total: biasPairsTotal,
+      bias_pairs_active: biasPairsActive
     };
   }
 
@@ -477,6 +622,10 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
         + " attract=" + String(attractStrength)
         + " center=" + String(centerStrength)
         + " velocity_decay=" + String(subsetVelocityDecay)
+        + " bias_mode=" + String(biasModeLog)
+        + " bias_gain=" + String(biasGain)
+        + " bias_pairs_total=" + String(biasPairsTotal)
+        + " bias_pairs_active=" + String(biasPairsActive)
         + " animate=true"
         + " moved=" + String(moved)
         + " live_synced=" + String(liveUpdated)
@@ -510,7 +659,11 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
     ticks: ticks,
     alpha: alpha,
     attract_strength: attractStrength,
-    center_strength: centerStrength
+    center_strength: centerStrength,
+    bias_mode: biasModeLog,
+    bias_gain: biasGain,
+    bias_pairs_total: biasPairsTotal,
+    bias_pairs_active: biasPairsActive
   };
 };
 
