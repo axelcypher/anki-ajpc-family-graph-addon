@@ -296,6 +296,12 @@ AjpcGraphRendererSigma.prototype._bind = function () {
     if (idx !== undefined && typeof owner.config.onPointClick === "function") owner.config.onPointClick(idx);
   });
 
+  this.instance.on("doubleClickNode", function (payload) {
+    var nodeId = nid(payload);
+    var idx = nodeId !== null ? owner.indexById.get(nodeId) : undefined;
+    if (idx !== undefined && typeof owner.config.onPointDoubleClick === "function") owner.config.onPointDoubleClick(idx);
+  });
+
   this.instance.on("enterNode", function (payload) {
     var nodeId = nid(payload);
     var idx = nodeId !== null ? owner.indexById.get(nodeId) : undefined;

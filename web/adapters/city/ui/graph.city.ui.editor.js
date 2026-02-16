@@ -162,6 +162,16 @@
     return true;
   }
 
+  function openEmbeddedEditorForNodeId(nodeId) {
+    var nid = Number(nodeId);
+    if (!isFinite(nid) || nid <= 0) return false;
+    nid = Math.floor(nid);
+    cancelPendingOpen();
+    syncEmbeddedEditorRect();
+    runDelayedOpen(nid, pendingOpenNonce);
+    return true;
+  }
+
   function toggleEmbeddedEditorForSelectedNote() {
     var nid = selectedNoteNidFromState();
     if (nid > 0) return pycmdSafe("embed_editor:toggle:" + String(nid));
@@ -192,6 +202,7 @@
 
   window.selectedNoteNidFromState = selectedNoteNidFromState;
   window.openEmbeddedEditorForSelectedNote = openEmbeddedEditorForSelectedNote;
+  window.openEmbeddedEditorForNodeId = openEmbeddedEditorForNodeId;
   window.toggleEmbeddedEditorForSelectedNote = toggleEmbeddedEditorForSelectedNote;
   window.closeEmbeddedEditorPanel = closeEmbeddedEditorPanel;
   window.openEmbeddedEditorDevTools = openEmbeddedEditorDevTools;

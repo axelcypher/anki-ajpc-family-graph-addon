@@ -151,6 +151,35 @@ function callCitySyncLinkSettingsFromMeta() {
   return adapterCallCity("syncLinkSettingsFromMeta");
 }
 
+function openEmbeddedEditorForNodeIdPort(nodeId) {
+  var nodeKey = String(nodeId === undefined || nodeId === null ? "" : nodeId);
+  if (!nodeKey) return false;
+  if (!STATE || !Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
+  if (!STATE.activeIndexById || typeof STATE.activeIndexById.get !== "function") return false;
+
+  var mapped = STATE.activeIndexById.get(nodeKey);
+  var idx = Number(mapped);
+  if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) return false;
+
+  var node = STATE.activeNodes[idx];
+  if (!node || String(node.kind || "") !== "note") return false;
+
+  STATE.selectedNodeId = node.id;
+  STATE.selectedPointIndex = idx;
+  STATE.focusedIndex = idx;
+  callEngineApplyVisualStyles(0.08);
+
+  updateEditorVisibility(true);
+  if (typeof window.openEmbeddedEditorForNodeId !== "function") return false;
+  var opened = !!window.openEmbeddedEditorForNodeId(String(node.id || ""));
+  if (!opened) {
+    updateEditorVisibility(false);
+    return false;
+  }
+  if (typeof syncEmbeddedEditorRect === "function") syncEmbeddedEditorRect();
+  return true;
+}
+
 // === Hover hit testing =======================================================
 function isClientPointInsideGraphPanel(clientX, clientY) {
   if (!DOM.graphPanel) return false;
@@ -1978,6 +2007,7 @@ function wireDom() {
   reg("hideContextMenu", hideContextMenu);
   reg("buildSearchEntries", buildSearchEntries);
   reg("hideSuggest", hideSuggest);
+  reg("openEmbeddedEditorForNodeId", openEmbeddedEditorForNodeIdPort);
 })();
 
 

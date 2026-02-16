@@ -186,6 +186,10 @@ function cityBuildSearchEntries() {
   return adapterCallCity("buildSearchEntries");
 }
 
+function cityOpenEmbeddedEditorForNodeId(nodeId) {
+  return adapterCallCity("openEmbeddedEditorForNodeId", nodeId);
+}
+
 function cityCollectEngineRuntimeSettings(input) {
   var res = adapterCallCity("collectEngineRuntimeSettings", input);
   if (res !== undefined) return res;
@@ -2496,6 +2500,13 @@ function ensureGraphInstance() {
   if (STATE.graph) return;
   STATE.graph = createGraphEngineSigma(DOM.graph, {
     onPointClick: function (index) { selectNodeByIndex(index); },
+    onPointDoubleClick: function (index) {
+      var idx = Number(index);
+      if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return;
+      var node = STATE.activeNodes[idx];
+      if (!node || String(node.kind || "") !== "note") return;
+      cityOpenEmbeddedEditorForNodeId(String(node.id || ""));
+    },
     onPointMouseOver: function (index, _pointPos, evt) {
       var node = STATE.activeNodes[index];
       if (!node) return;
