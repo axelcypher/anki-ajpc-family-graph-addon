@@ -190,6 +190,10 @@ function cityOpenEmbeddedEditorForNodeId(nodeId) {
   return adapterCallCity("openEmbeddedEditorForNodeId", nodeId);
 }
 
+function cityOpenFamilyIdEditForNodeId(nodeId) {
+  return adapterCallCity("openFamilyIdEditForNodeId", nodeId);
+}
+
 function cityCollectEngineRuntimeSettings(input) {
   var res = adapterCallCity("collectEngineRuntimeSettings", input);
   if (res !== undefined) return res;
@@ -2504,8 +2508,15 @@ function ensureGraphInstance() {
       var idx = Number(index);
       if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return;
       var node = STATE.activeNodes[idx];
-      if (!node || String(node.kind || "") !== "note") return;
-      cityOpenEmbeddedEditorForNodeId(String(node.id || ""));
+      if (!node) return;
+      var kind = String(node.kind || "");
+      if (kind === "note") {
+        cityOpenEmbeddedEditorForNodeId(String(node.id || ""));
+        return;
+      }
+      if (kind === "family") {
+        cityOpenFamilyIdEditForNodeId(String(node.id || ""));
+      }
     },
     onPointMouseOver: function (index, _pointPos, evt) {
       var node = STATE.activeNodes[index];

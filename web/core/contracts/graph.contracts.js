@@ -98,6 +98,11 @@
       returns: "boolean",
       desc: "Open embedded editor panel for a note node id."
     },
+    openFamilyIdEditForNodeId: {
+      args: [{ name: "nodeId", type: "string|number", required: true }],
+      returns: "boolean",
+      desc: "Open family-id edit popup for a family hub node id."
+    },
     // city payload
     getEngineSolverDefaults: { args: [], returns: "object", desc: "Return default solver runtime settings." },
     getEngineRuntimeDefaults: { args: [], returns: "object", desc: "Return default engine runtime settings." },

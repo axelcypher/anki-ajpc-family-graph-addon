@@ -180,6 +180,28 @@ function openEmbeddedEditorForNodeIdPort(nodeId) {
   return true;
 }
 
+function openFamilyIdEditForNodeIdPort(nodeId) {
+  var nodeKey = String(nodeId === undefined || nodeId === null ? "" : nodeId);
+  if (!nodeKey) return false;
+  if (!STATE || !Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
+  if (!STATE.activeIndexById || typeof STATE.activeIndexById.get !== "function") return false;
+
+  var mapped = STATE.activeIndexById.get(nodeKey);
+  var idx = Number(mapped);
+  if (!isFiniteNumber(idx) || idx < 0 || idx >= STATE.activeNodes.length) return false;
+
+  var node = STATE.activeNodes[idx];
+  if (!node || String(node.kind || "") !== "family") return false;
+
+  STATE.selectedNodeId = node.id;
+  STATE.selectedPointIndex = idx;
+  STATE.focusedIndex = idx;
+  callEngineApplyVisualStyles(0.08);
+
+  if (typeof window.openFamilyIdEditDialogForNodeId !== "function") return false;
+  return !!window.openFamilyIdEditDialogForNodeId(String(node.id || ""));
+}
+
 // === Hover hit testing =======================================================
 function isClientPointInsideGraphPanel(clientX, clientY) {
   if (!DOM.graphPanel) return false;
@@ -1783,6 +1805,23 @@ function wireDom() {
 
   if (DOM.btnEditor) {
     DOM.btnEditor.addEventListener("click", function () {
+      var selectedId = STATE && STATE.selectedNodeId !== undefined && STATE.selectedNodeId !== null
+        ? String(STATE.selectedNodeId)
+        : "";
+      var selectedNode = null;
+      if (selectedId && STATE && STATE.activeIndexById && typeof STATE.activeIndexById.get === "function") {
+        var mapped = STATE.activeIndexById.get(selectedId);
+        var idx = Number(mapped);
+        if (isFiniteNumber(idx) && idx >= 0 && idx < STATE.activeNodes.length) selectedNode = STATE.activeNodes[idx];
+      }
+
+      if (selectedNode && String(selectedNode.kind || "") === "family") {
+        updateEditorVisibility(false);
+        var openedFamily = openFamilyIdEditForNodeIdPort(String(selectedNode.id || ""));
+        if (!openedFamily && typeof updateStatus === "function") updateStatus("Select a family hub first");
+        return;
+      }
+
       updateEditorVisibility(true);
       if (typeof openEmbeddedEditorForSelectedNote === "function") {
         var opened = !!openEmbeddedEditorForSelectedNote();
@@ -2008,6 +2047,7 @@ function wireDom() {
   reg("buildSearchEntries", buildSearchEntries);
   reg("hideSuggest", hideSuggest);
   reg("openEmbeddedEditorForNodeId", openEmbeddedEditorForNodeIdPort);
+  reg("openFamilyIdEditForNodeId", openFamilyIdEditForNodeIdPort);
 })();
 
 

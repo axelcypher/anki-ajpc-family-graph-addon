@@ -1312,5 +1312,30 @@ window.onCtxFamilyEditApplyResult = function (result) {
   if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
 };
 
+function openFamilyIdEditDialogForNodeId(nodeId) {
+  var nodeKey = String(nodeId === undefined || nodeId === null ? "" : nodeId);
+  if (!nodeKey) return false;
+  if (!STATE || !Array.isArray(STATE.activeNodes) || !STATE.activeNodes.length) return false;
+  if (!STATE.activeIndexById || typeof STATE.activeIndexById.get !== "function") return false;
+
+  var mapped = STATE.activeIndexById.get(nodeKey);
+  var idx = Number(mapped);
+  if (!isFinite(idx) || idx < 0 || idx >= STATE.activeNodes.length) return false;
+
+  var node = STATE.activeNodes[idx];
+  if (!node || String(node.kind || "") !== "family") return false;
+
+  var hubFid = node.label || String(node.id || "").replace("family:", "");
+  hubFid = normalizeFamilyIdForCtx(hubFid);
+  if (!hubFid) {
+    showCtxMessage("Missing family id");
+    return false;
+  }
+
+  showFamilyIdEditDialogForCtx(hubFid, window.pycmd, showCtxMessage);
+  return true;
+}
+
+window.openFamilyIdEditDialogForNodeId = openFamilyIdEditDialogForNodeId;
 window.hideContextMenu = hideContextMenu;
 
