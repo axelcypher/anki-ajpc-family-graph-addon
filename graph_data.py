@@ -723,6 +723,7 @@ def build_note_delta_slice(
     tooltip_fields = _normalize_note_type_map(col, graph_cfg.get("note_type_tooltip_fields") or {})
     selected_decks = graph_cfg.get("selected_decks") or []
     show_unlinked = bool(graph_cfg.get("show_unlinked", False))
+    same_prio_edges = bool(graph_cfg.get("family_same_prio_edges", False))
 
     allowed_nids: set[int] | None = None
     if isinstance(selected_decks, list) and selected_decks:
@@ -1060,6 +1061,47 @@ def build_note_delta_slice(
                         prio=int(prio),
                     )
                     _add_layer(str(nid), "families")
+                    # Keep delta family edges aligned with full-build shape:
+                    # include chain hub edge for non-lowest priorities.
+                    by_prio_members: dict[int, list[int]] = {}
+                    for member_nid, member_prio in members.items():
+                        try:
+                            member_nid_i = int(member_nid)
+                            member_prio_i = int(member_prio)
+                        except Exception:
+                            continue
+                        if member_nid_i <= 0:
+                            continue
+                        if not _in_scope(member_nid_i):
+                            continue
+                        by_prio_members.setdefault(member_prio_i, []).append(member_nid_i)
+                    prio_levels = sorted(by_prio_members.keys())
+                    cur_prio = int(prio)
+                    if prio_levels and cur_prio in by_prio_members:
+                        cur_idx = prio_levels.index(cur_prio)
+                        if cur_idx > 0:
+                            prev_prio = prio_levels[cur_idx - 1]
+                            prev_nodes = by_prio_members.get(prev_prio) or []
+                            if prev_nodes:
+                                anchor_nid = int(prev_nodes[0])
+                                if anchor_nid > 0 and anchor_nid != int(nid) and _ensure_note_node(anchor_nid):
+                                    _add_edge(
+                                        str(nid),
+                                        str(anchor_nid),
+                                        "families",
+                                        kind="chain",
+                                        fid=fid_txt,
+                                        prio=cur_prio,
+                                    )
+                                    _add_layer(str(anchor_nid), "families")
+                                    if anchor_nid not in expanded_nids:
+                                        expanded_nids.add(anchor_nid)
+                                        if recursive_neighbor_expand:
+                                            frontier.add(anchor_nid)
+                    # Full-build emits priority family edges only up to MAX_DIRECT_FAMILY_MEMBERS.
+                    # Delta must follow the same rule and metadata schema to avoid transient edge churn.
+                    if not (1 < len(members) <= MAX_DIRECT_FAMILY_MEMBERS):
+                        continue
                     for other_nid, other_prio in members.items():
                         if other_nid <= 0 or other_nid == nid:
                             continue
@@ -1067,22 +1109,52 @@ def build_note_delta_slice(
                             continue
                         if not _ensure_note_node(other_nid):
                             continue
-                        left = int(nid) if int(nid) < int(other_nid) else int(other_nid)
-                        right = int(other_nid) if left == int(nid) else int(nid)
-                        left_prio = int(prio) if left == int(nid) else int(other_prio)
-                        right_prio = int(other_prio) if right == int(other_nid) else int(prio)
-                        _add_edge(
-                            str(left),
-                            str(right),
-                            "priority",
-                            kind="direct",
-                            fid=fid_txt,
-                            prio_left=left_prio,
-                            prio_right=right_prio,
-                            same_prio=left_prio == right_prio,
-                        )
-                        _add_layer(str(left), "priority")
-                        _add_layer(str(right), "priority")
+                        cur_prio_i = int(prio)
+                        other_prio_i = int(other_prio)
+                        edge_added = False
+                        if cur_prio_i < other_prio_i:
+                            _add_edge(
+                                str(other_nid),
+                                str(nid),
+                                "priority",
+                                prio=cur_prio_i,
+                                fid=fid_txt,
+                                same_prio=False,
+                            )
+                            edge_added = True
+                        elif cur_prio_i > other_prio_i:
+                            _add_edge(
+                                str(nid),
+                                str(other_nid),
+                                "priority",
+                                prio=other_prio_i,
+                                fid=fid_txt,
+                                same_prio=False,
+                            )
+                            edge_added = True
+                        else:
+                            if same_prio_edges:
+                                _add_edge(
+                                    str(nid),
+                                    str(other_nid),
+                                    "priority",
+                                    prio=cur_prio_i,
+                                    fid=fid_txt,
+                                    same_prio=True,
+                                )
+                                _add_edge(
+                                    str(other_nid),
+                                    str(nid),
+                                    "priority",
+                                    prio=cur_prio_i,
+                                    fid=fid_txt,
+                                    same_prio=True,
+                                    flow_only=True,
+                                )
+                                edge_added = True
+                        if edge_added:
+                            _add_layer(str(nid), "priority")
+                            _add_layer(str(other_nid), "priority")
                         if other_nid not in expanded_nids:
                             expanded_nids.add(other_nid)
                             if recursive_neighbor_expand:
