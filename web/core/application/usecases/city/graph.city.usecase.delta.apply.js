@@ -226,33 +226,6 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " layout_enabled=" + String(layoutEnabled)
         );
       }
-
-      var deltaReheatAlpha = 1.25;
-      var hasReheatPort = cityUsecaseHasEnginePort("reheat");
-      if (hasReheatPort && layoutEnabled) {
-        log(
-          "delta reheat trigger rev=" + String(incomingRev)
-          + " alpha=" + String(deltaReheatAlpha)
-          + " edge_upsert=" + String(counts.edge_upsert)
-          + " edge_drop=" + String(counts.edge_drop)
-        );
-        var reheatOk = cityUsecaseCallEngineMethod("reheat", deltaReheatAlpha);
-        if (reheatOk !== true) {
-          var failReason = (reheatOk === false) ? "solver_reheat_false" : "reheat_port_unavailable";
-          log(
-            "delta reheat failed rev=" + String(incomingRev)
-            + " alpha=" + String(deltaReheatAlpha)
-            + " reason=" + failReason
-          );
-        }
-      } else {
-        log(
-          "delta reheat skipped rev=" + String(incomingRev)
-          + " alpha=" + String(deltaReheatAlpha)
-          + " reheat_port=" + String(hasReheatPort)
-          + " layout_enabled=" + String(layoutEnabled)
-        );
-      }
     }
 
     STATE.lastAppliedDeltaRev = incomingRev;

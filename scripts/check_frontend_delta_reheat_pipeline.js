@@ -50,8 +50,7 @@ function checkEntrypointsAndUsecases() {
   mustContain(deltaApply, /var\s+hasEdgeDelta\s*=\s*counts\.edge_upsert\s*>\s*0\s*\|\|\s*counts\.edge_drop\s*>\s*0/m, "delta edge change detection");
   mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"runSubsetNoDampingPull\"\)/m, "delta subset pull checks explicit port");
   mustContain(deltaApply, /cityUsecaseCallEngineMethod\(\"runSubsetNoDampingPull\",\s*subsetNodeIds,\s*\{\s*include_links:\s*true\s*\}\)/m, "delta subset pull calls engine port with include_links=true");
-  mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"reheat\"\)/m, "delta reheat checks explicit reheat port");
-  mustContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\",\s*deltaReheatAlpha\)/m, "delta reheat calls explicit reheat port");
+  mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\"/m, "delta path must not call reheat()");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"start\"/m, "delta path must not call start()");
   mustNotContain(deltaApply, /cityUsecaseCallEngine\(\"applyGraphData\"/m, "delta path must not call full applyGraphData directly");
 
