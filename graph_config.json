@@ -192,9 +192,9 @@
   "solver": {
     "layout_enabled": true,
     "d3_alpha": 1.0,
-    "d3_alpha_min": 0.01,
+    "d3_alpha_min": 0.001,
     "d3_alpha_decay": 0.01,
-    "d3_alpha_target": 0.0,
+    "d3_alpha_target": 0.001,
     "d3_velocity_decay": 0.35,
     "d3_center_x": 0.0,
     "d3_center_y": 0.0,
@@ -208,7 +208,7 @@
     "d3_link_iterations": 5.0,
     "d3_warmup_ticks": 100.0,
     "d3_cooldown_ticks": 0.0,
-    "d3_cooldown_time_ms": 30000.0
+    "d3_cooldown_time_ms": 0.0
   },
   "renderer": {
     "sigma_draw_labels": true,
