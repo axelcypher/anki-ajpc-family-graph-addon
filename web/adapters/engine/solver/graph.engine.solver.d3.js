@@ -378,6 +378,9 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   var attractBase = Math.abs(Number(cfg.d3_manybody_strength || 0));
   var attractStrength = isFinite(attractInput) ? attractInput : (attractBase > 0 ? attractBase : 40);
   attractStrength = cl(attractStrength, 0, 5000);
+  var subsetVelocityDecay = Number(cfg.d3_velocity_decay);
+  if (!isFinite(subsetVelocityDecay)) subsetVelocityDecay = 0.35;
+  subsetVelocityDecay = cl(subsetVelocityDecay, 0, 1);
 
   var self = this;
   var charge = d3.forceManyBody()
@@ -391,7 +394,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
     .alphaMin(cfg.d3_alpha_min)
     .alphaDecay(cfg.d3_alpha_decay)
     .alphaTarget(cfg.d3_alpha_target)
-    .velocityDecay(0)
+    .velocityDecay(subsetVelocityDecay)
     .force("charge", charge)
     .force("x", d3.forceX(centroidX).strength(centerStrength))
     .force("y", d3.forceY(centroidY).strength(centerStrength));
@@ -418,6 +421,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
         + " alpha=" + String(alpha)
         + " attract=" + String(attractStrength)
         + " center=" + String(centerStrength)
+        + " velocity_decay=" + String(subsetVelocityDecay)
         + " animate=false"
         + " moved=" + String(syncRes.moved)
         + " live_synced=" + String(syncRes.liveUpdated)
@@ -474,6 +478,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
         + " alpha=" + String(alpha)
         + " attract=" + String(attractStrength)
         + " center=" + String(centerStrength)
+        + " velocity_decay=" + String(subsetVelocityDecay)
         + " animate=true"
         + " moved=" + String(moved)
         + " live_synced=" + String(liveUpdated)
