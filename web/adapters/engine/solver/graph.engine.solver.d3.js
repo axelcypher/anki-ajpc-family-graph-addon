@@ -378,9 +378,7 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   var attractBase = Math.abs(Number(cfg.d3_manybody_strength || 0));
   var attractStrength = isFinite(attractInput) ? attractInput : (attractBase > 0 ? attractBase : 40);
   attractStrength = cl(attractStrength, 0, 5000);
-  var subsetVelocityDecay = Number(cfg.d3_velocity_decay);
-  if (!isFinite(subsetVelocityDecay)) subsetVelocityDecay = 0.35;
-  subsetVelocityDecay = cl(subsetVelocityDecay, 0, 1);
+  var subsetVelocityDecay = 0.1;
 
   var self = this;
   var charge = d3.forceManyBody()
