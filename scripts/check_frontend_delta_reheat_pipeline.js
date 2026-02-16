@@ -48,6 +48,8 @@ function checkEntrypointsAndUsecases() {
   mustContain(deltaApply, /applyDeltaOpsFn\(ops,\s*arrays,\s*\{\s*preserve_layout:\s*true\s*\}\)/m, "delta apply uses preserve_layout patch");
   mustContain(deltaApply, /applyRuntimeUiSettings\(false\)/m, "delta apply disables solver restart in runtime-ui apply");
   mustContain(deltaApply, /var\s+hasEdgeDelta\s*=\s*counts\.edge_upsert\s*>\s*0\s*\|\|\s*counts\.edge_drop\s*>\s*0/m, "delta edge change detection");
+  mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"runSubsetNoDampingPull\"\)/m, "delta subset pull checks explicit port");
+  mustContain(deltaApply, /cityUsecaseCallEngineMethod\(\"runSubsetNoDampingPull\",\s*subsetNodeIds,\s*\{\s*include_links:\s*true\s*\}\)/m, "delta subset pull calls engine port with include_links=true");
   mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"reheat\"\)/m, "delta reheat checks explicit reheat port");
   mustContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\",\s*deltaReheatAlpha\)/m, "delta reheat calls explicit reheat port");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"start\"/m, "delta path must not call start()");
