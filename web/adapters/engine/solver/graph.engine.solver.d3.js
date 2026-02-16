@@ -10,6 +10,7 @@ function AjpcGraphSolverD3(owner) {
   this._startTs = 0;
   this._cooldownTicks = 0;
   this._cooldownTimeMs = 0;
+  this._subsetPullTask = null;
 }
 
 function solverAdapterCallCity(name) {
@@ -133,6 +134,78 @@ AjpcGraphSolverD3.prototype._edgeStrength = function (link, cfg) {
   return cl(cfg.d3_link_strength * dyn, 0, 2);
 };
 
+AjpcGraphSolverD3.prototype._cancelSubsetPullTask = function () {
+  var task = this._subsetPullTask;
+  if (!task || typeof task !== "object") return;
+  if (task.rafId && window && typeof window.cancelAnimationFrame === "function") {
+    try { window.cancelAnimationFrame(task.rafId); } catch (_e0) {}
+  }
+  if (task.timerId && window && typeof window.clearTimeout === "function") {
+    try { window.clearTimeout(task.timerId); } catch (_e1) {}
+  }
+  if (task.sim) {
+    try { task.sim.stop(); } catch (_e2) {}
+  }
+  this._subsetPullTask = null;
+};
+
+AjpcGraphSolverD3.prototype._applySubsetNodes = function (nodes, cfg) {
+  var owner = this.owner || {};
+  var graph = owner.graph || null;
+  if (!graph) return { moved: 0, liveUpdated: 0 };
+
+  var moved = 0;
+  var ofs = off();
+  var indexById = owner.indexById && typeof owner.indexById.get === "function" ? owner.indexById : null;
+  var movedById = new Map();
+  for (var i = 0; i < nodes.length; i += 1) {
+    var n = nodes[i];
+    if (!n || !graph.hasNode(n.id)) continue;
+    var nx = Number(n.x);
+    var ny = Number(n.y);
+    if (!isFinite(nx) || !isFinite(ny)) continue;
+    graph.mergeNodeAttributes(n.id, { x: nx, y: ny, vx: Number(n.vx || 0), vy: Number(n.vy || 0) });
+    if (indexById && owner.pointPositions && owner.pointPositions.length) {
+      var posIdx = Number(indexById.get(String(n.id)));
+      if (isFinite(posIdx) && posIdx >= 0 && ((posIdx * 2) + 1) < owner.pointPositions.length) {
+        owner.pointPositions[posIdx * 2] = nx + ofs;
+        owner.pointPositions[(posIdx * 2) + 1] = ny + ofs;
+      }
+    }
+    movedById.set(String(n.id), {
+      x: nx,
+      y: ny,
+      vx: Number(n.vx || 0),
+      vy: Number(n.vy || 0)
+    });
+    moved += 1;
+  }
+
+  var liveUpdated = 0;
+  if (this.simulation && Array.isArray(this.nodes) && this.nodes.length && movedById.size) {
+    for (i = 0; i < this.nodes.length; i += 1) {
+      var liveNode = this.nodes[i];
+      if (!liveNode || liveNode.id === undefined || liveNode.id === null) continue;
+      var liveMove = movedById.get(String(liveNode.id));
+      if (!liveMove) continue;
+      liveNode.x = Number(liveMove.x);
+      liveNode.y = Number(liveMove.y);
+      liveNode.vx = Number(liveMove.vx);
+      liveNode.vy = Number(liveMove.vy);
+      liveUpdated += 1;
+    }
+    if (liveUpdated > 0 && cfg) {
+      try {
+        this.simulation.alpha(Math.max(Number(this.simulation.alpha() || 0), Number(cfg.d3_alpha_min || 0)));
+      } catch (_eAlpha) {}
+    }
+  }
+
+  if (owner && typeof owner.requestFrame === "function") owner.requestFrame();
+  else if (owner && owner.renderer && typeof owner.renderer.requestFrame === "function") owner.renderer.requestFrame();
+  return { moved: moved, liveUpdated: liveUpdated };
+};
+
 AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options) {
   var cfg = this._settings();
   if (!cfg.layout_enabled) {
@@ -241,6 +314,11 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   var ticks = isFinite(ticksInput) ? Math.floor(ticksInput) : ticksDefault;
   if (!isFinite(ticks) || ticks < 0) ticks = 0;
   ticks = Math.min(ticks, 5000);
+  var animate = opt.animate === true;
+  var ticksPerFrameInput = Number(opt.ticks_per_frame);
+  var ticksPerFrame = isFinite(ticksPerFrameInput) ? Math.floor(ticksPerFrameInput) : 1;
+  if (!isFinite(ticksPerFrame) || ticksPerFrame < 1) ticksPerFrame = 1;
+  ticksPerFrame = Math.min(ticksPerFrame, 60);
 
   var centerStrengthInput = Number(opt.center_strength);
   var centerStrength = isFinite(centerStrengthInput)
@@ -280,74 +358,102 @@ AjpcGraphSolverD3.prototype.runSubsetNoDampingPull = function (nodeIds, options)
   }
 
   sim.stop();
-  for (i = 0; i < ticks; i += 1) sim.tick();
-
-  var moved = 0;
-  var ofs = off();
-  var indexById = owner.indexById && typeof owner.indexById.get === "function" ? owner.indexById : null;
-  var movedById = new Map();
-  for (i = 0; i < nodes.length; i += 1) {
-    var n = nodes[i];
-    if (!n || !graph.hasNode(n.id)) continue;
-    var nx = Number(n.x);
-    var ny = Number(n.y);
-    if (!isFinite(nx) || !isFinite(ny)) continue;
-    graph.mergeNodeAttributes(n.id, { x: nx, y: ny, vx: Number(n.vx || 0), vy: Number(n.vy || 0) });
-    if (indexById && owner.pointPositions && owner.pointPositions.length) {
-      var posIdx = Number(indexById.get(String(n.id)));
-      if (isFinite(posIdx) && posIdx >= 0 && ((posIdx * 2) + 1) < owner.pointPositions.length) {
-        owner.pointPositions[posIdx * 2] = nx + ofs;
-        owner.pointPositions[(posIdx * 2) + 1] = ny + ofs;
-      }
-    }
-    movedById.set(String(n.id), {
-      x: nx,
-      y: ny,
-      vx: Number(n.vx || 0),
-      vy: Number(n.vy || 0)
-    });
-    moved += 1;
+  if (!animate) {
+    for (i = 0; i < ticks; i += 1) sim.tick();
+    var syncRes = this._applySubsetNodes(nodes, cfg);
+    try { sim.stop(); } catch (_e0) {}
+    lg(
+      "info",
+      "d3 solver subset pull nodes=" + String(nodes.length)
+        + " links=" + String(links.length)
+        + " ticks=" + String(ticks)
+        + " alpha=" + String(alpha)
+        + " attract=" + String(attractStrength)
+        + " center=" + String(centerStrength)
+        + " animate=false"
+        + " moved=" + String(syncRes.moved)
+        + " live_synced=" + String(syncRes.liveUpdated)
+    );
+    return {
+      ok: syncRes.moved > 0,
+      moved: syncRes.moved,
+      nodes: nodes.length,
+      links: links.length,
+      ticks: ticks,
+      alpha: alpha,
+      attract_strength: attractStrength,
+      center_strength: centerStrength
+    };
   }
 
-  var liveUpdated = 0;
-  if (this.simulation && Array.isArray(this.nodes) && this.nodes.length && movedById.size) {
-    for (i = 0; i < this.nodes.length; i += 1) {
-      var liveNode = this.nodes[i];
-      if (!liveNode || liveNode.id === undefined || liveNode.id === null) continue;
-      var liveMove = movedById.get(String(liveNode.id));
-      if (!liveMove) continue;
-      liveNode.x = Number(liveMove.x);
-      liveNode.y = Number(liveMove.y);
-      liveNode.vx = Number(liveMove.vx);
-      liveNode.vy = Number(liveMove.vy);
-      liveUpdated += 1;
+  this._cancelSubsetPullTask();
+  var self = this;
+  var task = {
+    sim: sim,
+    rafId: 0,
+    timerId: 0,
+    remainingTicks: ticks,
+    ticksPerFrame: ticksPerFrame,
+    totalTicks: ticks,
+    nodes: nodes
+  };
+  this._subsetPullTask = task;
+
+  function queueNext() {
+    if (!self._subsetPullTask || self._subsetPullTask !== task) return;
+    if (window && typeof window.requestAnimationFrame === "function") {
+      task.rafId = window.requestAnimationFrame(step);
+      task.timerId = 0;
+      return;
     }
-    if (liveUpdated > 0) {
-      try {
-        this.simulation.alpha(Math.max(Number(this.simulation.alpha() || 0), cfg.d3_alpha_min));
-      } catch (_eAlpha) {}
+    if (window && typeof window.setTimeout === "function") {
+      task.timerId = window.setTimeout(step, 16);
+      task.rafId = 0;
+      return;
     }
+    step();
   }
 
-  try { sim.stop(); } catch (_e) {}
-  if (owner && typeof owner.requestFrame === "function") owner.requestFrame();
-  else if (owner && owner.renderer && typeof owner.renderer.requestFrame === "function") owner.renderer.requestFrame();
+  function finish(syncRes) {
+    var moved = syncRes && isFinite(Number(syncRes.moved)) ? Number(syncRes.moved) : 0;
+    var liveUpdated = syncRes && isFinite(Number(syncRes.liveUpdated)) ? Number(syncRes.liveUpdated) : 0;
+    self._cancelSubsetPullTask();
+    lg(
+      "info",
+      "d3 solver subset pull nodes=" + String(nodes.length)
+        + " links=" + String(links.length)
+        + " ticks=" + String(task.totalTicks)
+        + " alpha=" + String(alpha)
+        + " attract=" + String(attractStrength)
+        + " center=" + String(centerStrength)
+        + " animate=true"
+        + " moved=" + String(moved)
+        + " live_synced=" + String(liveUpdated)
+    );
+  }
 
-  lg(
-    "info",
-    "d3 solver subset pull nodes=" + String(nodes.length)
-      + " links=" + String(links.length)
-      + " ticks=" + String(ticks)
-      + " alpha=" + String(alpha)
-      + " attract=" + String(attractStrength)
-      + " center=" + String(centerStrength)
-      + " moved=" + String(moved)
-      + " live_synced=" + String(liveUpdated)
-  );
+  function step() {
+    if (!self._subsetPullTask || self._subsetPullTask !== task) return;
+    if (task.remainingTicks <= 0) {
+      finish({ moved: 0, liveUpdated: 0 });
+      return;
+    }
+    var stepTicks = Math.min(task.ticksPerFrame, task.remainingTicks);
+    for (var j = 0; j < stepTicks; j += 1) task.sim.tick();
+    task.remainingTicks -= stepTicks;
+    var syncRes = self._applySubsetNodes(task.nodes, cfg);
+    if (task.remainingTicks <= 0) {
+      finish(syncRes);
+      return;
+    }
+    queueNext();
+  }
 
+  queueNext();
   return {
-    ok: moved > 0,
-    moved: moved,
+    ok: true,
+    async: true,
+    moved: 0,
     nodes: nodes.length,
     links: links.length,
     ticks: ticks,
@@ -454,6 +560,7 @@ AjpcGraphSolverD3.prototype.start = function (alpha) {
     return;
   }
 
+  this._cancelSubsetPullTask();
   this.stop(true);
   if (!this._buildSimulation()) return;
 
@@ -492,6 +599,7 @@ AjpcGraphSolverD3.prototype.reheat = function (alpha) {
 };
 
 AjpcGraphSolverD3.prototype.stop = function (destroySimulation) {
+  this._cancelSubsetPullTask();
   if (!this.simulation) return;
   try { this.simulation.stop(); } catch (_e) {}
   if (destroySimulation) {
