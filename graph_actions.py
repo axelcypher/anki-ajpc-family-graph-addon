@@ -113,24 +113,38 @@ def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
 def _filter_family(fid: str) -> None:
     if mw is None:
         return
-    field = _get_family_field()
+    family_id = str(fid or "").strip()
+    field = str(_get_family_field() or "").strip()
+    if not family_id:
+        return
     if not field:
-        query = fid
+        query = family_id
+        queries = [query]
     else:
         if " " in field:
             field = f'"{field}"'
         try:
             import re
 
-            pattern = ".*" + re.escape(fid) + ".*"
-            query = f"{field}:re:{pattern}"
+            pattern = ".*" + re.escape(family_id) + ".*"
+            quoted_pattern = pattern.replace('"', '\\"')
+            queries = [
+                f'{field}:re:"{quoted_pattern}"',
+                f"{field}:re:{pattern}",
+            ]
         except Exception:
-            if " " in fid or ";" in fid:
-                query = f'"{field}:{fid}"'
+            if " " in family_id or ";" in family_id:
+                query = f'"{field}:{family_id}"'
             else:
-                query = f"{field}:{fid}"
+                query = f"{field}:{family_id}"
+            queries = [query]
     try:
         browser = aqt.dialogs.open("Browser", mw)
-        browser.search_for(query)
+        for query in queries:
+            try:
+                browser.search_for(query)
+                return
+            except Exception:
+                continue
     except Exception:
         pass

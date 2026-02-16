@@ -77,7 +77,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - **Right-click** a node for actions:
   - Open Preview
   - Open Editor (embedded native Anki editor in the left graph panel)
-  - Filter by Family ID
+  - Filter by Family ID (supports IDs with spaces)
   - Connect to selected (Family): adds the selected family to the right-clicked note. If the selected item is a **Family Hub**, the new entry is added with prio 0. If the selected item is a **note**, the new entry is added with prio = (selected note prio + 1).
   - Connect active to selected Family: when the active selection is a **note** and the right-click target is a **Family Hub**, the selected family can be added directly to the active note.
   - Append link to selected: appends a link into the right-clicked note, pointing to the currently selected note (only if that note type has a Linked Notes field configured)
