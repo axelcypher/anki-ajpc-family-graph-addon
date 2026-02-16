@@ -47,12 +47,16 @@
 - Limited delta neighbor expansion to one hop from changed notes to prevent transitive recursive slice blowups on context link/unlink operations.
 - Removed automatic note-focus/zoom on note-edit delta events, so simple field edits do not trigger camera jumps or search-ping visuals.
 - Fixed context family connect/disconnect config mismatch by switching `graph_note_ops` family config reads to the same shared tools-config resolver used by graph build.
-- Centralized Family Gate config parsing into `graph_data._get_family_gate_config(...)` and wired build + ctx mutation paths to this single mapper to avoid future key-drift across call sites.
+- Centralized Family config parsing into `graph_data._get_family_priority_config(...)` and wired build + ctx mutation paths to this single mapper to avoid future key-drift across call sites.
 - Refactored graph logger to main-addon style level gating and module tags, including `logger.configure(...)` and JS bridge level routing (`log:info|warn|error|debug:`).
 - Kept `_FORCE_LOGGING` as API-outage fallback and enabled automatic debug-level logging when tools API config is unavailable.
 - Added API debug payload fields in AJpC Tools graph config response (`debug.level`, `debug.module_logs`, `debug.module_levels`) for graph-side level/module filtering.
 - Added a context-menu connect option for `active note + context family hub`, so selected family hubs can now add their family directly to the active note.
 - Replaced legacy context-menu selected/active dots with SVG icon assets (`web/assets/ctx-icons/*.svg`) rendered via hardcoded per-entry `iconSpec` in `web/adapters/city/ui/graph.city.ui.ctx.js`; `iconSpec` now supports optional `mode/color` with defaults `fixed + var(--text-main)`.
+- Stage-2 companion hardcut updates:
+  - Removed main-addon editor API fallback from runtime path (`graph_actions.py`, `graph_api_adapter.py`).
+  - Mapped `ctx:editapi` to the local embedded/popup editor path.
+  - Switched Family config/provider parsing to `family_priority`.
 
 ## 1.0.0-beta.1 - 2026-02-14
 

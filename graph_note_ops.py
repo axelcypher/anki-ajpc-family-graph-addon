@@ -8,7 +8,7 @@ from aqt import mw
 from . import logger
 from .graph_config import load_graph_config
 from .graph_data import (
-    _get_family_gate_config,
+    _get_family_priority_config,
     _get_tools_config,
     _parse_family_field,
     _parse_link_targets,
@@ -17,13 +17,13 @@ from .graph_data import (
 
 def _get_family_field() -> str:
     cfg = _get_tools_config()
-    family_cfg = _get_family_gate_config(cfg)
+    family_cfg = _get_family_priority_config(cfg)
     return str(family_cfg.get("family_field") or "")
 
 
 def _get_family_cfg() -> tuple[str, str, int]:
     cfg = _get_tools_config()
-    family_cfg = _get_family_gate_config(cfg)
+    family_cfg = _get_family_priority_config(cfg)
     field = str(family_cfg.get("family_field") or "")
     sep = str(family_cfg.get("separator") or ";")
     default_prio = int(family_cfg.get("default_prio") or 0)
@@ -50,7 +50,7 @@ def _get_family_note_type_ids() -> set[str]:
     if mw is None or mw.col is None:
         return set()
     cfg = _get_tools_config()
-    family_cfg = _get_family_gate_config(cfg, mw.col)
+    family_cfg = _get_family_priority_config(cfg, mw.col)
     if not bool(family_cfg.get("enabled")):
         return set()
     note_types = family_cfg.get("note_types") or {}
@@ -59,7 +59,7 @@ def _get_family_note_type_ids() -> set[str]:
     return {str(k).strip() for k in note_types.keys() if str(k).strip()}
 
 
-def _iter_family_gate_note_ids(field: str, note_type_ids: set[str]) -> list[int]:
+def _iter_family_priority_note_ids(field: str, note_type_ids: set[str]) -> list[int]:
     if mw is None or mw.col is None:
         return []
     if not field:
@@ -181,7 +181,7 @@ def _preview_family_id_rename(
         stats["error"] = "Family note types are not configured"
         return stats
 
-    nids = _iter_family_gate_note_ids(field, note_type_ids)
+    nids = _iter_family_priority_note_ids(field, note_type_ids)
     for nid in nids:
         stats["scanned_notes"] += 1
         try:
@@ -253,7 +253,7 @@ def _apply_family_id_rename_global(
         return stats
 
     changed_nids: list[int] = []
-    nids = _iter_family_gate_note_ids(field, note_type_ids)
+    nids = _iter_family_priority_note_ids(field, note_type_ids)
     for nid in nids:
         stats["scanned_notes"] += 1
         try:

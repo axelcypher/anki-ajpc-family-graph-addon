@@ -1,6 +1,6 @@
 # AJpC Tools Graph
 
-AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your **Family Gate**, **Example Gate**, **Kanji Gate**, and **Linked Notes (Note Linker)** configuration and renders them as an interactive graph.
+AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your **Family Priority**, **Example Gate**, **Kanji Gate**, and **Linked Notes (Note Linker)** configuration and renders them as an interactive graph.
 
 > **Required:** This add-on only works together with **AJpC Tools**. It pulls data through the Tools add-on API and will not work on its own.
 
@@ -9,7 +9,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 
 ## How it works (overview)
 - **Nodes = Anki notes**, **Edges = relationships** defined by AJpC Tools.
-- **Family Gate** creates clusters (families) based on your FamilyID field and priorities.
+- **Family Priority** creates clusters (families) based on your FamilyID field and priorities.
 - **Example Gate** connects vocab notes to example notes.
 - **Kanji Gate** connects vocab notes to Kanji notes (and optionally parts if enabled).
 - **Linked Notes** shows manual and auto-links (Anki Note Linker style tags/fields).
@@ -21,12 +21,12 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 ## UI tour
 ### Top toolbar
 - **Layer toggles** (click the label):
-  - Family Hubs, Family Gate, Linked Notes, Example Gate, Kanji Gate, Show Unlinked.
+  - Family Hubs, Family Priority, Linked Notes, Example Gate, Kanji Gate, Show Unlinked.
 - **Deck selector** (multi-select): filter which decks are included in the graph.
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
-- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. Delta slice neighbor expansion is limited to one hop from changed notes (no transitive recursive expansion). If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(1.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Gate config for build + context mutations is parsed through one shared backend helper path.
+- **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. Delta slice neighbor expansion is limited to one hop from changed notes (no transitive recursive expansion). If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(1.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Priority config for build + context mutations is parsed through one shared backend helper path.
 
 ### Settings panel
 **Note Settings**
@@ -50,7 +50,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - D3 solver controls including alpha/cooling, warmup/cooldown, charge, link, and center forces.
 
 ## Examples
-### Family Gate
+### Family Priority
 
 - **kita** has: kita at priority 0 (kita or kita@0)
 - **deguchi** has: deguchi at priority 0 (deguchi or deguchi@0)
@@ -88,6 +88,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Editor button in the active panel toggles the embedded native editor (no extra popup required).
 - Embedded editor web controls provide `DevTools`, `Reload CSS`, and `Close`.
 - Closing from inside the embedded native editor also closes the left editor sidebar state in the graph UI.
+- `ctx:editapi` is kept as compatibility command and mapped to the same local embedded/popup editor flow as `ctx:edit`.
 
 ## Notes
 - The graph reflects your **AJpC Tools config**, so if the config changes, the graph changes.

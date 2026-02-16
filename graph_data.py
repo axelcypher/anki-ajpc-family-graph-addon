@@ -166,11 +166,11 @@ def _get_tools_config() -> dict[str, Any] | None:
     return cfg
 
 
-def _get_family_gate_config(
+def _get_family_priority_config(
     cfg: dict[str, Any] | None,
     col: Collection | None = None,
 ) -> dict[str, Any]:
-    fg_cfg = cfg.get("family_gate") if isinstance(cfg, dict) else {}
+    fg_cfg = cfg.get("family_priority") if isinstance(cfg, dict) else {}
     fg = fg_cfg if isinstance(fg_cfg, dict) else {}
     family_field = str(fg.get("family_field") or "")
     separator = str(fg.get("separator") or ";")
@@ -734,7 +734,7 @@ def build_note_delta_slice(
                 continue
             allowed_nids.update(_note_ids_for_deck(col, dn))
 
-    family_cfg = _get_family_gate_config(cfg, col)
+    family_cfg = _get_family_priority_config(cfg, col)
     family_enabled = bool(family_cfg.get("enabled"))
     family_field = str(family_cfg.get("family_field") or "")
     family_sep = str(family_cfg.get("separator") or ";")
@@ -1282,8 +1282,8 @@ def build_graph(col: Collection) -> dict[str, Any]:
             continue
         mass_linker_group_hubs_cfg_keys.add(grp_key)
         mass_linker_group_hubs_cfg.append(grp)
-    family_cfg = _get_family_gate_config(cfg, col)
-    family_gate_note_types = family_cfg.get("note_types") or {}
+    family_cfg = _get_family_priority_config(cfg, col)
+    family_priority_note_types = family_cfg.get("note_types") or {}
     cs_cfg = cfg.get("card_stages") if isinstance(cfg, dict) else {}
     card_stages_note_types = _normalize_note_type_map(col, (cs_cfg or {}).get("note_types") or {})
     kg_cfg = cfg.get("kanji_gate") if isinstance(cfg, dict) else {}
@@ -1443,14 +1443,14 @@ def build_graph(col: Collection) -> dict[str, Any]:
         family_field = str(family_cfg.get("family_field") or "")
         sep = str(family_cfg.get("separator") or ";")
         default_prio = int(family_cfg.get("default_prio") or 0)
-        note_types = family_gate_note_types
-        logger.dbg("family_gate enabled", "field=", family_field, "note_types=", len(note_types))
+        note_types = family_priority_note_types
+        logger.dbg("family_priority enabled", "field=", family_field, "note_types=", len(note_types))
 
         family_groups: dict[str, list[tuple[int, int]]] = {}
 
         for nt_id in note_types.keys():
             nids = _filter_nids(_note_ids_for_mid(col, str(nt_id)))
-            logger.dbg("family_gate note_type", nt_id, "notes=", len(nids))
+            logger.dbg("family_priority note_type", nt_id, "notes=", len(nids))
             for nid in nids:
                 try:
                     note = col.get_note(nid)
@@ -2118,7 +2118,7 @@ def build_graph(col: Collection) -> dict[str, Any]:
                     add_layer(str(nid), layer)
 
         if family_cfg.get("enabled"):
-            family_nts = {str(k) for k in (family_gate_note_types or {}).keys() if str(k).strip()}
+            family_nts = {str(k) for k in (family_priority_note_types or {}).keys() if str(k).strip()}
             if family_nts:
                 _add_unlinked_notes(family_nts, "notes")
         if isinstance(cs_cfg, dict) and cs_cfg.get("enabled"):

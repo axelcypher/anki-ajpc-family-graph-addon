@@ -766,8 +766,8 @@ class GraphBridgeHandlersMixin:
                     logger.dbg("ctx edit failed", payload)
             elif kind == "editapi":
                 try:
-                    _open_editor(int(payload), prefer_api=True)
-                    logger.dbg("ctx editapi", payload)
+                    _open_editor(int(payload))
+                    logger.dbg("ctx editapi mapped to local", payload)
                 except Exception:
                     logger.dbg("ctx editapi failed", payload)
             elif kind == "browser":

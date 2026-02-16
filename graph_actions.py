@@ -4,7 +4,6 @@ import aqt
 from aqt import mw
 
 from . import logger
-from .graph_api_adapter import _open_editor_via_main_api
 from .graph_editor_window import GraphNoteEditor
 from .graph_note_ops import _get_family_field
 
@@ -81,6 +80,8 @@ def _open_browser_for_tag(tag: str):
 def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
     if mw is None:
         return
+    if prefer_api:
+        logger.dbg("ctx editapi mapped to local editor", nid)
     try:
         win = getattr(mw, "_ajpc_tools_graph_win", None)
         show_embedded = getattr(win, "_show_embedded_editor_for_note", None)
@@ -89,12 +90,6 @@ def _open_editor(nid: int, *, prefer_api: bool = False) -> None:
             return
     except Exception:
         pass
-    if prefer_api:
-        if _open_editor_via_main_api(nid):
-            return
-        logger.dbg("ctx editor api unavailable, fallback local", nid)
-    if not prefer_api and _open_editor_via_main_api(nid):
-        return
     editors = getattr(mw, "_ajpc_tools_graph_editors", None)
     if not isinstance(editors, dict):
         editors = {}
