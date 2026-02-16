@@ -48,12 +48,14 @@ function checkEntrypointsAndUsecases() {
   mustContain(deltaApply, /applyDeltaOpsFn\(ops,\s*arrays,\s*\{\s*preserve_layout:\s*true\s*\}\)/m, "delta apply uses preserve_layout patch");
   mustContain(deltaApply, /applyRuntimeUiSettings\(false\)/m, "delta apply disables solver restart in runtime-ui apply");
   mustContain(deltaApply, /var\s+hasEdgeDelta\s*=\s*counts\.edge_upsert\s*>\s*0\s*\|\|\s*counts\.edge_drop\s*>\s*0/m, "delta edge change detection");
+  mustContain(deltaApply, /var\s+hasEdgeUpsert\s*=\s*counts\.edge_upsert\s*>\s*0/m, "delta edge upsert detection");
   mustContain(deltaApply, /cityUsecaseHasEnginePort\(\"runSubsetNoDampingPull\"\)/m, "delta subset pull checks explicit port");
   mustContain(
     deltaApply,
     /cityUsecaseCallEngineMethod[\s\S]*?\"runSubsetNoDampingPull\"[\s\S]*?subsetNodeIds[\s\S]*?include_links:\s*true[\s\S]*?ticks:\s*72[\s\S]*?animate:\s*true[\s\S]*?ticks_per_frame:\s*1[\s\S]*?alpha:\s*0\.12[\s\S]*?attract_strength:\s*22/m,
     "delta subset pull calls engine port with tuned animated settings"
   );
+  mustContain(deltaApply, /reason=no_edge_upsert/m, "delta subset pull skips edge-drop-only deltas");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"reheat\"/m, "delta path must not call reheat()");
   mustNotContain(deltaApply, /cityUsecaseCallEngineMethod\(\"start\"/m, "delta path must not call start()");
   mustNotContain(deltaApply, /cityUsecaseCallEngine\(\"applyGraphData\"/m, "delta path must not call full applyGraphData directly");

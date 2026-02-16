@@ -11,32 +11,9 @@ function cityUsecaseOpsCount(ops) {
   };
 }
 
-function cityUsecaseNormalizeNodeIds(values) {
-  if (!Array.isArray(values)) return [];
-  var out = [];
-  var seen = new Set();
-  for (var i = 0; i < values.length; i += 1) {
-    var id = String(values[i] === undefined || values[i] === null ? "" : values[i]).trim();
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    out.push(id);
-  }
-  return out;
-}
-
-function cityUsecaseEdgeKey(edge) {
-  if (!edge || typeof edge !== "object") return "";
-  if (typeof stableEdgeKey === "function") return String(stableEdgeKey(edge) || "");
-  return "";
-}
-
-function cityUsecaseCollectEdgeDeltaNodeIds(ops, changedNids, rawEdgesBefore) {
+function cityUsecaseCollectEdgeUpsertNodeIds(ops) {
   var src = ops && typeof ops === "object" ? ops : {};
   var out = new Set();
-
-  cityUsecaseNormalizeNodeIds(changedNids).forEach(function (id) {
-    out.add(String(id));
-  });
 
   var edgeUpsert = Array.isArray(src.edge_upsert) ? src.edge_upsert : [];
   edgeUpsert.forEach(function (entry) {
@@ -46,26 +23,6 @@ function cityUsecaseCollectEdgeDeltaNodeIds(ops, changedNids, rawEdgesBefore) {
     if (source) out.add(source);
     if (target) out.add(target);
   });
-
-  var edgeDrop = Array.isArray(src.edge_drop) ? src.edge_drop : [];
-  if (edgeDrop.length && Array.isArray(rawEdgesBefore) && rawEdgesBefore.length) {
-    var edgeByKey = new Map();
-    rawEdgesBefore.forEach(function (edge) {
-      var key = cityUsecaseEdgeKey(edge);
-      if (!key) return;
-      edgeByKey.set(key, edge);
-    });
-    edgeDrop.forEach(function (dropKey) {
-      var key = String(dropKey || "");
-      if (!key) return;
-      var edge = edgeByKey.get(key);
-      if (!edge) return;
-      var source = String(edge.source || "");
-      var target = String(edge.target || "");
-      if (source) out.add(source);
-      if (target) out.add(target);
-    });
-  }
 
   return Array.from(out.values());
 }
@@ -150,7 +107,6 @@ function cityUsecaseApplyDeltaPayload(payload) {
     var slice = prepareDeltaSlice(payload || {});
     var ops = buildDeltaOps(slice);
     var counts = cityUsecaseOpsCount(ops);
-    var rawEdgesBefore = (STATE && STATE.raw && Array.isArray(STATE.raw.edges)) ? STATE.raw.edges.slice() : [];
     log(
       "delta incoming rev=" + String(incomingRev)
       + " ops="
@@ -184,9 +140,10 @@ function cityUsecaseApplyDeltaPayload(payload) {
     var applyStyles = cityUsecaseResolveApplyVisualStyles();
     if (applyStyles) applyStyles(0.08);
     var hasEdgeDelta = counts.edge_upsert > 0 || counts.edge_drop > 0;
-    if (hasEdgeDelta) {
+    var hasEdgeUpsert = counts.edge_upsert > 0;
+    if (hasEdgeUpsert) {
       var layoutEnabled = !!(STATE.solver && STATE.solver.layout_enabled);
-      var subsetNodeIds = cityUsecaseCollectEdgeDeltaNodeIds(ops, slice && slice.changed_nids, rawEdgesBefore);
+      var subsetNodeIds = cityUsecaseCollectEdgeUpsertNodeIds(ops);
       var subsetNodeSample = subsetNodeIds.slice(0, 8).join(",");
       var hasSubsetPullPort = cityUsecaseHasEnginePort("runSubsetNoDampingPull");
       if (hasSubsetPullPort && layoutEnabled && subsetNodeIds.length >= 2) {
@@ -233,6 +190,13 @@ function cityUsecaseApplyDeltaPayload(payload) {
           + " layout_enabled=" + String(layoutEnabled)
         );
       }
+    } else if (hasEdgeDelta) {
+      log(
+        "delta subset pull skipped rev=" + String(incomingRev)
+        + " reason=no_edge_upsert"
+        + " edge_upsert=" + String(counts.edge_upsert)
+        + " edge_drop=" + String(counts.edge_drop)
+      );
     }
 
     STATE.lastAppliedDeltaRev = incomingRev;
