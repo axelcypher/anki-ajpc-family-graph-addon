@@ -24,6 +24,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
   - Family Hubs, Family Priority, Linked Notes, Example Gate, Kanji Gate, Show Unlinked.
 - **Deck selector** (multi-select): filter which decks are included in the graph.
 - **Search**: type to get suggestions, press Enter to zoom to the first match (without replacing the active selection). A short ping highlight is shown on the focused node.
+- **Create**: static UI button scaffold (`#btn-ai-create`) is present between Find and Fit (runtime wiring pending).
 - **Settings**: opens a right-side panel with tabs.
 - **Rebuild**: full re-read of the data.
 - **Live note changes**: note edits/adds use incremental delta slices and patch the running graph without a full frontend rebuild in normal cases. Delta apply does not re-run solver config/physics reinit per event, and simple note edits no longer auto-focus/auto-zoom the graph camera. Delta slice neighbor expansion is limited to one hop from changed notes (no transitive recursive expansion). If a delta contains edge changes, the frontend now triggers an alpha-only solver reheat (`reheat(1.25)`) to nudge physics without rebuilding the solver model. Reheat logs include trigger/success plus skip/failure reasons with revision, edge-op counts, and alpha. Family Priority config for build + context mutations is parsed through one shared backend helper path.
@@ -77,6 +78,7 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - **Right-click** a node for actions:
   - Open Preview
   - Open Editor (embedded native Anki editor in the left graph panel)
+  - AI Enrich... (static first-block placeholder entry in context-menu template; runtime wiring pending)
   - Filter by Family ID (supports IDs with spaces)
   - Connect to selected (Family): adds the selected family to the right-clicked note. If the selected item is a **Family Hub**, the new entry is added with prio 0. If the selected item is a **note**, the new entry is added with prio = (selected note prio + 1).
   - Connect active to selected Family: when the active selection is a **note** and the right-click target is a **Family Hub**, the selected family can be added directly to the active note.

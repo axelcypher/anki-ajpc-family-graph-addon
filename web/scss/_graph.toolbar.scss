@@ -51,6 +51,17 @@
   }
 }
 
+#btn-ai-create {
+  border-color: color-mix(in srgb, var(--accent-100), var(--border-100) 50%);
+  background: color-mix(in srgb, var(--accent-300), var(--bg-chip-100) 45%);
+
+  &:hover,
+  &:active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent-100), var(--bg-chip-100) 42%);
+  }
+}
+
 #toolbar-debug {
   display: flex;
   gap: 0px;

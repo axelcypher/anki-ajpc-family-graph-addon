@@ -20,6 +20,7 @@
         </div>
       </div>
       <div id="toolbar-right">
+        <button id="btn-ai-create" type="button">Create</button>
         <button id="btn-fit" type="button">Fit</button>
         <div id="toolbar-debug" class="hidden" aria-hidden="true">
           <button id="btn-dev-tools" type="button">DevTools</button>
@@ -58,6 +59,14 @@
         <div id="graph-empty">Graph loading...</div>
         <div id="hover-tip"></div>
         <div id="ctx-menu"></div>
+        <template id="ctx-menu-open-group-template">
+          <div class="ctx-group" data-ctx-group="open">
+            <div class="item" data-ctx-action="preview">Open Preview</div>
+            <div class="item" data-ctx-action="editor">Open Editor</div>
+            <div class="item" data-ctx-action="browser">Open Browser</div>
+            <div class="item ctx-item-ai-enrich" data-ctx-action="ai-enrich">AI Enrich...</div>
+          </div>
+        </template>
       </section>
 
       <aside id="settings-panel" class="closed" aria-hidden="true">
@@ -136,6 +145,213 @@
           <span id="debug-extra"></span>
           <span id="debug-coords"></span>
         </div>
+      </div>
+
+      <div id="graph-ai-create-dialog" class="graph-ai-dialog is-hidden" aria-hidden="true">
+        <div class="graph-ai-dialog__backdrop"></div>
+        <section class="graph-ai-dialog__window graph-ai-dialog__window--create" role="dialog" aria-modal="true" aria-labelledby="graph-ai-create-title">
+          <header class="graph-ai-dialog__head">
+            <h2 id="graph-ai-create-title">Create Card</h2>
+            <button id="graph-ai-create-close" type="button" class="graph-ai-btn graph-ai-btn--ghost">Close</button>
+          </header>
+
+          <div class="graph-ai-dialog__content">
+            <section class="graph-ai-block graph-ai-block--input">
+              <h3>Input</h3>
+              <div class="graph-ai-form-row">
+                <label for="graph-ai-create-kind">Kind</label>
+                <select id="graph-ai-create-kind">
+                  <option value="word">Word</option>
+                  <option value="sentence">Sentence</option>
+                  <option value="text">Text</option>
+                  <option value="list">List</option>
+                </select>
+              </div>
+              <div class="graph-ai-form-row graph-ai-form-row--column">
+                <label for="graph-ai-create-text">Text</label>
+                <textarea id="graph-ai-create-text" rows="4" placeholder="Input word/sentence/text/list here..."></textarea>
+              </div>
+            </section>
+
+            <div class="graph-ai-actions">
+              <button id="graph-ai-create-prereq" type="button" class="graph-ai-btn">Prereq Check</button>
+              <button id="graph-ai-create-preview" type="button" class="graph-ai-btn">Preview Create</button>
+              <button id="graph-ai-create-reject-mnemonic" type="button" class="graph-ai-btn">Reject Mnemonic</button>
+              <button id="graph-ai-create-apply" type="button" class="graph-ai-btn graph-ai-btn--accent">Apply</button>
+            </div>
+
+            <div class="graph-ai-nav">
+              <div class="graph-ai-nav__left">
+                <button id="graph-ai-create-prev" type="button" class="graph-ai-btn graph-ai-btn--ghost">Prev</button>
+                <button id="graph-ai-create-next" type="button" class="graph-ai-btn graph-ai-btn--ghost">Next</button>
+                <span id="graph-ai-create-result-status">Result: -</span>
+              </div>
+              <div class="graph-ai-nav__right">
+                <label for="graph-ai-create-preview-mode">Mode</label>
+                <select id="graph-ai-create-preview-mode">
+                  <option value="json">AI JSON</option>
+                  <option value="fields">Mapped Fields</option>
+                  <option value="template">Template</option>
+                </select>
+              </div>
+            </div>
+
+            <p id="graph-ai-create-perf" class="graph-ai-perf">Perf: -</p>
+
+            <div class="graph-ai-create-layout">
+              <aside class="graph-ai-pane graph-ai-pane--prereq">
+                <h4>Prereq candidates (EXISTS/NEW)</h4>
+                <ul id="graph-ai-create-prereq-list" class="graph-ai-list"></ul>
+              </aside>
+
+              <section class="graph-ai-pane graph-ai-pane--preview">
+                <h4>Preview</h4>
+                <div id="graph-ai-create-preview-json" class="graph-ai-preview-box">
+                  <pre>{}</pre>
+                </div>
+                <div id="graph-ai-create-preview-fields" class="graph-ai-preview-box is-hidden">
+                  <table class="graph-ai-field-table">
+                    <thead>
+                      <tr><th>Field</th><th>Value</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div id="graph-ai-create-preview-template" class="graph-ai-preview-box is-hidden">
+                  <div class="graph-ai-template-tabs">
+                    <button type="button" class="graph-ai-btn graph-ai-btn--ghost">Front</button>
+                    <button type="button" class="graph-ai-btn graph-ai-btn--ghost">Back</button>
+                  </div>
+                  <div class="graph-ai-template-canvas">Template Preview</div>
+                </div>
+              </section>
+
+              <aside class="graph-ai-pane graph-ai-pane--results">
+                <h4>Results</h4>
+                <ul id="graph-ai-create-results-list" class="graph-ai-list"></ul>
+              </aside>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="graph-ai-enrich-dialog" class="graph-ai-dialog is-hidden" aria-hidden="true">
+        <div class="graph-ai-dialog__backdrop"></div>
+        <section class="graph-ai-dialog__window graph-ai-dialog__window--enrich" role="dialog" aria-modal="true" aria-labelledby="graph-ai-enrich-title">
+          <header class="graph-ai-dialog__head">
+            <h2 id="graph-ai-enrich-title">Enrich Note</h2>
+            <button id="graph-ai-enrich-close" type="button" class="graph-ai-btn graph-ai-btn--ghost">Close</button>
+          </header>
+
+          <div class="graph-ai-dialog__content">
+            <section class="graph-ai-block graph-ai-block--enrich-input">
+              <h3>Existing note</h3>
+              <div class="graph-ai-form-row">
+                <label for="graph-ai-enrich-nid">NID</label>
+                <input id="graph-ai-enrich-nid" type="text" placeholder="Note NID"/>
+              </div>
+              <div class="graph-ai-form-row">
+                <label for="graph-ai-enrich-mode">Mode</label>
+                <select id="graph-ai-enrich-mode">
+                  <option value="correct_all">correct_all</option>
+                  <option value="vocab_correct">vocab_correct</option>
+                  <option value="examples">examples</option>
+                  <option value="mnemonic">mnemonic</option>
+                </select>
+              </div>
+              <div class="graph-ai-actions graph-ai-actions--enrich">
+                <button id="graph-ai-enrich-preview" type="button" class="graph-ai-btn">Preview Patch</button>
+                <button id="graph-ai-enrich-apply" type="button" class="graph-ai-btn graph-ai-btn--accent">Apply Patch</button>
+                <button id="graph-ai-enrich-reject-mnemonic" type="button" class="graph-ai-btn">Reject Mnemonic</button>
+              </div>
+            </section>
+
+            <div class="graph-ai-nav">
+              <div class="graph-ai-nav__left">
+                <span id="graph-ai-enrich-status">Patch: -</span>
+              </div>
+              <div class="graph-ai-nav__right">
+                <label for="graph-ai-enrich-preview-mode">Preview</label>
+                <select id="graph-ai-enrich-preview-mode">
+                  <option value="json">Plain JSON</option>
+                  <option value="template">Card Template</option>
+                </select>
+              </div>
+            </div>
+
+            <p id="graph-ai-enrich-perf" class="graph-ai-perf">Perf: -</p>
+
+            <div class="graph-ai-enrich-layout">
+              <div id="graph-ai-enrich-preview-json" class="graph-ai-preview-box">
+                <pre>{}</pre>
+              </div>
+              <div id="graph-ai-enrich-preview-template" class="graph-ai-preview-box is-hidden">
+                <div class="graph-ai-template-tabs">
+                  <button type="button" class="graph-ai-btn graph-ai-btn--ghost">Front</button>
+                  <button type="button" class="graph-ai-btn graph-ai-btn--ghost">Back</button>
+                </div>
+                <div class="graph-ai-template-canvas">Template Preview</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="graph-ai-duplicate-dialog" class="graph-ai-dialog is-hidden" aria-hidden="true">
+        <div class="graph-ai-dialog__backdrop"></div>
+        <section class="graph-ai-dialog__window graph-ai-dialog__window--duplicate" role="dialog" aria-modal="true" aria-labelledby="graph-ai-duplicate-title">
+          <header class="graph-ai-dialog__head">
+            <h2 id="graph-ai-duplicate-title">Duplicate detected</h2>
+          </header>
+          <div class="graph-ai-dialog__content">
+            <p class="graph-ai-note">Existing note detected. Choose action:</p>
+            <div class="graph-ai-compare">
+              <div class="graph-ai-preview-box"><h4>Existing</h4><pre>{}</pre></div>
+              <div class="graph-ai-preview-box"><h4>Generated</h4><pre>{}</pre></div>
+            </div>
+            <div class="graph-ai-actions graph-ai-actions--dialog">
+              <button id="graph-ai-duplicate-cancel" type="button" class="graph-ai-btn graph-ai-btn--ghost">Abbrechen</button>
+              <button id="graph-ai-duplicate-enrich" type="button" class="graph-ai-btn">Bestehende anreichern</button>
+              <button id="graph-ai-duplicate-create" type="button" class="graph-ai-btn graph-ai-btn--accent">Trotzdem neu erstellen</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="graph-ai-mnemonic-reject-dialog" class="graph-ai-dialog is-hidden" aria-hidden="true">
+        <div class="graph-ai-dialog__backdrop"></div>
+        <section class="graph-ai-dialog__window graph-ai-dialog__window--small" role="dialog" aria-modal="true" aria-labelledby="graph-ai-mnemonic-reject-title">
+          <header class="graph-ai-dialog__head">
+            <h2 id="graph-ai-mnemonic-reject-title">Reject Mnemonic</h2>
+          </header>
+          <div class="graph-ai-dialog__content">
+            <div class="graph-ai-form-row graph-ai-form-row--column">
+              <label for="graph-ai-mnemonic-reject-reason">Reason</label>
+              <textarea id="graph-ai-mnemonic-reject-reason" rows="4" placeholder="Optional: explain what to improve..."></textarea>
+            </div>
+            <div class="graph-ai-actions graph-ai-actions--dialog">
+              <button id="graph-ai-mnemonic-reject-cancel" type="button" class="graph-ai-btn graph-ai-btn--ghost">Cancel</button>
+              <button id="graph-ai-mnemonic-reject-apply" type="button" class="graph-ai-btn graph-ai-btn--accent">Regenerate</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="graph-ai-enrich-fields-dialog" class="graph-ai-dialog is-hidden" aria-hidden="true">
+        <div class="graph-ai-dialog__backdrop"></div>
+        <section class="graph-ai-dialog__window graph-ai-dialog__window--small" role="dialog" aria-modal="true" aria-labelledby="graph-ai-enrich-fields-title">
+          <header class="graph-ai-dialog__head">
+            <h2 id="graph-ai-enrich-fields-title">Apply Enrich Patch</h2>
+          </header>
+          <div class="graph-ai-dialog__content">
+            <p class="graph-ai-note">Select fields to apply:</p>
+            <ul id="graph-ai-enrich-fields-list" class="graph-ai-list"></ul>
+            <div class="graph-ai-actions graph-ai-actions--dialog">
+              <button id="graph-ai-enrich-fields-cancel" type="button" class="graph-ai-btn graph-ai-btn--ghost">Cancel</button>
+              <button id="graph-ai-enrich-fields-apply" type="button" class="graph-ai-btn graph-ai-btn--accent">Apply</button>
+            </div>
+          </div>
+        </section>
       </div>
 
     </main>

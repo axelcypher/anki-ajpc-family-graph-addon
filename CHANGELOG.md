@@ -6,6 +6,13 @@
 - None.
 
 ### Minor Updates
+- Added static graph-side AI UI shell markup in `web/graph.html`:
+  - create popup window (`#graph-ai-create-dialog`)
+  - enrich popup window (`#graph-ai-enrich-dialog`)
+  - duplicate/mnemonic-reject/enrich-field-select helper dialogs
+  - context first-block template (`#ctx-menu-open-group-template`) with trailing `AI Enrich...` placeholder item.
+- Added top-toolbar create button `#btn-ai-create` in visual position between Find and Fit.
+- Added SCSS styling for the new popup/dialog shell classes in `web/scss/_graph.status.scss` and toolbar create button styling in `web/scss/_graph.toolbar.scss` (CSS output remains compiler-managed).
 - Added a new end-to-end delta pipeline for note changes:
   - Python subgraph slice builder: `build_note_delta_slice(...)` (`graph_data.py`)
   - Python rev/order dispatch queue: `_enqueue_note_delta` / `_dispatch_note_delta` (`graph_sync.py`)
