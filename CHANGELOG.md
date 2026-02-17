@@ -40,6 +40,7 @@
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
+- Wired `#btn-ai-create` in `web/adapters/city/ui/graph.city.ui.js` so clicking Create now opens the create popup shell; close via close button, backdrop click, and `Esc`.
 - Fixed Family-ID browser filter queries for IDs containing spaces (`ctx:filter`) by using quoted regex search with compatibility fallback.
 - Fixed right-click/context stability after note edits by remapping runtime index/state on delta apply instead of forcing full engine rebuild.
 - Fixed immediate styling of newly upserted links by running full edge-mod pipeline before diff and applying Graphology patch + runtime style pass in the same delta tick.

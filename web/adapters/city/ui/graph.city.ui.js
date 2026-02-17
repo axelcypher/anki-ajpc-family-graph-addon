@@ -1708,6 +1708,21 @@ function updateEditorVisibility(open) {
   scheduleGraphViewportSync();
 }
 
+function setAiDialogVisibility(dialogEl, open) {
+  if (!dialogEl) return;
+  var isOpen = !!open;
+  dialogEl.classList.toggle("is-hidden", !isOpen);
+  dialogEl.setAttribute("aria-hidden", isOpen ? "false" : "true");
+}
+
+function updateCreateDialogVisibility(open) {
+  setAiDialogVisibility(DOM.aiCreateDialog, open);
+}
+
+function updateEnrichDialogVisibility(open) {
+  setAiDialogVisibility(DOM.aiEnrichDialog, open);
+}
+
 function scheduleGraphViewportSync() {
   function runSync() {
     if (typeof ensureFlowCanvasSize === "function") {
@@ -1780,6 +1795,7 @@ function wireDom() {
   DOM.btnCloseSettings = byId("btn-close-settings");
 
   DOM.btnRefresh = byId("btn-refresh");
+  DOM.btnAiCreate = byId("btn-ai-create");
   
   DOM.btnFit = byId("btn-fit");
   DOM.toggleUnlinked = byId("toggle-unlinked");
@@ -1793,6 +1809,10 @@ function wireDom() {
   DOM.graph = byId("graph");
   DOM.graphPanel = byId("graph-panel");
   DOM.ctxMenu = byId("ctx-menu");
+  DOM.aiCreateDialog = byId("graph-ai-create-dialog");
+  DOM.aiCreateClose = byId("graph-ai-create-close");
+  DOM.aiEnrichDialog = byId("graph-ai-enrich-dialog");
+  DOM.aiEnrichClose = byId("graph-ai-enrich-close");
   DOM.flowCanvas = null;
   DOM.flowCtx = null;
   DOM.graphEmpty = byId("graph-empty");
@@ -1933,6 +1953,38 @@ function wireDom() {
     });
   }
 
+  if (DOM.btnAiCreate) {
+    DOM.btnAiCreate.addEventListener("click", function () {
+      updateCreateDialogVisibility(true);
+    });
+  }
+  if (DOM.aiCreateClose) {
+    DOM.aiCreateClose.addEventListener("click", function () {
+      updateCreateDialogVisibility(false);
+    });
+  }
+  if (DOM.aiCreateDialog) {
+    DOM.aiCreateDialog.addEventListener("click", function (evt) {
+      var target = evt && evt.target ? evt.target : null;
+      if (!target || !target.classList) return;
+      if (!target.classList.contains("graph-ai-dialog__backdrop")) return;
+      updateCreateDialogVisibility(false);
+    });
+  }
+  if (DOM.aiEnrichClose) {
+    DOM.aiEnrichClose.addEventListener("click", function () {
+      updateEnrichDialogVisibility(false);
+    });
+  }
+  if (DOM.aiEnrichDialog) {
+    DOM.aiEnrichDialog.addEventListener("click", function (evt) {
+      var target = evt && evt.target ? evt.target : null;
+      if (!target || !target.classList) return;
+      if (!target.classList.contains("graph-ai-dialog__backdrop")) return;
+      updateEnrichDialogVisibility(false);
+    });
+  }
+
   if (DOM.btnFit) {
     DOM.btnFit.addEventListener("click", function () {
       callEngineGraph("fitView", 380, 0.14);
@@ -2020,6 +2072,15 @@ function wireDom() {
   window.addEventListener("blur", function () {
     STATE.pointerInsideGraph = false;
     clearHoverNodeState("window-blur");
+  });
+  window.addEventListener("keydown", function (evt) {
+    if (!evt || evt.key !== "Escape") return;
+    var createOpen = !!(DOM.aiCreateDialog && !DOM.aiCreateDialog.classList.contains("is-hidden"));
+    var enrichOpen = !!(DOM.aiEnrichDialog && !DOM.aiEnrichDialog.classList.contains("is-hidden"));
+    if (!createOpen && !enrichOpen) return;
+    evt.preventDefault();
+    if (createOpen) updateCreateDialogVisibility(false);
+    if (enrichOpen) updateEnrichDialogVisibility(false);
   });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") {
