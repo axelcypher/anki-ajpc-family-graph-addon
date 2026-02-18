@@ -28,7 +28,7 @@
 #btn-ai-create {
   @include mixins.interactive-control-inverted(
     $border: var(--accent),
-    $background: oklch(from var(--accent) calc(l + 0.05) c h / 30%)
+    $background: var(--accent-bg-muted)
   );
 }
 
@@ -36,8 +36,8 @@
   @include mixins.button-group();
   button {
     @include mixins.interactive-control-inverted(
-      $border: oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h),
-      $background: oklch(from var(--accent) calc(l + 0.05) c h / 50%),
+      $border: var(--accent-border-strong),
+      $background: var(--accent-bg-strong),
       $radius: 0
     );
   }
@@ -54,8 +54,8 @@
     margin-right: 0;
     #search-input {
       @include mixins.interactive-control(
-        $border: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%),
-        $background: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%),
+        $border: var(--chip-bg-raised-soft-alpha),
+        $background: var(--chip-bg-raised-soft-alpha),
       );
       position: absolute;
       inset: 1px;
@@ -65,8 +65,8 @@
       &:hover,
       &.active,
       &:focus {
-        border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h / 50%);
-        background: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%);
+        border: 1px solid var(--accent-border-soft);
+        background: var(--chip-bg-raised-soft-alpha);
       }
     }
   }
@@ -91,7 +91,7 @@
 
     &.is-visible {
       display: block;
-          border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+      border: 1px solid var(--border-soft);
 
     }
     .suggest-item {
@@ -101,7 +101,7 @@
 
       &:hover,
       &:active {
-        background: oklch(from var(--popup-bg) calc(l + 0.05) c h / 50%);
+        background: var(--popup-bg-hover);
         border-bottom: 1px solid var(--accent);
       }
       .suggest-meta {
@@ -140,8 +140,8 @@
     pointer-events: none;
     z-index: 121;
     mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%,
-        transparent calc((var(--radius-large) * 2) - 0px),
-        #000 calc(var(--radius-large) * 2));
+        var(--color-transparent) calc((var(--radius-large) * 2) - 0px),
+        var(--mask-solid) calc(var(--radius-large) * 2));
   }
 
   &.closed {
@@ -156,7 +156,7 @@
     overflow: auto;
     padding: 12px 12px;
     box-sizing: border-box;
-    border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h);
+    border-bottom: 1px solid var(--panel-bg-border);
     box-shadow: var(--shadow);
     
     .panel-head {
@@ -185,12 +185,12 @@
         font-weight: 600;
       }
       .settings-tab.active{
-          border: 1px solid oklch(from var(--accent) l + 0.05 c h / 25%);
-          background: oklch(from var(--accent) l c h / 50%);
+          border: 1px solid var(--accent-border-subtle);
+          background: var(--accent-bg-base);
       }
       .settings-tab.active:hover{
-          border: 1px solid oklch(from var(--accent) l + 0.05 c h / 50%);
-          background: oklch(from var(--accent) l c h / 75%);
+          border: 1px solid var(--accent-border-soft);
+          background: var(--accent-bg-soft);
       }
     }
   }
@@ -207,8 +207,8 @@
 
     .settings-block {
       @include mixins.surface-card(
-        $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
-        $background: oklch(from var(--panel-bg) calc(l - 0.055) c h),
+        $border: var(--border),
+        $background: var(--panel-bg-soft),
         $radius: var(--radius),
         $padding: 10px);
       margin-bottom: 10px;
@@ -233,8 +233,8 @@
 
             .line-item {
               @include mixins.row-chip(
-                $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
-                $background: oklch(from var(--panel-bg) calc(l - 0.025) c h),
+                $border: var(--border),
+                $background: var(--border),
               );
             } 
             .note-type-name {
@@ -330,7 +330,7 @@
                 content: "";
                 width: 0.8em;
                 height: 0.5em;
-                background: oklch(from var(--accent) l c h / 75%);
+                background: var(--accent-bg-soft);
                 clip-path: polygon(100% 0%, 0 0%, 50% 100%);
                 transform: rotate(90deg);
                 transform-origin: 50% 50%;
@@ -475,8 +475,8 @@
     pointer-events: none;
     z-index: 121;
     mask: radial-gradient(circle var(--radius-large) at 100% 100%,
-        transparent calc(var(--radius-large) - 0px),
-        #000 var(--radius-large));
+        var(--color-transparent) calc(var(--radius-large) - 0px),
+        var(--mask-solid) var(--radius-large));
   }
 
   &.closed {
@@ -486,3 +486,4 @@
     visibility: hidden;
   }  
 }
+

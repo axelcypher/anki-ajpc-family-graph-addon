@@ -48,18 +48,18 @@
     border-radius: 8px;
     cursor: pointer;
     color: var(--text);
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid var(--color-transparent);
   }
 
   & .item:hover {
-    background: oklch(from var(--popup-bg) calc(l + 0.05) c h / 50%);
+    background: var(--popup-bg-hover);
     border-bottom: 1px solid var(--accent);
   }
 
   & .divider {
     height: 1px;
     margin: 5px 4px;
-    background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
+    background: var(--panel-bg-deep);
   }
 
   & .ctx-icon-placeholder,
@@ -121,7 +121,7 @@
   position: fixed;
   inset: 0;
   z-index: 130;
-  background: rgba(2, 6, 23, 0.45);
+  background: var(--overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,9 +130,9 @@
     width: min(360px, 92vw);
     max-height: min(72vh, 520px);
     border-radius: 14px;
-    border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-    background: oklch(from var(--panel-bg) calc(l - 0.05) c h / 25%);
-    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.5);
+    border: 1px solid var(--border-soft);
+    background: var(--panel-bg-glass);
+    box-shadow: var(--shadow-elevated);
     color: var(--text);
     display: grid;
     grid-template-rows: auto 1fr auto;
@@ -160,21 +160,21 @@
     display: flex;
     gap: 8px;
     padding: 10px 12px 12px 12px;
-    border-top: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+    border-top: 1px solid var(--border-soft);
   }
 
   & .btn {
     flex: 1 1 auto;
     border-radius: 9px;
-    border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-    background: oklch(from var(--panel-bg) calc(l - 0.05) c h / 25%);
+    border: 1px solid var(--border-soft);
+    background: var(--panel-bg-glass);
     color: var(--text);
     padding: 7px 10px;
     cursor: pointer;
   }
 
   & .btn:hover {
-    background: oklch(from var(--popup-bg) calc(l + 0.05) c h / 50%);
+    background: var(--popup-bg-hover);
   }
 
   & .btn.primary {
@@ -237,8 +237,8 @@
       background: var(--panel-bg);
       pointer-events: none;
       mask: radial-gradient(circle at 100% 100%,
-          transparent calc(var(--radius) - 0px),
-          #000 var(--radius));
+          var(--color-transparent) calc(var(--radius) - 0px),
+          var(--mask-solid) var(--radius));
     }
 
   }
@@ -303,7 +303,7 @@
 
       .active-cards-head {
         padding: 6px 8px;
-        border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+        border-bottom: 1px solid var(--border-panel-deep);
       }
 
       .active-card-col {
@@ -325,7 +325,7 @@
 
       .active-card-row {
         padding: 6px 8px;
-        border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+        border-bottom: 1px solid var(--border-panel-deep);
         font-size: 11px;
         color: var(--text);
       }
@@ -355,8 +355,8 @@
 
       margin: 18px 0;
 
-      border-top: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-      border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+      border-top: 1px solid var(--border-panel-deep);
+      border-bottom: 1px solid var(--border-panel-deep);
 
       white-space: normal;
       line-height: 1.35;
@@ -366,7 +366,7 @@
       .dep-tree-canvas {
         width: 100%;
         display: block;
-        background: transparent;
+        background: var(--color-transparent);
         cursor: pointer;
       }
     }
@@ -444,7 +444,7 @@
       .coord-key,
       .coord-val {
         padding: 2px 4px;
-        border-top: oklch(from var(--border) calc(l + 0.05) c h);
+        border-top: 1px solid var(--border-soft);
       }
 
       .coord-key {
@@ -459,7 +459,7 @@
       }
 
       .coord-empty {
-        color: transparent;
+        color: var(--text-transparent);
       }
     }
   }
@@ -485,7 +485,7 @@
   & .graph-ai-dialog__backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(2, 6, 23, 0.2);
+    background: var(--overlay-backdrop-soft);
   }
 
   & .graph-ai-dialog__window {
@@ -520,8 +520,8 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-    //background: var(--bg-chip-200);
+    border-bottom: 1px solid var(--border-soft);
+    //background: var(--panel-bg-overlay);
   }
 
   & .graph-ai-dialog__head h2 {
@@ -542,9 +542,9 @@
 }
 
 .graph-ai-block {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border: 1px solid var(--border-panel-deep);
   border-radius: 12px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: var(--panel-bg-deep);
   padding: 10px 12px;
 
   & h3 {
@@ -572,8 +572,8 @@
   & textarea {
     width: 100%;
     border-radius: 8px;
-    border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-    background: var(--bg-chip-100);
+    border: 1px solid var(--border-soft);
+    background: var(--chip-bg-raised-soft-alpha);
     color: var(--text);
     padding: 7px 9px;
     font: inherit;
@@ -607,13 +607,13 @@
 .graph-ai-btn {
   @include mixins.interactive-control-inverted(
     $border: var(--accent),
-    $background: oklch(from var(--accent) calc(l + 0.05) c h / 30%),
+    $background: var(--accent-bg-muted),
     $padding: 6px 10px
   );
 }
 
 .graph-ai-btn--ghost {
-  background: transparent;
+  background: var(--color-transparent);
 }
 
 .graph-ai-nav {
@@ -638,8 +638,8 @@
 
   & select {
     border-radius: 8px;
-    border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-    background: oklch(from var(--panel-bg) calc(l - 0.1) c h / 50%);
+    border: 1px solid var(--border-soft);
+    background: var(--panel-bg-overlay);
     color: var(--text);
     padding: 6px 8px;
   }
@@ -647,7 +647,7 @@
 
 .graph-ai-perf {
   margin: 0;
-  color: color-mix(in oklch, var(--text-muted), var(--text) 18%);
+  color: var(--text-blend-muted);
   font-size: 12px;
 }
 
@@ -663,9 +663,9 @@
 }
 
 .graph-ai-pane {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border: 1px solid var(--border-panel-deep);
   border-radius: 12px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h / 50%);
+  background: var(--panel-bg-overlay);
   padding: 10px;
   min-height: 0;
   display: flex;
@@ -682,9 +682,9 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h / 50%);
+  border: 1px solid var(--border-panel-raised-alpha);
   border-radius: 8px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h / 50%);
+  background: var(--panel-bg-overlay);
   min-height: 190px;
   overflow: auto;
   @include mixins.scrollbar();
@@ -692,7 +692,7 @@
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h / 50%);
+  border-bottom: 1px solid var(--border-panel-raised-alpha);
   color: var(--text);
   font-size: 12px;
 }
@@ -702,9 +702,9 @@
 }
 
 .graph-ai-preview-box {
-  border: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 24%);
+  border: 1px solid var(--border-mix-24);
   border-radius: 8px;
-  background: color-mix(in oklch, var(--bg-chip-100), transparent 20%);
+  background: var(--chip-bg-fade);
   min-height: 250px;
   overflow: auto;
   @include mixins.scrollbar();
@@ -725,7 +725,7 @@
 
   & th,
   & td {
-    border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 48%);
+    border-bottom: 1px solid var(--border-mix-48);
     padding: 6px 8px;
     font-size: 12px;
     color: var(--text);
@@ -745,7 +745,7 @@
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 52%);
+  border-bottom: 1px solid var(--border-mix-52);
 }
 
 .graph-ai-template-canvas {
@@ -766,3 +766,5 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+
+

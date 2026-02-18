@@ -16,33 +16,30 @@
   }
 
   a {
-    color: #93c5fd !important;
+    color: var(--link) !important;
   }
 
   .editing-area,
   .label-container {
-    background: transparent !important;
+    background: var(--color-transparent) !important;
   }
 
   button {
     border-radius: var(--radius) !important;
-    border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h) !important;
+    border: 1px solid var(--btn-border) !important;
     background: var(--btn-bg) !important;
     color: var(--text) !important;
     padding: 8px 10px;
     font-size: 13px;
-    box-shadow:
-      0px 2px 1px -1px rgba(20, 20, 20, .12),
-      0px 1px 1px 0px rgba(20, 20, 20, .06),
-      0px 1px 3px 0px rgba(20, 20, 20, .04) !important;
+    box-shadow: var(--shadow) !important;
     cursor: pointer;
     font-weight: 600;
 
     &:hover,
     &:active,
     &:focus-visible {
-      border: 1px solid oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
-    background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+      border: 1px solid var(--btn-border-hover) !important;
+      background: var(--btn-bg-hover) !important;
     }
   }
 
@@ -75,7 +72,7 @@
       justify-self: end;
       width: 0.8em;
       height: 0.5em;
-      background: 1px solid oklch(from var(--accent) l c h / 75%);
+      background: var(--accent-bg-soft);
       clip-path: polygon(100% 0%, 0 0%, 50% 100%);
       transition: transform .16s ease;
     }
@@ -89,7 +86,7 @@
 
   .cloze,
   mark {
-    background: rgba(246, 134, 59, 0.25) !important;
+    background: var(--cloze-bg) !important;
     color: var(--text) !important;
   }
 
@@ -111,17 +108,14 @@
 
       #ajpc-graph-editor-devtools,
       #ajpc-graph-editor-css-reload {
-        border-color: oklch(from var(--accent) l c h / 50%) !important;
-        background: oklch(from var(--accent) l c h / 75%) !important;
-        box-shadow:
-          0px 2px 1px -1px rgba(20, 20, 20, .12),
-          0px 1px 1px 0px rgba(20, 20, 20, .06),
-          0px 1px 3px 0px rgba(20, 20, 20, .04) !important;
+        border-color: var(--accent-border) !important;
+        background: var(--accent-bg-soft) !important;
+        box-shadow: var(--shadow) !important;
 
         &:hover,
         &:active {
-          border-color: oklch(from var(--accent) l c h / 50%) !important;
-          background: oklch(from var(--accent) l c h / 75%) !important;
+          border-color: var(--accent-border) !important;
+          background: var(--accent-bg-soft) !important;
         }
       }
 
@@ -145,7 +139,7 @@
 
     .editor-toolbar {
       background: var(--panel-bg) !important;
-      border-color: oklch(from var(--border) calc(l + 0.05) c h) !important;
+      border-color: var(--border-soft) !important;
       margin: 0 !important;
       padding: 3px 10px 3px 20px !important;
 
@@ -168,7 +162,7 @@
           &:hover,
           &:active,
           &:focus-visible {
-            background: oklch(from var(--accent) l c h / 75%) !important;
+            background: var(--accent-bg-soft) !important;
           }
 
           &.ajpc-edge-first {
@@ -200,9 +194,9 @@
     }
 
     .fields {
-      border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+      border: 1px solid var(--border-soft) !important;
       border-radius: var(--radius) !important;
-      background: color-mix(in oklch, var(--panel-bg), transparent 50%) !important;
+      background: var(--panel-bg-fade) !important;
       padding: 10px !important;
 
       .collapsible {
@@ -214,14 +208,14 @@
         grid-template-columns: 1fr;
         gap: 0px;
         align-items: center;
-        border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+        border: 1px solid var(--border);
         border-radius: var(--radius);
-        background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
+        background: var(--panel-bg-soft);
         padding: 5px 6px;
         font-size: 12px;
 
         .label-container {
-          background: transparent;
+          background: var(--color-transparent);
 
           .collapse-badge {
             display: none !important;
@@ -240,7 +234,7 @@
 
             .editing-area {
               background: var(--chip-bg);
-              border: 1px solid oklch(from var(--chip-bg) calc(l + 0.025) c h);
+              border: 1px solid var(--chip-bg-border-soft);
               border-radius: var(--radius);
 
               &:hover,
@@ -248,12 +242,12 @@
               &:focus,
               &:focus-visible {
 
-                border: 1px solid oklch(from var(--accent) l c h / 50%);
+                border: 1px solid var(--accent-border);
                 outline: none;
               }
 
               .CodeMirror-gutters {
-                background-color: transparent;
+                background-color: var(--color-transparent);
               }
 
               &>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
@@ -263,7 +257,7 @@
 
               &>.collapsible.full-hide:not(.hidden)>.rich-text-input {
                 border-radius: var(--radius);
-                background: oklch(from var(--chip-bg) calc(l + 0.02) c h);
+                background: var(--chip-bg-raised);
               }
 
               &.ajpc-pair-plain-rich>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
@@ -301,7 +295,7 @@
     padding: 5px 20px !important;
 
     .collapsible {
-      background: transparent !important;
+      background: var(--color-transparent) !important;
       border: none !important;
       color: var(--text-muted);
       font-size: 12px !important;
@@ -309,7 +303,7 @@
       .tag-editor {
         background: var(--chip-bg) !important;
         border-radius: var(--radius) !important;
-        border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+        border: 1px solid var(--border-soft) !important;
         padding: 5px 6px !important;
         margin: 0 0 10px 0 !important;
         color: var(--text) !important;
@@ -319,7 +313,7 @@
         .tag {
           background: var(--panel-bg) !important;
           color: var(--text) !important;
-          border: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h) !important;
+          border: 1px solid var(--panel-bg-border) !important;
           padding: 0px 3px 0px 3px;
           font-size: 12px !important;
           border-radius: var(--radius) !important;
@@ -329,7 +323,7 @@
           &:hover,
           &:active,
           &:focus-visible {
-            background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+            background: var(--btn-bg-hover) !important;
           }
 
         }
@@ -342,7 +336,7 @@
 
     .popover {
       padding: 0 !important;
-      border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+      border: 1px solid var(--popup-border) !important;
       background: var(--popup-bg) !important;
       color: var(--text) !important;
       border-radius: var(--radius);
@@ -353,19 +347,19 @@
 
         .autocomplete-item {
           border: none !important;
-          border-bottom: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+          border-bottom: 1px solid var(--popup-border) !important;
           padding: 7px 9px;
 
           &:hover {
-            background: var(--bg-chip-100) !important;
+            background: var(--chip-bg-raised-soft-alpha) !important;
             border: none !important;
-            border-bottom: 1px solid oklch(from var(--accent) l c h / 75%) !important;
+            border-bottom: 1px solid var(--accent-bg-soft) !important;
           }
 
           &.selected {
-            background: oklch(from var(--accent) l c h / 75%) !important;
+            background: var(--accent-bg-soft) !important;
             border: none !important;
-            border-bottom: 1px solid oklch(from var(--accent) l c h / 75%) !important;
+            border-bottom: 1px solid var(--accent-bg-soft) !important;
           }
         }
       }
@@ -382,10 +376,12 @@
 
     .tooltip-arrow,
     .tooltip-inner {
-      border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+      border: 1px solid var(--popup-border) !important;
       background: var(--popup-bg) !important;
       color: var(--text) !important;
     }
   }
 
 }
+
+

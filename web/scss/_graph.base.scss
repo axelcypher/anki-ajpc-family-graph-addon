@@ -31,7 +31,7 @@ a {
   color: var(--text);
 
   &:hover {
-    color: oklch(from var(--accent) calc(l + 0.25) c h);
+    color: var(--accent-link-hover);
   }
 }
 

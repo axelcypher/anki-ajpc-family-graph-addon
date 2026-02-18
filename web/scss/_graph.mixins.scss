@@ -1,11 +1,13 @@
 @mixin form-input(
-  $radius: 7px,
-  $border: oklch(from var(--chip-bg) calc(l - 0.02) c h),
-  $background: var(--chip-bg),
+  $radius: var(--radius-small),
+  $border: var(--input-border),
+  $background: var(--input-bg),
   $padding: 5px 6px,
   $text-color: var(--text),
-  $text-size: var(--text-size-small)
-  ) {
+  $text-size: var(--text-size-small),
+  $focus-border: var(--input-border-focus),
+  $focus-background: var(--input-bg-focus)
+) {
   border-radius: $radius;
   border: 1px solid $border;
   background: $background;
@@ -16,26 +18,29 @@
   outline: none;
   cursor: pointer;
 
-  &:hover,
+  &:hover, 
   &.active,
   &:focus {
-    border: 1px solid oklch(from var(--accent) l c h);
+    border: 1px solid $focus-border;
     outline: none;
   }
   &.active,
-  &:focus{
-    background: oklch(from $background calc(l + 0.05) c h);
+  &:focus {
+    background: $focus-background;
   }
 }
 
 @mixin interactive-control(
   $radius: var(--radius),
-  $border: oklch(from var(--btn-bg) calc(l - 0.02) c h),
-  $background: var(--btn-bg),
+  $border: var(--control-border),
+  $background: var(--control-bg),
   $padding: 8px 10px,
   $text-color: var(--text),
   $text-size: var(--text-size),
-  $shadow: var(--shadow)) {
+  $shadow: var(--shadow),
+  $hover-border: var(--control-border-hover),
+  $hover-background: var(--control-bg-hover)
+) {
   border-radius: $radius;
   border: 1px solid $border;
   background: $background;
@@ -50,41 +55,40 @@
   
   &:hover,
   &:focus {
-    border: 1px solid oklch(from $border calc(l + 0.02) c h);
-    background: oklch(from $background calc(l + 0.02) c h);
+    border: 1px solid $hover-border;
+    background: $hover-background;
   }
-  &.active{
-    border: 1px solid oklch(from $border calc(l + 0.02) c h);
-    background: oklch(from $background calc(l + 0.02) c h);
+  &.active {
+    border: 1px solid $hover-border;
+    background: $hover-background;
   }
 }
 
 @mixin interactive-control-inverted(
   $radius: var(--radius),
-  $border: oklch(from var(--bg-btn) calc(l - 0.05) c h),
-  $background: var(--bg-btn),
+  $border: var(--control-border),
+  $background: var(--control-bg),
   $padding: 8px 10px,
   $text-color: var(--text),
   $text-size: var(--text-size),
+  $hover-border: $border,
+  $hover-background: $background
 ) {
   @include interactive-control(
     $radius: $radius,
     $border: $border,
     $background: $background,
     $padding: $padding,
+    $text-color: $text-color,
     $text-size: $text-size,
+    $hover-border: $hover-border,
+    $hover-background: $hover-background
   );
-
-  &:hover,
-  &:active {
-    border: 1px solid oklch(from $border calc(l - 0.05) c h);
-    background: oklch(from $background l c h / 75%);
-  }
 }
 
 @mixin row-chip(
-  $border: oklch(from var(--chip-bg) calc(l + 0.05) c h),
-  $background: oklch(from var(--chip-bg) calc(l + 0.05) c h),
+  $border: var(--chip-bg-raised-strong),
+  $background: var(--chip-bg-raised-strong),
   $radius: 8px,
   $padding: 5px 6px) {
   border: 1px solid $border;
@@ -99,8 +103,8 @@
 
 
 @mixin surface-card(
-  $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
-  $background: oklch(from var(--panel-bg) l c h),
+  $border: var(--border),
+  $background: var(--panel-bg),
   $radius: var(--radius),
   $padding: 8px) {
   border: 1px solid $border;
@@ -114,8 +118,8 @@
 ) {
   position: $position;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h / 25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: $padding;
   color: var(--text);
@@ -129,7 +133,7 @@
 
 
 @mixin helper-focus(
-  $border: oklch(from var(--accent) calc(l + 0.05) c h / 50%),
+  $border: var(--accent-border-soft),
   ) {
   border: 1px solid $border;
   border-radius: inherit;
@@ -138,17 +142,17 @@
 @mixin scrollbar() {
   &::-webkit-scrollbar {
     width: 10px !important;
-    background: transparent !important;
+    background: var(--color-transparent) !important;
     margin: var(--radius) 0 !important;
   }
 
   &::-webkit-scrollbar-track {
-    background: transparent !important;
+    background: var(--color-transparent) !important;
     border-radius: 999px !important;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: oklch(from var(--accent) calc(l + 0.05) c h / 50%) !important;
+    background: var(--accent-border-soft) !important;
     border-radius: 999px !important;
   }
 

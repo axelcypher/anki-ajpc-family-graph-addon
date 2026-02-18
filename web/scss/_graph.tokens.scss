@@ -1,43 +1,97 @@
 :root,
 #app {
+  --color-transparent: oklch(0% 0 0 / 0%);
+  --mask-solid: oklch(0% 0 0);
 
+  --bg-dark: oklch(15% 0.010 268);
+  --bg: oklch(20% 0.010 268);
+  --bg-light: oklch(25% 0.010 268);
 
-  
-  --bg-dark:          oklch(15% 0.010 268);
-  --bg:               oklch(20% 0.010 268);
-  --bg-light:         oklch(25% 0.010 268);
-  
-  --panel-bg:         oklch(30% 0.015 273); 
-  --chip-bg:          oklch(from var(--panel-bg) calc(l - 0.025) c h); 
-  --popup-bg:         oklch(from var(--panel-bg) calc(l + 0.025) c h); //oklch(30% 0.022 270); 
-  --btn-bg:           oklch(from var(--panel-bg) calc(l - 0.055) c h);
+  --panel-bg: oklch(30% 0.015 273);
+  --panel-bg-raised: oklch(32.5% 0.015 273);
+  --panel-bg-border: oklch(25% 0.015 273);
+  --panel-bg-soft: oklch(24.5% 0.015 273);
+  --panel-bg-deep: oklch(20% 0.015 273);
+  --panel-bg-glass: oklch(25% 0.015 273 / 25%);
+  --panel-bg-overlay: oklch(20% 0.015 273 / 50%);
+  --panel-bg-fade: oklch(30% 0.015 273 / 50%);
 
-  --accent:           oklch(35.558% 0.12502 322.71);
+  --chip-bg: oklch(27.5% 0.015 273);
+  --chip-bg-border: oklch(25.5% 0.015 273);
+  --chip-bg-border-soft: oklch(30% 0.015 273);
+  --chip-bg-raised: oklch(29.5% 0.015 273);
+  --chip-bg-raised-strong: oklch(32.5% 0.015 273);
+  --chip-bg-raised-soft-alpha: oklch(32.5% 0.015 273 / 50%);
+  --chip-bg-fade: oklch(32.5% 0.015 273 / 40%);
 
+  --popup-bg: oklch(32.5% 0.015 273);
+  --popup-bg-hover: oklch(37.5% 0.015 273 / 50%);
+  --popup-border: oklch(27.5% 0.015 273);
 
+  --btn-bg: oklch(24.5% 0.015 273);
+  --btn-border: oklch(22.5% 0.015 273);
+  --btn-bg-hover: oklch(26.5% 0.015 273);
+  --btn-border-hover: oklch(26.5% 0.015 273);
 
-  --border:           oklch(from var(--panel-bg) calc(l - 0.025) c h); 
+  --accent: oklch(35.558% 0.12502 322.71);
+  --accent-border: oklch(35.558% 0.12502 322.71 / 50%);
+  --accent-border-soft: oklch(40.558% 0.12502 322.71 / 50%);
+  --accent-border-subtle: oklch(40.558% 0.12502 322.71 / 25%);
+  --accent-border-strong: oklch(10.558% 0.07502 322.71);
+  --accent-bg-soft: oklch(35.558% 0.12502 322.71 / 75%);
+  --accent-bg-base: oklch(35.558% 0.12502 322.71 / 50%);
+  --accent-bg-muted: oklch(40.558% 0.12502 322.71 / 30%);
+  --accent-bg-strong: oklch(40.558% 0.12502 322.71 / 50%);
+  --accent-link-hover: oklch(60.558% 0.12502 322.71);
 
-  --radius-small:     5px;
-  --radius:           10px; 
-  --radius-large:     20px;
+  --border: oklch(27.5% 0.015 273);
+  --border-soft: oklch(32.5% 0.015 273);
+  --border-dark: oklch(22.5% 0.015 273);
+  --border-panel-deep: oklch(20% 0.015 273);
+  --border-panel-raised-alpha: oklch(35% 0.015 273 / 50%);
+  --border-mix-24: oklch(32.5% 0.015 273 / 76%);
+  --border-mix-48: oklch(32.5% 0.015 273 / 52%);
+  --border-mix-52: oklch(32.5% 0.015 273 / 48%);
 
+  --text: oklch(90% 0 0);
+  --text-muted: oklch(75% 0 0);
+  --text-blend-muted: oklch(77.7% 0 0);
+  --text-transparent: oklch(0% 0 0 / 0%);
+  --link: oklch(80.9069% 0.095598 251.81);
 
+  --text-size-small: 11px;
+  --text-size: 13px;
+  --text-size-large: 15px;
 
-  --text:             oklch(90% 0 0); 
-  --text-muted:       oklch(75% 0 0); 
+  --radius-small: 5px;
+  --radius: 10px;
+  --radius-large: 20px;
 
-  --text-size-small:  11px;
-  --text-size:        13px;
-  --text-size-large:  15px;
+  --shadow: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
+  --shadow-elevated: 0 12px 28px oklch(12.8802% 0.040603 264.70 / 50%);
 
-  --shadow:           0px 2px 1px -1px rgba(20, 20, 20, .12), 0px 1px 1px 0px rgba(20, 20, 20, .06), 0px 1px 3px 0px rgba(20, 20, 20, .04);
+  --overlay-backdrop: oklch(12.8802% 0.040603 264.70 / 45%);
+  --overlay-backdrop-soft: oklch(12.8802% 0.040603 264.70 / 20%);
 
+  --cloze-bg: oklch(73.1604% 0.161452 50.98 / 25%);
 
+  --input-bg: oklch(27.5% 0.015 273);
+  --input-border: oklch(25.5% 0.015 273);
+  --input-bg-focus: oklch(32.5% 0.015 273);
+  --input-border-focus: oklch(35.558% 0.12502 322.71 / 50%);
 
-  --danger:           oklch(85% 0.150 015);
-  --warn:             oklch(85% 0.150 080);
-  --ok:               oklch(85% 0.150 165);
-  --info:             oklch(85% 0.150 230);
+  --control-bg: oklch(24.5% 0.015 273);
+  --control-border: oklch(22.5% 0.015 273);
+  --control-bg-hover: oklch(26.5% 0.015 273);
+  --control-border-hover: oklch(26.5% 0.015 273);
 
+  --danger: oklch(85% 0.150 015);
+  --warn: oklch(85% 0.150 080);
+  --ok: oklch(85% 0.150 165);
+  --info: oklch(85% 0.150 230);
+
+  /* Backward-compat aliases */
+  --bg-btn: oklch(24.5% 0.015 273);
+  --bg-chip-100: oklch(32.5% 0.015 273 / 50%);
+  --bg-chip-200: oklch(20% 0.015 273 / 50%);
 }

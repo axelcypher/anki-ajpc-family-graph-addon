@@ -7,7 +7,7 @@
   width: 10px;
   height: 10px;
   border-radius: var(--radius-small);
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  border: 1px solid var(--border-soft);
 }
 
 .layer-pill {
@@ -68,7 +68,12 @@ input[type="checkbox"] {
   border: 0;
 }
 input[type="color"] {
-  @include mixins.form-input($background: transparent, $padding: 0px, $radius: 9999px);
+  @include mixins.form-input(
+    $background: var(--color-transparent),
+    $padding: 0px,
+    $radius: 9999px,
+    $focus-background: var(--color-transparent)
+  );
   width: 100%;
   height: 100%;
   margin-top: -2px;
@@ -82,7 +87,7 @@ input[type="color"] {
   &::-webkit-color-swatch-wrapper {
     padding: 0;
     border-radius: 9999px;
-    border: transparent;
+    border: var(--color-transparent);
   }
   &::-webkit-color-swatch {
     border: 0;
@@ -105,7 +110,7 @@ input[type="color"] {
   &:hover,
   &.active,
   &:focus {
-    border: 1px solid transparent,
+    border: 1px solid var(--color-transparent);
   }
   &:not(.select--multiple)::after {
     content: "";
@@ -126,7 +131,7 @@ input[type="color"] {
 select {
   @include mixins.scrollbar();
   appearance: none;
-  background-color: transparent;
+  background-color: var(--color-transparent);
   border: none;
   padding: 0 1em 0 0;
   margin: 0;
@@ -157,22 +162,25 @@ select {
 .select--multiple {
   padding: 0;
   outline: none;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-transparent);
 
   &:hover,
   &:focus {
-    border: 1px solid transparent;
+    border: 1px solid var(--color-transparent);
     outline: none;
   }
 }
 select[multiple] {
   @include mixins.scrollbar();
-  @include mixins.form-input($background: transparent);
+  @include mixins.form-input(
+    $background: var(--color-transparent),
+    $focus-background: var(--color-transparent)
+  );
   height: 5rem;
 
   &:hover,
   &:focus {
-    border: 1px solid transparent;
+    border: 1px solid var(--color-transparent);
     outline: none;
   }
   option {
@@ -186,7 +194,7 @@ select[multiple] {
     transition: 120ms all ease-in;
 
     &:checked {
-      background: oklch(from var(--accent) calc(l + 0.05) c h / 50%);
+      background: var(--accent-bg-strong);
       padding-left: 0.5em;
       color: var(--text) !important;
     }
@@ -218,8 +226,8 @@ select[multiple] {
   align-items: center;
   gap: 8px;
   @include mixins.row-chip(
-    $border: oklch(from var(--panel-bg) calc(l + 0.025) c h),
-    $background: oklch(from var(--panel-bg) calc(l + 0.025) c h)
+    $border: var(--panel-bg-raised),
+    $background: var(--panel-bg-raised)
   );
   font-size: 12px;
 }
@@ -230,8 +238,8 @@ select[multiple] {
   gap: 8px;
   align-items: center;
   @include mixins.row-chip(
-    $border: oklch(from var(--panel-bg) calc(l + 0.025) c h),
-    $background: oklch(from var(--panel-bg) calc(l + 0.025) c h)
+    $border: var(--panel-bg-raised),
+    $background: var(--panel-bg-raised)
   );
   font-size: 12px;
 
@@ -259,7 +267,6 @@ select[multiple] {
   font-size: 11px;
 
 }
-
 
 
 

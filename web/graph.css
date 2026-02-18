@@ -1,27 +1,82 @@
 :root,
 #app {
+  --color-transparent: oklch(0% 0 0 / 0%);
+  --mask-solid: oklch(0% 0 0);
   --bg-dark: oklch(15% 0.010 268);
   --bg: oklch(20% 0.010 268);
   --bg-light: oklch(25% 0.010 268);
   --panel-bg: oklch(30% 0.015 273);
-  --chip-bg: oklch(from var(--panel-bg) calc(l - 0.025) c h);
-  --popup-bg: oklch(from var(--panel-bg) calc(l + 0.025) c h);
-  --btn-bg: oklch(from var(--panel-bg) calc(l - 0.055) c h);
+  --panel-bg-raised: oklch(32.5% 0.015 273);
+  --panel-bg-border: oklch(25% 0.015 273);
+  --panel-bg-soft: oklch(24.5% 0.015 273);
+  --panel-bg-deep: oklch(20% 0.015 273);
+  --panel-bg-glass: oklch(25% 0.015 273 / 25%);
+  --panel-bg-overlay: oklch(20% 0.015 273 / 50%);
+  --panel-bg-fade: oklch(30% 0.015 273 / 50%);
+  --chip-bg: oklch(27.5% 0.015 273);
+  --chip-bg-border: oklch(25.5% 0.015 273);
+  --chip-bg-border-soft: oklch(30% 0.015 273);
+  --chip-bg-raised: oklch(29.5% 0.015 273);
+  --chip-bg-raised-strong: oklch(32.5% 0.015 273);
+  --chip-bg-raised-soft-alpha: oklch(32.5% 0.015 273 / 50%);
+  --chip-bg-fade: oklch(32.5% 0.015 273 / 40%);
+  --popup-bg: oklch(32.5% 0.015 273);
+  --popup-bg-hover: oklch(37.5% 0.015 273 / 50%);
+  --popup-border: oklch(27.5% 0.015 273);
+  --btn-bg: oklch(24.5% 0.015 273);
+  --btn-border: oklch(22.5% 0.015 273);
+  --btn-bg-hover: oklch(26.5% 0.015 273);
+  --btn-border-hover: oklch(26.5% 0.015 273);
   --accent: oklch(35.558% 0.12502 322.71);
-  --border: oklch(from var(--panel-bg) calc(l - 0.025) c h);
-  --radius-small: 5px;
-  --radius: 10px;
-  --radius-large: 20px;
+  --accent-border: oklch(35.558% 0.12502 322.71 / 50%);
+  --accent-border-soft: oklch(40.558% 0.12502 322.71 / 50%);
+  --accent-border-subtle: oklch(40.558% 0.12502 322.71 / 25%);
+  --accent-border-strong: oklch(10.558% 0.07502 322.71);
+  --accent-bg-soft: oklch(35.558% 0.12502 322.71 / 75%);
+  --accent-bg-base: oklch(35.558% 0.12502 322.71 / 50%);
+  --accent-bg-muted: oklch(40.558% 0.12502 322.71 / 30%);
+  --accent-bg-strong: oklch(40.558% 0.12502 322.71 / 50%);
+  --accent-link-hover: oklch(60.558% 0.12502 322.71);
+  --border: oklch(27.5% 0.015 273);
+  --border-soft: oklch(32.5% 0.015 273);
+  --border-dark: oklch(22.5% 0.015 273);
+  --border-panel-deep: oklch(20% 0.015 273);
+  --border-panel-raised-alpha: oklch(35% 0.015 273 / 50%);
+  --border-mix-24: oklch(32.5% 0.015 273 / 76%);
+  --border-mix-48: oklch(32.5% 0.015 273 / 52%);
+  --border-mix-52: oklch(32.5% 0.015 273 / 48%);
   --text: oklch(90% 0 0);
   --text-muted: oklch(75% 0 0);
+  --text-blend-muted: oklch(77.7% 0 0);
+  --text-transparent: oklch(0% 0 0 / 0%);
+  --link: oklch(80.9069% 0.095598 251.81);
   --text-size-small: 11px;
   --text-size: 13px;
   --text-size-large: 15px;
-  --shadow: 0px 2px 1px -1px rgba(20, 20, 20, .12), 0px 1px 1px 0px rgba(20, 20, 20, .06), 0px 1px 3px 0px rgba(20, 20, 20, .04);
+  --radius-small: 5px;
+  --radius: 10px;
+  --radius-large: 20px;
+  --shadow: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
+  --shadow-elevated: 0 12px 28px oklch(12.8802% 0.040603 264.70 / 50%);
+  --overlay-backdrop: oklch(12.8802% 0.040603 264.70 / 45%);
+  --overlay-backdrop-soft: oklch(12.8802% 0.040603 264.70 / 20%);
+  --cloze-bg: oklch(73.1604% 0.161452 50.98 / 25%);
+  --input-bg: oklch(27.5% 0.015 273);
+  --input-border: oklch(25.5% 0.015 273);
+  --input-bg-focus: oklch(32.5% 0.015 273);
+  --input-border-focus: oklch(35.558% 0.12502 322.71 / 50%);
+  --control-bg: oklch(24.5% 0.015 273);
+  --control-border: oklch(22.5% 0.015 273);
+  --control-bg-hover: oklch(26.5% 0.015 273);
+  --control-border-hover: oklch(26.5% 0.015 273);
   --danger: oklch(85% 0.150 015);
   --warn: oklch(85% 0.150 080);
   --ok: oklch(85% 0.150 165);
   --info: oklch(85% 0.150 230);
+  /* Backward-compat aliases */
+  --bg-btn: oklch(24.5% 0.015 273);
+  --bg-chip-100: oklch(32.5% 0.015 273 / 50%);
+  --bg-chip-200: oklch(20% 0.015 273 / 50%);
 }
 
 *,
@@ -57,7 +112,7 @@ a {
   color: var(--text);
 }
 a:hover {
-  color: oklch(from var(--accent) calc(l + 0.25) c h);
+  color: var(--accent-link-hover);
 }
 
 .hidden {
@@ -68,13 +123,13 @@ a:hover {
   width: 10px;
   height: 10px;
   border-radius: var(--radius-small);
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  border: 1px solid var(--border-soft);
 }
 
 .layer-pill {
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
-  background: var(--btn-bg);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
   color: var(--text);
   padding: 4px 10px;
   color: var(--text);
@@ -85,12 +140,12 @@ a:hover {
   user-select: none;
 }
 .layer-pill:hover, .layer-pill:focus {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 .layer-pill.active {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 .layer-pill {
   display: inline-flex;
@@ -101,8 +156,8 @@ a:hover {
 
 button {
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
-  background: var(--btn-bg);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
   color: var(--text);
   padding: 8px 10px;
   color: var(--text);
@@ -113,12 +168,12 @@ button {
   user-select: none;
 }
 button:hover, button:focus {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 button.active {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 button {
   font-weight: 600;
@@ -126,9 +181,9 @@ button {
 
 input[type=number],
 input[type=text] {
-  border-radius: 7px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: var(--chip-bg);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   padding: 5px 6px;
   color: var(--text);
@@ -140,13 +195,13 @@ input[type=number]:hover, input[type=number].active, input[type=number]:focus,
 input[type=text]:hover,
 input[type=text].active,
 input[type=text]:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 input[type=number].active, input[type=number]:focus,
 input[type=text].active,
 input[type=text]:focus {
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+  background: var(--input-bg-focus);
 }
 input[type=number],
 input[type=text] {
@@ -155,9 +210,9 @@ input[type=text] {
 
 input[type=checkbox] {
   appearance: none;
-  border-radius: 7px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: var(--chip-bg);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   padding: 0;
   color: var(--text);
@@ -166,11 +221,11 @@ input[type=checkbox] {
   cursor: pointer;
 }
 input[type=checkbox]:hover, input[type=checkbox].active, input[type=checkbox]:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 input[type=checkbox].active, input[type=checkbox]:focus {
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+  background: var(--input-bg-focus);
 }
 input[type=checkbox] {
   margin: 0;
@@ -204,8 +259,8 @@ input[type=checkbox]:checked::before {
 
 input[type=color] {
   border-radius: 9999px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--color-transparent);
   color: var(--text);
   padding: 0px;
   color: var(--text);
@@ -214,11 +269,11 @@ input[type=color] {
   cursor: pointer;
 }
 input[type=color]:hover, input[type=color].active, input[type=color]:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 input[type=color].active, input[type=color]:focus {
-  background: oklch(from transparent calc(l + 0.05) c h);
+  background: var(--color-transparent);
 }
 input[type=color] {
   width: 100%;
@@ -233,7 +288,7 @@ input[type=color]:hover, input[type=color]:focus {
 input[type=color]::-webkit-color-swatch-wrapper {
   padding: 0;
   border-radius: 9999px;
-  border: transparent;
+  border: var(--color-transparent);
 }
 input[type=color]::-webkit-color-swatch {
   border: 0;
@@ -241,9 +296,9 @@ input[type=color]::-webkit-color-swatch {
 }
 
 .select {
-  border-radius: 7px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: var(--chip-bg);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   padding: 5px 6px;
   color: var(--text);
@@ -252,11 +307,11 @@ input[type=color]::-webkit-color-swatch {
   cursor: pointer;
 }
 .select:hover, .select.active, .select:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 .select.active, .select:focus {
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+  background: var(--input-bg-focus);
 }
 .select {
   position: relative;
@@ -270,7 +325,7 @@ input[type=color]::-webkit-color-swatch {
   grid-area: select;
 }
 .select:hover, .select.active, .select:focus {
-  border: 1px solid transparent;
+  border: 1px solid var(--color-transparent);
 }
 .select:not(.select--multiple)::after {
   content: "";
@@ -282,9 +337,9 @@ input[type=color]::-webkit-color-swatch {
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
 }
 .select:not(.select--multiple) option {
-  border-radius: 7px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: var(--chip-bg);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
   padding: 5px 6px;
   color: var(--text);
@@ -293,11 +348,11 @@ input[type=color]::-webkit-color-swatch {
   cursor: pointer;
 }
 .select:not(.select--multiple) option:hover, .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+  background: var(--input-bg-focus);
 }
 .select:not(.select--multiple) option {
   display: flex;
@@ -307,15 +362,15 @@ input[type=color]::-webkit-color-swatch {
 
 select::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 select::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-button {
@@ -325,7 +380,7 @@ select::-webkit-scrollbar-button {
 }
 select {
   appearance: none;
-  background-color: transparent;
+  background-color: var(--color-transparent);
   border: none;
   padding: 0 1em 0 0;
   margin: 0;
@@ -343,7 +398,7 @@ select::-ms-expand {
   display: none;
 }
 select:hover + .focus, select:focus + .focus {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  border: 1px solid var(--accent-border-soft);
   border-radius: inherit;
   position: absolute;
   top: -1px;
@@ -355,24 +410,24 @@ select:hover + .focus, select:focus + .focus {
 .select--multiple {
   padding: 0;
   outline: none;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-transparent);
 }
 .select--multiple:hover, .select--multiple:focus {
-  border: 1px solid transparent;
+  border: 1px solid var(--color-transparent);
   outline: none;
 }
 
 select[multiple]::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 select[multiple]::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-button {
@@ -381,9 +436,9 @@ select[multiple]::-webkit-scrollbar-button {
   height: 0 !important;
 }
 select[multiple] {
-  border-radius: 7px;
-  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
-  background: transparent;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--input-border);
+  background: var(--color-transparent);
   color: var(--text);
   padding: 5px 6px;
   color: var(--text);
@@ -392,17 +447,17 @@ select[multiple] {
   cursor: pointer;
 }
 select[multiple]:hover, select[multiple].active, select[multiple]:focus {
-  border: 1px solid oklch(from var(--accent) l c h);
+  border: 1px solid var(--input-border-focus);
   outline: none;
 }
 select[multiple].active, select[multiple]:focus {
-  background: oklch(from transparent calc(l + 0.05) c h);
+  background: var(--color-transparent);
 }
 select[multiple] {
   height: 5rem;
 }
 select[multiple]:hover, select[multiple]:focus {
-  border: 1px solid transparent;
+  border: 1px solid var(--color-transparent);
   outline: none;
 }
 select[multiple] option {
@@ -416,7 +471,7 @@ select[multiple]:not(:disabled) option {
   transition: 120ms all ease-in;
 }
 select[multiple]:not(:disabled) option:checked {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  background: var(--accent-bg-strong);
   padding-left: 0.5em;
   color: var(--text) !important;
 }
@@ -442,9 +497,9 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  border: 1px solid var(--panel-bg-raised);
   border-radius: 8px;
-  background: oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  background: var(--panel-bg-raised);
   padding: 5px 6px;
   font-size: 12px;
 }
@@ -454,9 +509,9 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: 1fr minmax(66px, auto);
   gap: 8px;
   align-items: center;
-  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  border: 1px solid var(--panel-bg-raised);
   border-radius: 8px;
-  background: oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  background: var(--panel-bg-raised);
   padding: 5px 6px;
   font-size: 12px;
 }
@@ -528,7 +583,7 @@ select[multiple]:not(:disabled) option:checked {
 #btn-ai-create {
   border-radius: var(--radius);
   border: 1px solid var(--accent);
-  background: oklch(from var(--accent) calc(l + 0.05) c h/30%);
+  background: var(--accent-bg-muted);
   color: var(--text);
   padding: 8px 10px;
   color: var(--text);
@@ -541,19 +596,13 @@ select[multiple]:not(:disabled) option:checked {
 #btn-refresh:hover, #btn-refresh:focus,
 #btn-ai-create:hover,
 #btn-ai-create:focus {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
+  border: 1px solid var(--accent);
+  background: var(--accent-bg-muted);
 }
 #btn-refresh.active,
 #btn-ai-create.active {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
-}
-#btn-refresh:hover, #btn-refresh:active,
-#btn-ai-create:hover,
-#btn-ai-create:active {
-  border: 1px solid oklch(from var(--accent) calc(l - 0.05) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) l c h/75%);
+  border: 1px solid var(--accent);
+  background: var(--accent-bg-muted);
 }
 
 #toolbar-debug {
@@ -583,8 +632,8 @@ select[multiple]:not(:disabled) option:checked {
 }
 #toolbar-debug button {
   border-radius: 0;
-  border: 1px solid oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h);
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  border: 1px solid var(--accent-border-strong);
+  background: var(--accent-bg-strong);
   color: var(--text);
   padding: 8px 10px;
   color: var(--text);
@@ -595,16 +644,12 @@ select[multiple]:not(:disabled) option:checked {
   user-select: none;
 }
 #toolbar-debug button:hover, #toolbar-debug button:focus {
-  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+  border: 1px solid var(--accent-border-strong);
+  background: var(--accent-bg-strong);
 }
 #toolbar-debug button.active {
-  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
-}
-#toolbar-debug button:hover, #toolbar-debug button:active {
-  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l - 0.05) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) l c h/75%);
+  border: 1px solid var(--accent-border-strong);
+  background: var(--accent-bg-strong);
 }
 
 #search-wrap {
@@ -619,8 +664,8 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-input-wrap #search-input {
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
+  border: 1px solid var(--chip-bg-raised-soft-alpha);
+  background: var(--chip-bg-raised-soft-alpha);
   color: var(--text);
   padding: 8px 10px;
   color: var(--text);
@@ -631,12 +676,12 @@ select[multiple]:not(:disabled) option:checked {
   user-select: none;
 }
 #search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input:focus {
-  border: 1px solid oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 #search-wrap #search-input-wrap #search-input.active {
-  border: 1px solid oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 #search-wrap #search-input-wrap #search-input {
   position: absolute;
@@ -645,8 +690,8 @@ select[multiple]:not(:disabled) option:checked {
   border-top-right-radius: 0;
 }
 #search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input.active, #search-wrap #search-input-wrap #search-input:focus {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h/50%);
-  background: oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
+  border: 1px solid var(--accent-border-soft);
+  background: var(--chip-bg-raised-soft-alpha);
 }
 #search-wrap #search-go {
   width: 50px;
@@ -656,15 +701,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-suggest::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-button {
@@ -686,7 +731,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-suggest.is-visible {
   display: block;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  border: 1px solid var(--border-soft);
 }
 #search-wrap #search-suggest .suggest-item {
   padding: 7px 9px;
@@ -694,7 +739,7 @@ select[multiple]:not(:disabled) option:checked {
   cursor: pointer;
 }
 #search-wrap #search-suggest .suggest-item:hover, #search-wrap #search-suggest .suggest-item:active {
-  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
+  background: var(--popup-bg-hover);
   border-bottom: 1px solid var(--accent);
 }
 #search-wrap #search-suggest .suggest-item .suggest-meta {
@@ -725,7 +770,7 @@ select[multiple]:not(:disabled) option:checked {
   background: var(--panel-bg);
   pointer-events: none;
   z-index: 121;
-  mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%, transparent calc(var(--radius-large) * 2 - 0px), #000 calc(var(--radius-large) * 2));
+  mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%, var(--color-transparent) calc(var(--radius-large) * 2 - 0px), var(--mask-solid) calc(var(--radius-large) * 2));
 }
 #settings-panel.closed {
   transform: translateX(calc(100% + 16px));
@@ -738,7 +783,7 @@ select[multiple]:not(:disabled) option:checked {
   overflow: auto;
   padding: 12px 12px;
   box-sizing: border-box;
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h);
+  border-bottom: 1px solid var(--panel-bg-border);
   box-shadow: var(--shadow);
 }
 #settings-panel #settings-head .panel-head {
@@ -784,8 +829,8 @@ select[multiple]:not(:disabled) option:checked {
 }
 #settings-panel #settings-head #settings-tabsbutton {
   border-radius: 0;
-  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
-  background: var(--btn-bg);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
   color: var(--text);
   padding: 8px 10px;
   color: var(--text);
@@ -796,35 +841,35 @@ select[multiple]:not(:disabled) option:checked {
   user-select: none;
 }
 #settings-panel #settings-head #settings-tabsbutton:hover, #settings-panel #settings-head #settings-tabsbutton:focus {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 #settings-panel #settings-head #settings-tabsbutton.active {
-  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+  border: 1px solid var(--control-border-hover);
+  background: var(--control-bg-hover);
 }
 #settings-panel #settings-head #settings-tabsbutton {
   font-weight: 600;
 }
 #settings-panel #settings-head #settings-tabs .settings-tab.active {
-  border: 1px solid oklch(from var(--accent) l0.05 c h/25%);
-  background: oklch(from var(--accent) l c h/50%);
+  border: 1px solid var(--accent-border-subtle);
+  background: var(--accent-bg-base);
 }
 #settings-panel #settings-head #settings-tabs .settings-tab.active:hover {
-  border: 1px solid oklch(from var(--accent) l0.05 c h/50%);
-  background: oklch(from var(--accent) l c h/75%);
+  border: 1px solid var(--accent-border-soft);
+  background: var(--accent-bg-soft);
 }
 #settings-panel .settings-scroll::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-button {
@@ -841,9 +886,9 @@ select[multiple]:not(:disabled) option:checked {
   border: none;
 }
 #settings-panel .settings-scroll .settings-block {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
+  background: var(--panel-bg-soft);
   padding: 10px;
   margin-bottom: 10px;
 }
@@ -852,9 +897,9 @@ select[multiple]:not(:disabled) option:checked {
   font-size: 14px;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: oklch(from var(--panel-bg) l c h);
+  background: var(--panel-bg);
   padding: 8px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -867,9 +912,9 @@ select[multiple]:not(:disabled) option:checked {
   transition: margin-bottom 180ms ease;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .line-item {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  background: var(--border);
   padding: 5px 6px;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .note-type-name {
@@ -910,15 +955,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
@@ -935,9 +980,9 @@ select[multiple]:not(:disabled) option:checked {
   gap: 8px;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: oklch(from var(--panel-bg) l c h);
+  background: var(--panel-bg);
   padding: 8px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -971,7 +1016,7 @@ select[multiple]:not(:disabled) option:checked {
   content: "";
   width: 0.8em;
   height: 0.5em;
-  background: oklch(from var(--accent) l c h/75%);
+  background: var(--accent-bg-soft);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
   transform: rotate(90deg);
   transform-origin: 50% 50%;
@@ -1040,7 +1085,7 @@ select[multiple]:not(:disabled) option:checked {
   gap: 4px;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list .ln-ml-group-row {
-  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.05) c h);
+  border: 1px solid var(--chip-bg-raised-strong);
   border-radius: 8px;
   background: var(--panel-bg);
   padding: 5px 6px;
@@ -1079,7 +1124,7 @@ select[multiple]:not(:disabled) option:checked {
   background: var(--panel-bg);
   pointer-events: none;
   z-index: 121;
-  mask: radial-gradient(circle var(--radius-large) at 100% 100%, transparent calc(var(--radius-large) - 0px), #000 var(--radius-large));
+  mask: radial-gradient(circle var(--radius-large) at 100% 100%, var(--color-transparent) calc(var(--radius-large) - 0px), var(--mask-solid) var(--radius-large));
 }
 #editor-panel.closed {
   transform: translateX(calc((100% + 16px) * -1));
@@ -1137,7 +1182,7 @@ select[multiple]:not(:disabled) option:checked {
   font-size: 14px;
   padding: 8px 14px;
   background: var(--bg);
-  border: 1px solid oklch(from var(--border) calc(l - 0.05) c h);
+  border: 1px solid var(--border-dark);
   border-radius: 999px;
   z-index: 4;
 }
@@ -1146,8 +1191,8 @@ select[multiple]:not(:disabled) option:checked {
 #hover-tip {
   position: fixed;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 8px 10px;
   color: var(--text);
@@ -1175,8 +1220,8 @@ select[multiple]:not(:disabled) option:checked {
 #ctx-menu {
   position: fixed;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 6px;
   color: var(--text);
@@ -1198,16 +1243,16 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 8px;
   cursor: pointer;
   color: var(--text);
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid var(--color-transparent);
 }
 #ctx-menu .item:hover {
-  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
+  background: var(--popup-bg-hover);
   border-bottom: 1px solid var(--accent);
 }
 #ctx-menu .divider {
   height: 1px;
   margin: 5px 4px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: var(--panel-bg-deep);
 }
 #ctx-menu .ctx-icon-placeholder, #ctx-menu .ctx-icon-base {
   display: inline-block;
@@ -1252,7 +1297,7 @@ select[multiple]:not(:disabled) option:checked {
   position: fixed;
   inset: 0;
   z-index: 130;
-  background: rgba(2, 6, 23, 0.45);
+  background: var(--overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1261,9 +1306,9 @@ select[multiple]:not(:disabled) option:checked {
   width: min(360px, 92vw);
   max-height: min(72vh, 520px);
   border-radius: 14px;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
-  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.5);
+  border: 1px solid var(--border-soft);
+  background: var(--panel-bg-glass);
+  box-shadow: var(--shadow-elevated);
   color: var(--text);
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -1287,19 +1332,19 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px 12px 12px 12px;
-  border-top: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  border-top: 1px solid var(--border-soft);
 }
 #ctx-picker .btn {
   flex: 1 1 auto;
   border-radius: 9px;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-soft);
+  background: var(--panel-bg-glass);
   color: var(--text);
   padding: 7px 10px;
   cursor: pointer;
 }
 #ctx-picker .btn:hover {
-  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
+  background: var(--popup-bg-hover);
 }
 #ctx-picker .btn.primary {
   border-color: var(--border-dark);
@@ -1348,13 +1393,13 @@ select[multiple]:not(:disabled) option:checked {
   height: var(--radius);
   background: var(--panel-bg);
   pointer-events: none;
-  mask: radial-gradient(circle at 100% 100%, transparent calc(var(--radius) - 0px), #000 var(--radius));
+  mask: radial-gradient(circle at 100% 100%, var(--color-transparent) calc(var(--radius) - 0px), var(--mask-solid) var(--radius));
 }
 #status-overlay-top-left #status-active {
   position: relative;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 2px 12px 12px 12px;
   color: var(--text);
@@ -1402,7 +1447,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-head {
   padding: 6px 8px;
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border-bottom: 1px solid var(--border-panel-deep);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-col {
   font-size: 10px;
@@ -1414,15 +1459,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
@@ -1437,7 +1482,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row {
   padding: 6px 8px;
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border-bottom: 1px solid var(--border-panel-deep);
   font-size: 11px;
   color: var(--text);
 }
@@ -1460,8 +1505,8 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-top-left #status-active #status-active-deptree {
   display: block;
   margin: 18px 0;
-  border-top: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border-top: 1px solid var(--border-panel-deep);
+  border-bottom: 1px solid var(--border-panel-deep);
   white-space: normal;
   line-height: 1.35;
   color: var(--text-muted);
@@ -1470,7 +1515,7 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-top-left #status-active #status-active-deptree .dep-tree-canvas {
   width: 100%;
   display: block;
-  background: transparent;
+  background: var(--color-transparent);
   cursor: pointer;
 }
 #status-overlay-top-left #status-active .btn-row {
@@ -1502,8 +1547,8 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-bottom-right #status-zoom-pill {
   position: relative;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
   color: var(--text);
@@ -1517,8 +1562,8 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-bottom-right #status-debug-panel {
   position: relative;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
   color: var(--text);
@@ -1549,7 +1594,7 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key,
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   padding: 2px 4px;
-  border-top: oklch(from var(--border) calc(l + 0.05) c h);
+  border-top: 1px solid var(--border-soft);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key {
   text-align: left;
@@ -1561,7 +1606,7 @@ select[multiple]:not(:disabled) option:checked {
   color: var(--text);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-empty {
-  color: transparent;
+  color: var(--text-transparent);
 }
 
 /* AI create/enrich dialog shells (markup only, no runtime wiring yet) */
@@ -1583,13 +1628,13 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-dialog .graph-ai-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(2, 6, 23, 0.2);
+  background: var(--overlay-backdrop-soft);
 }
 .graph-ai-dialog .graph-ai-dialog__window {
   position: relative;
   border-radius: var(--radius);
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  border: 1px solid var(--border-panel-deep);
+  background: var(--panel-bg-glass);
   backdrop-filter: blur(8px);
   padding: 2px 12px 12px 12px;
   color: var(--text);
@@ -1618,7 +1663,7 @@ select[multiple]:not(:disabled) option:checked {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  border-bottom: 1px solid var(--border-soft);
 }
 .graph-ai-dialog .graph-ai-dialog__head h2 {
   margin: 0;
@@ -1635,15 +1680,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-button {
@@ -1653,9 +1698,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-block {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border: 1px solid var(--border-panel-deep);
   border-radius: 12px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: var(--panel-bg-deep);
   padding: 10px 12px;
 }
 .graph-ai-block h3 {
@@ -1679,8 +1724,8 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-form-row select, .graph-ai-form-row input, .graph-ai-form-row textarea {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-  background: var(--bg-chip-100);
+  border: 1px solid var(--border-soft);
+  background: var(--chip-bg-raised-soft-alpha);
   color: var(--text);
   padding: 7px 9px;
   font: inherit;
@@ -1712,7 +1757,7 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-btn {
   border-radius: var(--radius);
   border: 1px solid var(--accent);
-  background: oklch(from var(--accent) calc(l + 0.05) c h/30%);
+  background: var(--accent-bg-muted);
   color: var(--text);
   padding: 6px 10px;
   color: var(--text);
@@ -1723,20 +1768,16 @@ select[multiple]:not(:disabled) option:checked {
   user-select: none;
 }
 .graph-ai-btn:hover, .graph-ai-btn:focus {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
+  border: 1px solid var(--accent);
+  background: var(--accent-bg-muted);
 }
 .graph-ai-btn.active {
-  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
-}
-.graph-ai-btn:hover, .graph-ai-btn:active {
-  border: 1px solid oklch(from var(--accent) calc(l - 0.05) c h);
-  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) l c h/75%);
+  border: 1px solid var(--accent);
+  background: var(--accent-bg-muted);
 }
 
 .graph-ai-btn--ghost {
-  background: transparent;
+  background: var(--color-transparent);
 }
 
 .graph-ai-nav {
@@ -1757,15 +1798,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 .graph-ai-nav select {
   border-radius: 8px;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
+  border: 1px solid var(--border-soft);
+  background: var(--panel-bg-overlay);
   color: var(--text);
   padding: 6px 8px;
 }
 
 .graph-ai-perf {
   margin: 0;
-  color: color-mix(in oklch, var(--text-muted), var(--text) 18%);
+  color: var(--text-blend-muted);
   font-size: 12px;
 }
 
@@ -1781,9 +1822,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-pane {
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border: 1px solid var(--border-panel-deep);
   border-radius: 12px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
+  background: var(--panel-bg-overlay);
   padding: 10px;
   min-height: 0;
   display: flex;
@@ -1799,23 +1840,23 @@ select[multiple]:not(:disabled) option:checked {
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h/50%);
+  border: 1px solid var(--border-panel-raised-alpha);
   border-radius: 8px;
-  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
+  background: var(--panel-bg-overlay);
   min-height: 190px;
   overflow: auto;
 }
 .graph-ai-list::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 .graph-ai-list::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-button {
@@ -1826,7 +1867,7 @@ select[multiple]:not(:disabled) option:checked {
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h/50%);
+  border-bottom: 1px solid var(--border-panel-raised-alpha);
   color: var(--text);
   font-size: 12px;
 }
@@ -1836,23 +1877,23 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-preview-box {
-  border: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 24%);
+  border: 1px solid var(--border-mix-24);
   border-radius: 8px;
-  background: color-mix(in oklch, var(--bg-chip-100), transparent 20%);
+  background: var(--chip-bg-fade);
   min-height: 250px;
   overflow: auto;
 }
 .graph-ai-preview-box::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-button {
@@ -1874,7 +1915,7 @@ select[multiple]:not(:disabled) option:checked {
   border-collapse: collapse;
 }
 .graph-ai-field-table th, .graph-ai-field-table td {
-  border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 48%);
+  border-bottom: 1px solid var(--border-mix-48);
   padding: 6px 8px;
   font-size: 12px;
   color: var(--text);
@@ -1892,7 +1933,7 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 52%);
+  border-bottom: 1px solid var(--border-mix-52);
 }
 
 .graph-ai-template-canvas {
@@ -1925,26 +1966,26 @@ select[multiple]:not(:disabled) option:checked {
   font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif !important;
 }
 #editor-anki a {
-  color: #93c5fd !important;
+  color: var(--link) !important;
 }
 #editor-anki .editing-area,
 #editor-anki .label-container {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
 }
 #editor-anki button {
   border-radius: var(--radius) !important;
-  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h) !important;
+  border: 1px solid var(--btn-border) !important;
   background: var(--btn-bg) !important;
   color: var(--text) !important;
   padding: 8px 10px;
   font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
+  box-shadow: var(--shadow) !important;
   cursor: pointer;
   font-weight: 600;
 }
 #editor-anki button:hover, #editor-anki button:active, #editor-anki button:focus-visible {
-  border: 1px solid oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+  border: 1px solid var(--btn-border-hover) !important;
+  background: var(--btn-bg-hover) !important;
 }
 #editor-anki .field-state .ajt-play-icon {
   padding-right: 22px;
@@ -1971,7 +2012,7 @@ select[multiple]:not(:disabled) option:checked {
   justify-self: end;
   width: 0.8em;
   height: 0.5em;
-  background: 1px solid oklch(from var(--accent) l c h/75%);
+  background: var(--accent-bg-soft);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
   transition: transform 0.16s ease;
 }
@@ -1981,7 +2022,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .cloze,
 #editor-anki mark {
-  background: rgba(246, 134, 59, 0.25) !important;
+  background: var(--cloze-bg) !important;
   color: var(--text) !important;
 }
 #editor-anki .hidden {
@@ -2001,15 +2042,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload {
-  border-color: oklch(from var(--accent) l c h/50%) !important;
-  background: oklch(from var(--accent) l c h/75%) !important;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
+  border-color: var(--accent-border) !important;
+  background: var(--accent-bg-soft) !important;
+  box-shadow: var(--shadow) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:hover, #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:active,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:hover,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:active {
-  border-color: oklch(from var(--accent) l c h/50%) !important;
-  background: oklch(from var(--accent) l c h/75%) !important;
+  border-color: var(--accent-border) !important;
+  background: var(--accent-bg-soft) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools {
   margin-right: 0;
@@ -2027,7 +2068,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .note-editor .editor-toolbar {
   background: var(--panel-bg) !important;
-  border-color: oklch(from var(--border) calc(l + 0.05) c h) !important;
+  border-color: var(--border-soft) !important;
   margin: 0 !important;
   padding: 3px 10px 3px 20px !important;
 }
@@ -2045,7 +2086,7 @@ select[multiple]:not(:disabled) option:checked {
   font-size: 12px !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button:hover, #editor-anki .note-editor .editor-toolbar .button-group button:active, #editor-anki .note-editor .editor-toolbar .button-group button:focus-visible {
-  background: oklch(from var(--accent) l c h/75%) !important;
+  background: var(--accent-bg-soft) !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-first {
   border-top-left-radius: var(--radius-small) !important;
@@ -2057,15 +2098,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-button {
@@ -2082,9 +2123,9 @@ select[multiple]:not(:disabled) option:checked {
   direction: ltr;
 }
 #editor-anki .note-editor .fields {
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+  border: 1px solid var(--border-soft) !important;
   border-radius: var(--radius) !important;
-  background: color-mix(in oklch, var(--panel-bg), transparent 50%) !important;
+  background: var(--panel-bg-fade) !important;
   padding: 10px !important;
 }
 #editor-anki .note-editor .fields .collapsible {
@@ -2095,14 +2136,14 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: 1fr;
   gap: 0px;
   align-items: center;
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
+  background: var(--panel-bg-soft);
   padding: 5px 6px;
   font-size: 12px;
 }
 #editor-anki .note-editor .fields .field-container .label-container {
-  background: transparent;
+  background: var(--color-transparent);
 }
 #editor-anki .note-editor .fields .field-container .label-container .collapse-badge {
   display: none !important;
@@ -2117,15 +2158,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area {
   background: var(--chip-bg);
-  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.025) c h);
+  border: 1px solid var(--chip-bg-border-soft);
   border-radius: var(--radius);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:hover, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:active, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus-visible {
-  border: 1px solid oklch(from var(--accent) l c h/50%);
+  border: 1px solid var(--accent-border);
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area .CodeMirror-gutters {
-  background-color: transparent;
+  background-color: var(--color-transparent);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
   border-radius: var(--radius);
@@ -2133,7 +2174,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .rich-text-input {
   border-radius: var(--radius);
-  background: oklch(from var(--chip-bg) calc(l + 0.02) c h);
+  background: var(--chip-bg-raised);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-plain-rich > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
   border-bottom-left-radius: 0 !important;
@@ -2155,7 +2196,7 @@ select[multiple]:not(:disabled) option:checked {
   padding: 5px 20px !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border: none !important;
   color: var(--text-muted);
   font-size: 12px !important;
@@ -2163,7 +2204,7 @@ select[multiple]:not(:disabled) option:checked {
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor {
   background: var(--chip-bg) !important;
   border-radius: var(--radius) !important;
-  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+  border: 1px solid var(--border-soft) !important;
   padding: 5px 6px !important;
   margin: 0 0 10px 0 !important;
   color: var(--text) !important;
@@ -2173,7 +2214,7 @@ select[multiple]:not(:disabled) option:checked {
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag {
   background: var(--panel-bg) !important;
   color: var(--text) !important;
-  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h) !important;
+  border: 1px solid var(--panel-bg-border) !important;
   padding: 0px 3px 0px 3px;
   font-size: 12px !important;
   border-radius: var(--radius) !important;
@@ -2181,29 +2222,29 @@ select[multiple]:not(:disabled) option:checked {
   cursor: pointer;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:hover, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:active, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:focus-visible {
-  background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+  background: var(--btn-bg-hover) !important;
 }
 #editor-anki .floating {
   border-radius: var(--radius);
 }
 #editor-anki .floating .popover {
   padding: 0 !important;
-  border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+  border: 1px solid var(--popup-border) !important;
   background: var(--popup-bg) !important;
   color: var(--text) !important;
   border-radius: var(--radius);
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar {
   width: 10px !important;
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   margin: var(--radius) 0 !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: var(--color-transparent) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-thumb {
-  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
+  background: var(--accent-border-soft) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-button {
@@ -2216,25 +2257,25 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item {
   border: none !important;
-  border-bottom: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+  border-bottom: 1px solid var(--popup-border) !important;
   padding: 7px 9px;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item:hover {
-  background: var(--bg-chip-100) !important;
+  background: var(--chip-bg-raised-soft-alpha) !important;
   border: none !important;
-  border-bottom: 1px solid oklch(from var(--accent) l c h/75%) !important;
+  border-bottom: 1px solid var(--accent-bg-soft) !important;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item.selected {
-  background: oklch(from var(--accent) l c h/75%) !important;
+  background: var(--accent-bg-soft) !important;
   border: none !important;
-  border-bottom: 1px solid oklch(from var(--accent) l c h/75%) !important;
+  border-bottom: 1px solid var(--accent-bg-soft) !important;
 }
 #editor-anki .floating .floating-arrow .arrow {
   background: var(--popup-bg) !important;
 }
 #editor-anki .tooltip .tooltip-arrow,
 #editor-anki .tooltip .tooltip-inner {
-  border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+  border: 1px solid var(--popup-border) !important;
   background: var(--popup-bg) !important;
   color: var(--text) !important;
 }

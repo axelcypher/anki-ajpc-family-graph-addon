@@ -46,7 +46,7 @@
   font-size: 14px;
   padding: 8px 14px;
   background: var(--bg);
-  border: 1px solid oklch(from var(--border) calc(l - 0.05) c h);
+  border: 1px solid var(--border-dark);
   border-radius: 999px;
   z-index: 4;
 }
