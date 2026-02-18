@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Any
 from urllib.parse import unquote
@@ -78,6 +79,12 @@ from .graph_note_ops import (
     _validate_target_family_id,
 )
 from .graph_previewer import _open_preview, _open_preview_card
+
+_GRAPH_AI_FIELD_TAG_RE = re.compile(r"{{\s*(?:text:)?([A-Za-z0-9_]+)\s*}}")
+_GRAPH_AI_FURIGANA_TAG_RE = re.compile(r"{{\s*furigana:([A-Za-z0-9_]+)\s*}}")
+_GRAPH_AI_COND_TAG_RE = re.compile(r"{{#([A-Za-z0-9_]+)}}(.*?){{/\1}}", re.DOTALL)
+_GRAPH_AI_INV_TAG_RE = re.compile(r"{{\^([A-Za-z0-9_]+)}}(.*?){{/\1}}", re.DOTALL)
+_GRAPH_AI_FURI_BLOCK_RE = re.compile(r"([^\[\]\s]+)\[([^\[\]]+)\]")
 
 
 class GraphBridgeHandlersMixin:
@@ -284,6 +291,188 @@ class GraphBridgeHandlersMixin:
         if missing:
             return {"ok": True, "available": False, "error": "ai_api_missing_methods", "missing": missing}
         return {"ok": True, "available": True, "error": ""}
+
+    def _graph_ai_normalize_tags(self, values: list[str]) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in list(values or []):
+            text = str(raw or "")
+            for chunk in re.split(r"[;,\s]+", text):
+                token = str(chunk or "").strip()
+                if not token:
+                    continue
+                if token in seen:
+                    continue
+                seen.add(token)
+                out.append(token)
+        return out
+
+    def _graph_ai_prepare_template_fields(self, fields: dict[str, str]) -> dict[str, str]:
+        out = {str(k): str(v or "") for k, v in dict(fields or {}).items()}
+        tags = self._graph_ai_normalize_tags([
+            out.get("Tags", ""),
+            out.get("VocabTags", ""),
+            out.get("note.tags", ""),
+        ])
+        jlpt = str(out.get("jlpt", "") or out.get("JLPT", "") or "").strip()
+        freq = str(out.get("Freq", "") or out.get("freq", "") or "").strip()
+        if jlpt:
+            tags.append(f"JLPT:{jlpt}")
+        if freq:
+            tags.append(f"Freq:{freq}")
+        merged = " ".join(self._graph_ai_normalize_tags(tags))
+        if merged:
+            out["Tags"] = merged
+            out["VocabTags"] = merged
+        return out
+
+    def _graph_ai_apply_conditional_blocks(self, text: str, fields: dict[str, str]) -> str:
+        def _cond(match: re.Match[str]) -> str:
+            key = str(match.group(1) or "")
+            body = str(match.group(2) or "")
+            return body if str(fields.get(key, "") or "").strip() else ""
+
+        def _inv(match: re.Match[str]) -> str:
+            key = str(match.group(1) or "")
+            body = str(match.group(2) or "")
+            return "" if str(fields.get(key, "") or "").strip() else body
+
+        out = _GRAPH_AI_COND_TAG_RE.sub(_cond, str(text or ""))
+        out = _GRAPH_AI_INV_TAG_RE.sub(_inv, out)
+        return out
+
+    def _graph_ai_furigana_to_ruby(self, text: str) -> str:
+        raw = str(text or "")
+        return _GRAPH_AI_FURI_BLOCK_RE.sub(lambda m: f"<ruby>{m.group(1)}<rt>{m.group(2)}</rt></ruby>", raw)
+
+    def _graph_ai_render_template_string(self, template: str, fields: dict[str, str], *, front_side: str) -> str:
+        text = str(template or "").replace("{{FrontSide}}", str(front_side or ""))
+        text = self._graph_ai_apply_conditional_blocks(text, fields)
+        text = _GRAPH_AI_FURIGANA_TAG_RE.sub(
+            lambda m: self._graph_ai_furigana_to_ruby(str(fields.get(m.group(1), "") or "")),
+            text,
+        )
+        text = _GRAPH_AI_FIELD_TAG_RE.sub(lambda m: str(fields.get(m.group(1), "") or ""), text)
+        return text
+
+    def _graph_ai_wrap_template_html(self, content: str, css: str) -> str:
+        return (
+            "<html><head><meta charset='utf-8'>"
+            f"<style>{str(css or '')}</style>"
+            "</head><body>"
+            f"{str(content or '')}"
+            "</body></html>"
+        )
+
+    def _graph_ai_render_template_preview(self, *, note_fields: dict[str, Any], target_mid: Any) -> dict[str, str]:
+        if mw is None or not getattr(mw, "col", None):
+            raise RuntimeError("No active collection")
+        mid_text = str(target_mid or "").strip()
+        if not mid_text.isdigit():
+            raise ValueError("target_mid missing")
+        model = mw.col.models.get(int(mid_text))
+        if not isinstance(model, dict):
+            raise RuntimeError(f"Model not found for mid={mid_text}")
+        templates = list(model.get("tmpls", []) or [])
+        if not templates:
+            raise RuntimeError("Model has no templates")
+        tmpl = dict(templates[0] or {})
+        qfmt = str(tmpl.get("qfmt", "") or "")
+        afmt = str(tmpl.get("afmt", "") or "")
+        css = str(model.get("css", "") or "")
+
+        fields = self._graph_ai_prepare_template_fields(
+            {str(k): str(v if v is not None else "") for k, v in dict(note_fields or {}).items()}
+        )
+        front = self._graph_ai_render_template_string(qfmt, fields, front_side="")
+        back = self._graph_ai_render_template_string(afmt, fields, front_side=front)
+        return {
+            "front_html": self._graph_ai_wrap_template_html(front, css),
+            "back_html": self._graph_ai_wrap_template_html(back, css),
+        }
+
+    def _graph_ai_patch_value_to_text(self, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (int, float, bool)):
+            return str(value)
+        if isinstance(value, list):
+            parts: list[str] = []
+            for row in value:
+                if row is None:
+                    continue
+                if isinstance(row, (str, int, float, bool)):
+                    parts.append(str(row))
+                    continue
+                if isinstance(row, dict):
+                    parts.append(json.dumps(row, ensure_ascii=False))
+                    continue
+                parts.append(str(row))
+            return ", ".join([p for p in parts if str(p).strip()])
+        if isinstance(value, dict):
+            return json.dumps(value, ensure_ascii=False)
+        return str(value)
+
+    def _graph_ai_sentences_to_lines(self, rows: list[Any]) -> tuple[str, str]:
+        furigana: list[str] = []
+        meaning: list[str] = []
+        for row in list(rows or []):
+            if not isinstance(row, dict):
+                continue
+            furigana.append(str(row.get("furigana", "") or ""))
+            meaning.append(str(row.get("meaning", "") or ""))
+        return ("<br>".join(furigana), "<br>".join(meaning))
+
+    def _graph_ai_build_enrich_template_input(self, *, nid: int, patch: dict[str, Any]) -> dict[str, Any]:
+        if mw is None or not getattr(mw, "col", None):
+            raise RuntimeError("No active collection")
+        note = mw.col.get_note(int(nid))
+        if note is None:
+            raise ValueError(f"note not found: {nid}")
+
+        fields: dict[str, str] = {}
+        for name in list(note.keys() or []):
+            key = str(name or "")
+            try:
+                fields[key] = str(note[key] or "")
+            except Exception:
+                fields[key] = ""
+
+        src = patch if isinstance(patch, dict) else {}
+        for raw_key, raw_value in src.items():
+            key = str(raw_key or "").strip()
+            if not key:
+                continue
+            if key == "Sentences" and isinstance(raw_value, list):
+                sent_furi, sent_mean = self._graph_ai_sentences_to_lines(raw_value)
+                if "SentFurigana" in fields:
+                    fields["SentFurigana"] = sent_furi
+                if "SentMeaning" in fields:
+                    fields["SentMeaning"] = sent_mean
+                continue
+            text = self._graph_ai_patch_value_to_text(raw_value)
+            if key in fields:
+                fields[key] = text
+                continue
+            key_lower = key.lower()
+            if key_lower == "familyid":
+                for candidate in list(fields.keys()):
+                    c_low = str(candidate or "").lower()
+                    if c_low.endswith("familyid") or "family" in c_low:
+                        fields[candidate] = text
+                        break
+                continue
+
+        target_mid = ""
+        try:
+            model = note.note_type()
+            if isinstance(model, dict):
+                target_mid = str(model.get("id", "") or "").strip()
+        except Exception:
+            target_mid = ""
+        return {"note_fields": fields, "target_mid": target_mid}
 
     def _graph_ai_run_background(
         self,
@@ -825,6 +1014,7 @@ class GraphBridgeHandlersMixin:
             status = self._graph_ai_status_payload()
             if not bool(status.get("available")):
                 cb_map = {
+                    "template_preview": "onGraphAiTemplatePreviewResult",
                     "create_preview": "onGraphAiCreatePreviewResult",
                     "create_apply": "onGraphAiCreateApplyResult",
                     "create_regen_mnemonic": "onGraphAiCreateMnemonicResult",
@@ -853,6 +1043,51 @@ class GraphBridgeHandlersMixin:
                 if not isinstance(data, dict):
                     data = {}
                 return data
+
+            if kind == "template_preview":
+                def _op_template_preview():
+                    data = _decode_payload()
+                    scope = str(data.get("scope") or "").strip().lower()
+                    try:
+                        request_id = int(data.get("request_id") or 0)
+                    except Exception:
+                        request_id = 0
+
+                    if scope == "create":
+                        preview = data.get("preview") if isinstance(data.get("preview"), dict) else {}
+                        note_fields = preview.get("note_fields") if isinstance(preview.get("note_fields"), dict) else {}
+                        target_mid = preview.get("target_mid")
+                        rendered = self._graph_ai_render_template_preview(note_fields=note_fields, target_mid=target_mid)
+                        rendered["scope"] = "create"
+                        rendered["request_id"] = request_id
+                        return rendered
+
+                    if scope == "enrich":
+                        try:
+                            nid = int(data.get("nid") or 0)
+                        except Exception:
+                            nid = 0
+                        if nid <= 0:
+                            raise ValueError("invalid nid")
+                        patch = data.get("patch") if isinstance(data.get("patch"), dict) else {}
+                        enrich_preview = self._graph_ai_build_enrich_template_input(nid=nid, patch=patch)
+                        rendered = self._graph_ai_render_template_preview(
+                            note_fields=enrich_preview.get("note_fields") if isinstance(enrich_preview, dict) else {},
+                            target_mid=str((enrich_preview or {}).get("target_mid", "") or ""),
+                        )
+                        rendered["scope"] = "enrich"
+                        rendered["request_id"] = request_id
+                        rendered["nid"] = nid
+                        return rendered
+
+                    raise ValueError(f"invalid template preview scope: {scope}")
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiTemplatePreviewResult",
+                    op_name="template_preview",
+                    op_fn=_op_template_preview,
+                )
+                return None
 
             if kind == "create_preview":
                 def _op_create_preview():

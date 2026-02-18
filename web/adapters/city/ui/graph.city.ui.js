@@ -1730,7 +1730,9 @@ var GRAPH_AI = {
   duplicatePreview: null,
   mnemonicRejectMode: "",
   enrichPatch: null,
-  enrichNid: 0
+  enrichNid: 0,
+  createTemplate: { requestId: 0, side: "front", frontHtml: "", backHtml: "", pending: false },
+  enrichTemplate: { requestId: 0, side: "front", frontHtml: "", backHtml: "", pending: false }
 };
 
 function graphAiPycmd(command, payloadObj) {
@@ -1784,17 +1786,124 @@ function graphAiSetEnrichJsonPreview(content) {
   DOM.aiEnrichPreviewJsonPre.textContent = String(content || "{}");
 }
 
+function graphAiSetPreviewPaneVisible(el, visible) {
+  if (!el) return;
+  var show = !!visible;
+  el.classList.toggle("is-hidden", !show);
+  el.style.display = show ? "" : "none";
+}
+
+function graphAiMarkTemplateTabState(frontBtn, backBtn, side) {
+  var sideKey = String(side || "front").toLowerCase() === "back" ? "back" : "front";
+  if (frontBtn) {
+    frontBtn.classList.toggle("graph-ai-btn--accent", sideKey === "front");
+    frontBtn.setAttribute("aria-pressed", sideKey === "front" ? "true" : "false");
+  }
+  if (backBtn) {
+    backBtn.classList.toggle("graph-ai-btn--accent", sideKey === "back");
+    backBtn.setAttribute("aria-pressed", sideKey === "back" ? "true" : "false");
+  }
+}
+
+function graphAiTemplateCanvasLoading(canvasEl) {
+  if (!canvasEl) return;
+  canvasEl.innerHTML = "<pre>Template preview loading...</pre>";
+}
+
+function graphAiTemplateCanvasError(canvasEl, message) {
+  if (!canvasEl) return;
+  canvasEl.innerHTML = "<pre>" + escapeHtml(String(message || "Template preview unavailable")) + "</pre>";
+}
+
+function graphAiMountTemplateHtml(canvasEl, html) {
+  if (!canvasEl) return;
+  var raw = String(html || "");
+  if (!raw) {
+    graphAiTemplateCanvasError(canvasEl, "Template preview unavailable");
+    return;
+  }
+  canvasEl.innerHTML = "";
+  var frame = document.createElement("iframe");
+  frame.className = "graph-ai-template-frame";
+  frame.setAttribute("sandbox", "allow-same-origin");
+  frame.setAttribute("referrerpolicy", "no-referrer");
+  frame.style.width = "100%";
+  frame.style.minHeight = "260px";
+  frame.style.border = "none";
+  frame.style.background = "transparent";
+  frame.srcdoc = raw;
+  canvasEl.appendChild(frame);
+}
+
+function graphAiRequestTemplatePreview(scope, data) {
+  var scopeKey = String(scope || "").toLowerCase();
+  var state = scopeKey === "enrich" ? GRAPH_AI.enrichTemplate : GRAPH_AI.createTemplate;
+  state.requestId = Number(state.requestId || 0) + 1;
+  state.pending = true;
+  state.frontHtml = "";
+  state.backHtml = "";
+  var payload = Object.assign({}, data && typeof data === "object" ? data : {}, {
+    scope: scopeKey,
+    request_id: state.requestId
+  });
+  graphAiPycmd("template_preview", payload);
+}
+
+function graphAiSetCreateTemplateSide(side) {
+  GRAPH_AI.createTemplate.side = String(side || "front").toLowerCase() === "back" ? "back" : "front";
+  graphAiMarkTemplateTabState(DOM.aiCreateTemplateFrontBtn, DOM.aiCreateTemplateBackBtn, GRAPH_AI.createTemplate.side);
+  graphAiRenderCreateTemplateCanvasFromState();
+}
+
+function graphAiSetEnrichTemplateSide(side) {
+  GRAPH_AI.enrichTemplate.side = String(side || "front").toLowerCase() === "back" ? "back" : "front";
+  graphAiMarkTemplateTabState(DOM.aiEnrichTemplateFrontBtn, DOM.aiEnrichTemplateBackBtn, GRAPH_AI.enrichTemplate.side);
+  graphAiRenderEnrichTemplateCanvasFromState();
+}
+
+function graphAiRenderCreateTemplateCanvasFromState() {
+  if (!DOM.aiCreateTemplateCanvas) return;
+  var state = GRAPH_AI.createTemplate || {};
+  if (state.pending) {
+    graphAiTemplateCanvasLoading(DOM.aiCreateTemplateCanvas);
+    return;
+  }
+  var html = String(state.side === "back" ? state.backHtml : state.frontHtml);
+  if (!html) {
+    graphAiTemplateCanvasError(DOM.aiCreateTemplateCanvas, "Template preview unavailable");
+    return;
+  }
+  graphAiMountTemplateHtml(DOM.aiCreateTemplateCanvas, html);
+}
+
+function graphAiRenderEnrichTemplateCanvasFromState() {
+  if (!DOM.aiEnrichTemplateCanvas) return;
+  var state = GRAPH_AI.enrichTemplate || {};
+  if (state.pending) {
+    graphAiTemplateCanvasLoading(DOM.aiEnrichTemplateCanvas);
+    return;
+  }
+  var html = String(state.side === "back" ? state.backHtml : state.frontHtml);
+  if (!html) {
+    graphAiTemplateCanvasError(DOM.aiEnrichTemplateCanvas, "Template preview unavailable");
+    return;
+  }
+  graphAiMountTemplateHtml(DOM.aiEnrichTemplateCanvas, html);
+}
+
 function graphAiToggleCreatePreviewMode() {
   var mode = DOM.aiCreatePreviewMode ? String(DOM.aiCreatePreviewMode.value || "json") : "json";
-  if (DOM.aiCreatePreviewJson) DOM.aiCreatePreviewJson.classList.toggle("is-hidden", mode !== "json");
-  if (DOM.aiCreatePreviewFields) DOM.aiCreatePreviewFields.classList.toggle("is-hidden", mode !== "fields");
-  if (DOM.aiCreatePreviewTemplate) DOM.aiCreatePreviewTemplate.classList.toggle("is-hidden", mode !== "template");
+  graphAiSetPreviewPaneVisible(DOM.aiCreatePreviewJson, mode === "json");
+  graphAiSetPreviewPaneVisible(DOM.aiCreatePreviewFields, mode === "fields");
+  graphAiSetPreviewPaneVisible(DOM.aiCreatePreviewTemplate, mode === "template");
+  if (mode === "template") graphAiRenderCreateTemplateCanvasFromState();
 }
 
 function graphAiToggleEnrichPreviewMode() {
   var mode = DOM.aiEnrichPreviewMode ? String(DOM.aiEnrichPreviewMode.value || "json") : "json";
-  if (DOM.aiEnrichPreviewJson) DOM.aiEnrichPreviewJson.classList.toggle("is-hidden", mode !== "json");
-  if (DOM.aiEnrichPreviewTemplate) DOM.aiEnrichPreviewTemplate.classList.toggle("is-hidden", mode !== "template");
+  graphAiSetPreviewPaneVisible(DOM.aiEnrichPreviewJson, mode === "json");
+  graphAiSetPreviewPaneVisible(DOM.aiEnrichPreviewTemplate, mode === "template");
+  if (mode === "template") graphAiRenderEnrichTemplateCanvasFromState();
 }
 
 function graphAiCurrentCreatePreview() {
@@ -1828,9 +1937,9 @@ function graphAiRenderCreateFields(preview) {
 }
 
 function graphAiRenderCreateTemplate(preview) {
-  if (!DOM.aiCreateTemplateCanvas) return;
-  var fields = preview && preview.note_fields && typeof preview.note_fields === "object" ? preview.note_fields : {};
-  DOM.aiCreateTemplateCanvas.innerHTML = "<pre>" + escapeHtml(JSON.stringify(fields, null, 2)) + "</pre>";
+  GRAPH_AI.createTemplate.pending = true;
+  graphAiRenderCreateTemplateCanvasFromState();
+  graphAiRequestTemplatePreview("create", { preview: preview && typeof preview === "object" ? preview : {} });
 }
 
 function graphAiRenderCreatePrereqs(preview) {
@@ -1871,6 +1980,10 @@ function graphAiRenderCreatePreviewState() {
   var preview = graphAiCurrentCreatePreview();
   if (!preview) {
     graphAiSetCreateJsonPreview("{}");
+    GRAPH_AI.createTemplate.pending = false;
+    GRAPH_AI.createTemplate.frontHtml = "";
+    GRAPH_AI.createTemplate.backHtml = "";
+    graphAiRenderCreateTemplateCanvasFromState();
     if (DOM.aiCreateResultStatus) DOM.aiCreateResultStatus.textContent = "Result: -";
     return;
   }
@@ -1883,10 +1996,13 @@ function graphAiRenderCreatePreviewState() {
   graphAiRenderCreateResultsList();
 }
 
-function graphAiRenderEnrichTemplate(patch) {
-  if (!DOM.aiEnrichTemplateCanvas) return;
-  var src = patch && typeof patch === "object" ? patch : {};
-  DOM.aiEnrichTemplateCanvas.innerHTML = "<pre>" + escapeHtml(JSON.stringify(src, null, 2)) + "</pre>";
+function graphAiRenderEnrichTemplate(patch, nid) {
+  GRAPH_AI.enrichTemplate.pending = true;
+  graphAiRenderEnrichTemplateCanvasFromState();
+  graphAiRequestTemplatePreview("enrich", {
+    nid: Number(nid || 0),
+    patch: patch && typeof patch === "object" ? patch : {}
+  });
 }
 
 function graphAiSendCreatePreview() {
@@ -2066,6 +2182,10 @@ function graphAiWireGlobalCallbacks() {
     if (!out.ok) {
       graphAiSetPerfText(DOM.aiCreatePerf, "Perf: create preview failed");
       graphAiSetCreateJsonPreview(JSON.stringify(out, null, 2));
+      GRAPH_AI.createTemplate.pending = false;
+      GRAPH_AI.createTemplate.frontHtml = "";
+      GRAPH_AI.createTemplate.backHtml = "";
+      graphAiRenderCreateTemplateCanvasFromState();
       return;
     }
     var result = out.result && typeof out.result === "object" ? out.result : {};
@@ -2109,13 +2229,17 @@ function graphAiWireGlobalCallbacks() {
     if (!out.ok) {
       graphAiSetPerfText(DOM.aiEnrichPerf, "Perf: enrich preview failed");
       graphAiSetEnrichJsonPreview(JSON.stringify(out, null, 2));
+      GRAPH_AI.enrichTemplate.pending = false;
+      GRAPH_AI.enrichTemplate.frontHtml = "";
+      GRAPH_AI.enrichTemplate.backHtml = "";
+      graphAiRenderEnrichTemplateCanvasFromState();
       return;
     }
     var result = out.result && typeof out.result === "object" ? out.result : {};
     GRAPH_AI.enrichPatch = result.patch && typeof result.patch === "object" ? result.patch : {};
     GRAPH_AI.enrichNid = Number(result.nid || 0);
     graphAiSetEnrichJsonPreview(JSON.stringify(GRAPH_AI.enrichPatch, null, 2));
-    graphAiRenderEnrichTemplate(GRAPH_AI.enrichPatch);
+    graphAiRenderEnrichTemplate(GRAPH_AI.enrichPatch, GRAPH_AI.enrichNid);
     if (DOM.aiEnrichStatus) DOM.aiEnrichStatus.textContent = "Patch: " + String(Object.keys(GRAPH_AI.enrichPatch).length) + " fields";
     graphAiSetPerfText(DOM.aiEnrichPerf, "Perf: enrich preview " + String(out.elapsed_ms || 0) + " ms");
   };
@@ -2145,10 +2269,36 @@ function graphAiWireGlobalCallbacks() {
       if (!GRAPH_AI.enrichPatch || typeof GRAPH_AI.enrichPatch !== "object") GRAPH_AI.enrichPatch = {};
       GRAPH_AI.enrichPatch.Mnemonic = mnemonic;
       graphAiSetEnrichJsonPreview(JSON.stringify(GRAPH_AI.enrichPatch, null, 2));
-      graphAiRenderEnrichTemplate(GRAPH_AI.enrichPatch);
+      graphAiRenderEnrichTemplate(GRAPH_AI.enrichPatch, GRAPH_AI.enrichNid);
       updateStatus("AI enrich mnemonic updated");
     }
     graphAiSetPerfText(DOM.aiEnrichPerf, "Perf: mnemonic retry " + String(out.elapsed_ms || 0) + " ms");
+  };
+
+  window.onGraphAiTemplatePreviewResult = function (payload) {
+    var out = payload && typeof payload === "object" ? payload : {};
+    var result = out.result && typeof out.result === "object" ? out.result : {};
+    var scope = String(result.scope || "").toLowerCase();
+    var requestId = Number(result.request_id || 0);
+    if (scope !== "create" && scope !== "enrich") return;
+
+    var state = scope === "enrich" ? GRAPH_AI.enrichTemplate : GRAPH_AI.createTemplate;
+    if (!isFiniteNumber(requestId) || requestId <= 0) return;
+    if (requestId !== Number(state.requestId || 0)) return;
+
+    state.pending = false;
+    if (!out.ok) {
+      state.frontHtml = "";
+      state.backHtml = "";
+      if (scope === "enrich") graphAiRenderEnrichTemplateCanvasFromState();
+      else graphAiRenderCreateTemplateCanvasFromState();
+      return;
+    }
+
+    state.frontHtml = String(result.front_html || "");
+    state.backHtml = String(result.back_html || "");
+    if (scope === "enrich") graphAiRenderEnrichTemplateCanvasFromState();
+    else graphAiRenderCreateTemplateCanvasFromState();
   };
 }
 
@@ -2260,6 +2410,8 @@ function wireDom() {
   DOM.aiCreatePreviewFieldsBody = DOM.aiCreatePreviewFields ? DOM.aiCreatePreviewFields.querySelector("tbody") : null;
   DOM.aiCreatePreviewTemplate = byId("graph-ai-create-preview-template");
   DOM.aiCreateTemplateCanvas = DOM.aiCreatePreviewTemplate ? DOM.aiCreatePreviewTemplate.querySelector(".graph-ai-template-canvas") : null;
+  DOM.aiCreateTemplateFrontBtn = byId("graph-ai-create-template-front");
+  DOM.aiCreateTemplateBackBtn = byId("graph-ai-create-template-back");
   DOM.aiCreateResultsList = byId("graph-ai-create-results-list");
   DOM.aiEnrichNid = byId("graph-ai-enrich-nid");
   DOM.aiEnrichMode = byId("graph-ai-enrich-mode");
@@ -2273,6 +2425,8 @@ function wireDom() {
   DOM.aiEnrichPreviewJsonPre = DOM.aiEnrichPreviewJson ? DOM.aiEnrichPreviewJson.querySelector("pre") : null;
   DOM.aiEnrichPreviewTemplate = byId("graph-ai-enrich-preview-template");
   DOM.aiEnrichTemplateCanvas = DOM.aiEnrichPreviewTemplate ? DOM.aiEnrichPreviewTemplate.querySelector(".graph-ai-template-canvas") : null;
+  DOM.aiEnrichTemplateFrontBtn = byId("graph-ai-enrich-template-front");
+  DOM.aiEnrichTemplateBackBtn = byId("graph-ai-enrich-template-back");
   DOM.aiDuplicateDialog = byId("graph-ai-duplicate-dialog");
   DOM.aiDuplicateCancelBtn = byId("graph-ai-duplicate-cancel");
   DOM.aiDuplicateEnrichBtn = byId("graph-ai-duplicate-enrich");
@@ -2439,8 +2593,28 @@ function wireDom() {
   if (DOM.aiCreatePreviewMode) {
     DOM.aiCreatePreviewMode.addEventListener("change", graphAiToggleCreatePreviewMode);
   }
+  if (DOM.aiCreateTemplateFrontBtn) {
+    DOM.aiCreateTemplateFrontBtn.addEventListener("click", function () {
+      graphAiSetCreateTemplateSide("front");
+    });
+  }
+  if (DOM.aiCreateTemplateBackBtn) {
+    DOM.aiCreateTemplateBackBtn.addEventListener("click", function () {
+      graphAiSetCreateTemplateSide("back");
+    });
+  }
   if (DOM.aiEnrichPreviewMode) {
     DOM.aiEnrichPreviewMode.addEventListener("change", graphAiToggleEnrichPreviewMode);
+  }
+  if (DOM.aiEnrichTemplateFrontBtn) {
+    DOM.aiEnrichTemplateFrontBtn.addEventListener("click", function () {
+      graphAiSetEnrichTemplateSide("front");
+    });
+  }
+  if (DOM.aiEnrichTemplateBackBtn) {
+    DOM.aiEnrichTemplateBackBtn.addEventListener("click", function () {
+      graphAiSetEnrichTemplateSide("back");
+    });
   }
   if (DOM.aiCreatePreviewBtn) {
     DOM.aiCreatePreviewBtn.addEventListener("click", function () {
@@ -2690,6 +2864,8 @@ function wireDom() {
 
   if (typeof syncDebugPerfMonitor === "function") syncDebugPerfMonitor();
   graphAiWireGlobalCallbacks();
+  graphAiSetCreateTemplateSide("front");
+  graphAiSetEnrichTemplateSide("front");
   graphAiToggleCreatePreviewMode();
   graphAiToggleEnrichPreviewMode();
   syncAiControlVisibility();
