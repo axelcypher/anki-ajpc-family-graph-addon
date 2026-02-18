@@ -1727,6 +1727,7 @@ function updateEnrichDialogVisibility(open) {
 var GRAPH_AI = {
   createResults: [],
   createIndex: 0,
+  createApplyState: {},
   duplicatePreview: null,
   mnemonicRejectMode: "",
   enrichPatch: null,
@@ -1784,6 +1785,14 @@ function graphAiSetCreateJsonPreview(content) {
 function graphAiSetEnrichJsonPreview(content) {
   if (!DOM.aiEnrichPreviewJsonPre) return;
   DOM.aiEnrichPreviewJsonPre.textContent = String(content || "{}");
+}
+
+function graphAiRunningPreviewJson(label) {
+  return JSON.stringify({
+    status: "running",
+    phase: String(label || "request"),
+    message: "request in progress"
+  }, null, 2);
 }
 
 function graphAiSetPreviewPaneVisible(el, visible) {
@@ -1914,6 +1923,14 @@ function graphAiCurrentCreatePreview() {
   return GRAPH_AI.createResults[idx] || null;
 }
 
+function graphAiCreateResultStatusSuffix(state) {
+  var row = state && typeof state === "object" ? state : {};
+  var status = String(row.status || "").toLowerCase();
+  if (status === "created") return " \u2713";
+  if (status === "enriched") return " \u2022";
+  return "";
+}
+
 function graphAiRenderCreateFields(preview) {
   if (!DOM.aiCreatePreviewFieldsBody) return;
   DOM.aiCreatePreviewFieldsBody.innerHTML = "";
@@ -1967,7 +1984,11 @@ function graphAiRenderCreateResultsList() {
     var req = item && item.request && item.request.source && typeof item.request.source === "object" ? item.request.source : {};
     var vocab = item && item.card && item.card.vocab && typeof item.card.vocab === "object" ? item.card.vocab : {};
     var label = String(req.text || vocab.furigana || vocab.reading || ("Result " + (idx + 1)));
-    li.textContent = label;
+    var stateMap = GRAPH_AI.createApplyState && typeof GRAPH_AI.createApplyState === "object"
+      ? GRAPH_AI.createApplyState
+      : {};
+    var status = stateMap[String(idx)] || null;
+    li.textContent = label + graphAiCreateResultStatusSuffix(status);
     li.addEventListener("click", function () {
       GRAPH_AI.createIndex = idx;
       graphAiRenderCreatePreviewState();
@@ -2012,7 +2033,7 @@ function graphAiSendCreatePreview() {
   }
   var req = graphAiNormalizeCreateRequestFromDom();
   graphAiSetPerfText(DOM.aiCreatePerf, "Perf: create preview running...");
-  graphAiSetCreateJsonPreview('{"ok":false,"error":"running"}');
+  graphAiSetCreateJsonPreview(graphAiRunningPreviewJson("create_preview"));
   graphAiPycmd("create_preview", req);
 }
 
@@ -2095,7 +2116,7 @@ function graphAiSendEnrichPreview() {
     return;
   }
   graphAiSetPerfText(DOM.aiEnrichPerf, "Perf: enrich preview running...");
-  graphAiSetEnrichJsonPreview('{"ok":false,"error":"running"}');
+  graphAiSetEnrichJsonPreview(graphAiRunningPreviewJson("enrich_preview"));
   graphAiPycmd("enrich_preview", { nid: nid, mode: mode });
 }
 
@@ -2191,6 +2212,7 @@ function graphAiWireGlobalCallbacks() {
     var result = out.result && typeof out.result === "object" ? out.result : {};
     GRAPH_AI.createResults = Array.isArray(result.results) ? result.results : [];
     GRAPH_AI.createIndex = 0;
+    GRAPH_AI.createApplyState = {};
     graphAiRenderCreatePreviewState();
     graphAiSetPerfText(DOM.aiCreatePerf, "Perf: create preview " + String(out.elapsed_ms || 0) + " ms");
   };
@@ -2203,9 +2225,36 @@ function graphAiWireGlobalCallbacks() {
       return;
     }
     var result = out.result && typeof out.result === "object" ? out.result : {};
+    if (result && result.ok !== false) {
+      var action = String(result.action || "").toLowerCase();
+      var idx = Number(GRAPH_AI.createIndex);
+      if (isFiniteNumber(idx) && idx >= 0) {
+        var state = null;
+        if (action === "create_new") {
+          var createdNid = Number(result.created_nid || 0);
+          state = {
+            status: "created",
+            nid: isFiniteNumber(createdNid) && createdNid > 0 ? Math.floor(createdNid) : 0
+          };
+        } else if (action === "enrich_existing") {
+          var updatedNid = Number(result.updated_nid || result.existing_nid || 0);
+          state = {
+            status: "enriched",
+            nid: isFiniteNumber(updatedNid) && updatedNid > 0 ? Math.floor(updatedNid) : 0
+          };
+        }
+        if (state) {
+          if (!GRAPH_AI.createApplyState || typeof GRAPH_AI.createApplyState !== "object") {
+            GRAPH_AI.createApplyState = {};
+          }
+          GRAPH_AI.createApplyState[String(idx)] = state;
+        }
+      }
+    }
     graphAiSetPerfText(DOM.aiCreatePerf, "Perf: create apply " + String(out.elapsed_ms || 0) + " ms");
     updateStatus("AI create apply: " + String(result.action || "done"));
     graphAiCloseDuplicateDialog();
+    graphAiRenderCreateResultsList();
   };
 
   window.onGraphAiCreateMnemonicResult = function (payload) {

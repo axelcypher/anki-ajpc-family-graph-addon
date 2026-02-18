@@ -44,6 +44,11 @@
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
+- Added per-row apply status indicator in Graph AI create result list:
+  - `✓` after successful create
+  - `•` after duplicate-enrich apply
+  - state resets on each new preview run.
+- Replaced misleading running placeholder payload (`ok=false/error=running`) with neutral in-progress payload (`status=running`) for create/enrich preview requests.
 - Fixed graph AI preview mode switching so create/enrich dialogs now show exactly one preview pane at a time (JSON/Fields/Template), instead of multiple panes staying visible.
 - Replaced graph AI template preview JSON placeholder with real front/back template rendering via backend bridge op `ai:template_preview` using the current Anki note type template.
 - Added hard availability guards for graph AI UI:

@@ -162,6 +162,10 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
   - `.devdocs/ENGINE_FEATURE_SHEET.md` (Sigma.js vs AntV G6 vs Cytoscape.js against AJpC feature requirements)
 - Graph AI preview modes now enforce single-pane visibility in runtime (JSON/Fields/Template are mutually exclusive in both create and enrich dialogs).
 - Graph AI template preview is rendered through backend bridge command `ai:template_preview` (front/back HTML from actual Anki note type template), not via JSON placeholder.
+- Graph AI create result list now shows a success marker per row after apply:
+  - `✓` for successfully created notes (`action=create_new`)
+  - `•` for successful enrich-on-duplicate (`action=enrich_existing`)
+- Running-preview placeholder now uses a neutral status payload (`status=running`) instead of an error-like payload.
 
 ## External Resources:
 Icon: Knowledge Graph (CC0) - source: https://www.svgrepo.com/svg/451006/knowledge-graph
