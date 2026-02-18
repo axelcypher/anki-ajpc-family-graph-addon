@@ -712,6 +712,21 @@ function buildContextMenuGroupsForCtx(ctx) {
       iconSpec: "browser",
       cb: function () { showToast("Open browser"); if (pycmd) pycmd("ctx:browser:" + node.id); }
     });
+    if (STATE && STATE.aiToolsAvailable) {
+      openGroup.push({
+        label: "AI Enrich...",
+        iconSpec: "editor",
+        cb: function () {
+          if (typeof window.openAiEnrichDialogForNodeId === "function") {
+            var opened = !!window.openAiEnrichDialogForNodeId(String(node.id || ""));
+            if (opened) showToast("AI enrich");
+            else showToast("AI enrich unavailable");
+          } else {
+            showToast("AI enrich unavailable");
+          }
+        }
+      });
+    }
   } else if (isNodeNoteTypeHub) {
     openGroup.push({
       label: "Open Browser by Mass Linker Tag",

@@ -111,6 +111,21 @@ def _resolve_tools_config_getter():
     return None
 
 
+def _is_ai_tools_api_available() -> bool:
+    try:
+        api = getattr(mw, "_ajpc_tools_ai_api", None)
+    except Exception:
+        api = None
+    if not isinstance(api, dict):
+        return False
+    required = ("preview_create", "apply_create", "preview_enrich_for_nid", "apply_enrich_patch")
+    for key in required:
+        fn = api.get(key)
+        if not callable(fn):
+            return False
+    return True
+
+
 def _tools_vendor_path() -> str | None:
     getter = _resolve_tools_config_getter()
     if not callable(getter):
@@ -2626,5 +2641,6 @@ def build_graph(col: Collection) -> dict[str, Any]:
             "card_dots_enabled": card_dots_enabled,
             "debug_enabled": debug_enabled,
             "debug_mode": debug_mode,
+            "ai_tools_available": _is_ai_tools_api_available(),
         },
     }

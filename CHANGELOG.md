@@ -6,6 +6,10 @@
 - None.
 
 ### Minor Updates
+- Wired graph-side AI popup flows to AJpC Tools AI API bridge (`ai:*`):
+  - create preview/apply/mnemonic-retry
+  - enrich preview/apply/mnemonic-retry
+  - async backend execution via `QueryOp` with JS callbacks.
 - Added static graph-side AI UI shell markup in `web/graph.html`:
   - create popup window (`#graph-ai-create-dialog`)
   - enrich popup window (`#graph-ai-enrich-dialog`)
@@ -40,6 +44,10 @@
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
+- Added hard availability guards for graph AI UI:
+  - hide top-toolbar create button and close AI dialogs when AJpC Tools AI is not active
+  - hide runtime context-menu `AI Enrich...` entry when AI API is unavailable
+  - return structured callback errors instead of throwing bridge exceptions when AI API is missing.
 - Wired `#btn-ai-create` in `web/adapters/city/ui/graph.city.ui.js` so clicking Create now opens the create popup shell; close via close button, backdrop click, and `Esc`.
 - Fixed Family-ID browser filter queries for IDs containing spaces (`ctx:filter`) by using quoted regex search with compatibility fallback.
 - Fixed right-click/context stability after note edits by remapping runtime index/state on delta apply instead of forcing full engine rebuild.

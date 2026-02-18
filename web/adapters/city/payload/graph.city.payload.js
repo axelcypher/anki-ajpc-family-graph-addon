@@ -1223,6 +1223,9 @@ function ensureRuntimeState() {
   if (STATE.isFirstRender) {
     STATE.showUnlinked = !!meta.show_unlinked;
   }
+  if (Object.prototype.hasOwnProperty.call(meta, "ai_tools_available")) {
+    STATE.aiToolsAvailable = !!meta.ai_tools_available;
+  }
 
   var noteTypesArray = Array.isArray(meta.note_types) ? meta.note_types : [];
   var nextNoteTypes = {};

@@ -27,6 +27,7 @@ var STATE = {
   renderer: {},
   node: {},
   showUnlinked: false,
+  aiToolsAvailable: false,
   noteTypes: {},
   activeNodes: [],
   activeEdges: [],

@@ -252,6 +252,75 @@ class GraphBridgeHandlersMixin:
 
         QueryOp(parent=self, op=op, success=on_success).failure(on_failure).run_in_background()
 
+    def _emit_graph_ai_callback(self, callback_name: str, payload: dict[str, Any]) -> None:
+        try:
+            payload_json = json.dumps(payload or {}, ensure_ascii=False).replace("</", "<\\/")
+            js = (
+                "(function(){"
+                "if(window." + str(callback_name) + "){"
+                "window." + str(callback_name) + "(" + payload_json + ");"
+                "}"
+                "})();"
+            )
+            self.web.eval(js)
+        except Exception:
+            logger.dbg("graph ai callback failed", callback_name)
+
+    def _graph_ai_api(self) -> dict[str, Any] | None:
+        try:
+            api = getattr(mw, "_ajpc_tools_ai_api", None)
+        except Exception:
+            api = None
+        if not isinstance(api, dict):
+            return None
+        return api
+
+    def _graph_ai_status_payload(self) -> dict[str, Any]:
+        api = self._graph_ai_api()
+        if not api:
+            return {"ok": True, "available": False, "error": "ai_api_unavailable"}
+        required = ("preview_create", "apply_create", "preview_enrich_for_nid", "apply_enrich_patch")
+        missing = [k for k in required if not callable(api.get(k))]
+        if missing:
+            return {"ok": True, "available": False, "error": "ai_api_missing_methods", "missing": missing}
+        return {"ok": True, "available": True, "error": ""}
+
+    def _graph_ai_run_background(
+        self,
+        *,
+        callback_name: str,
+        op_name: str,
+        op_fn,
+        on_success: Any = None,
+    ) -> None:
+        started = time.perf_counter()
+
+        def op(_col):
+            return op_fn()
+
+        def success(result: Any) -> None:
+            try:
+                if callable(on_success):
+                    on_success(result)
+            except Exception as exc:
+                logger.warn("graph ai success hook failed", op_name, repr(exc))
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            self._emit_graph_ai_callback(
+                callback_name,
+                {"ok": True, "result": result, "elapsed_ms": elapsed_ms},
+            )
+            logger.info("graph ai", op_name, "ok", "elapsed_ms=", elapsed_ms)
+
+        def failure(err: Exception) -> None:
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            self._emit_graph_ai_callback(
+                callback_name,
+                {"ok": False, "error": repr(err), "elapsed_ms": elapsed_ms},
+            )
+            logger.warn("graph ai", op_name, "failed", repr(err), "elapsed_ms=", elapsed_ms)
+
+        QueryOp(parent=self, op=op, success=success).failure(failure).run_in_background()
+
     def _on_bridge_cmd(self, message: str) -> Any:
         # JS -> Python bridge: apply config changes and context actions.
         if message == "refresh":
@@ -739,6 +808,232 @@ class GraphBridgeHandlersMixin:
                 logger.dbg("deptree", nid, "nodes=", len(data.get("nodes", []) or []), "edges=", len(data.get("edges", []) or []))
             except Exception:
                 logger.dbg("deptree failed", message)
+        elif message.startswith("ai:"):
+            try:
+                _prefix, rest = message.split(":", 1)
+                kind, _sep, payload = rest.partition(":")
+                kind = str(kind or "").strip().lower()
+                payload = str(payload or "")
+            except Exception:
+                logger.dbg("ai parse failed", message)
+                return None
+
+            if kind == "status":
+                self._emit_graph_ai_callback("onGraphAiStatus", self._graph_ai_status_payload())
+                return None
+
+            status = self._graph_ai_status_payload()
+            if not bool(status.get("available")):
+                cb_map = {
+                    "create_preview": "onGraphAiCreatePreviewResult",
+                    "create_apply": "onGraphAiCreateApplyResult",
+                    "create_regen_mnemonic": "onGraphAiCreateMnemonicResult",
+                    "enrich_preview": "onGraphAiEnrichPreviewResult",
+                    "enrich_apply": "onGraphAiEnrichApplyResult",
+                    "enrich_regen_mnemonic": "onGraphAiEnrichMnemonicResult",
+                }
+                callback_name = cb_map.get(kind, "onGraphAiStatus")
+                self._emit_graph_ai_callback(
+                    callback_name,
+                    {
+                        "ok": False,
+                        "error": str(status.get("error") or "ai_api_unavailable"),
+                        "available": False,
+                    },
+                )
+                return None
+
+            api = self._graph_ai_api() or {}
+
+            def _decode_payload() -> dict[str, Any]:
+                try:
+                    data = json.loads(unquote(payload)) if payload else {}
+                except Exception:
+                    data = {}
+                if not isinstance(data, dict):
+                    data = {}
+                return data
+
+            if kind == "create_preview":
+                def _op_create_preview():
+                    data = _decode_payload()
+                    source = data.get("source")
+                    source_kind = ""
+                    if isinstance(source, dict):
+                        source_kind = str(source.get("kind") or "").strip().lower()
+                    if source_kind == "list" and callable(api.get("preview_create_batch")):
+                        out_raw = api["preview_create_batch"](data)
+                        out_list = list(out_raw or []) if isinstance(out_raw, list) else []
+                    else:
+                        fn = api.get("preview_create")
+                        if not callable(fn):
+                            raise RuntimeError("preview_create is not available")
+                        one = fn(data)
+                        out_list = [one] if isinstance(one, dict) else []
+                    return {"results": out_list, "source_kind": source_kind}
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiCreatePreviewResult",
+                    op_name="create_preview",
+                    op_fn=_op_create_preview,
+                )
+                return None
+
+            if kind == "create_apply":
+                def _op_create_apply():
+                    data = _decode_payload()
+                    preview = data.get("preview") if isinstance(data.get("preview"), dict) else {}
+                    action = data.get("action") if isinstance(data.get("action"), dict) else {}
+                    fn = api.get("apply_create")
+                    if not callable(fn):
+                        raise RuntimeError("apply_create is not available")
+                    return fn(preview, action)
+
+                def _on_create_apply_success(result: Any) -> None:
+                    out = result if isinstance(result, dict) else {}
+                    if not bool(out.get("ok", False)):
+                        return
+                    touched: list[int] = []
+                    for key in ("created_nid", "updated_nid"):
+                        try:
+                            nid = int(out.get(key) or 0)
+                        except Exception:
+                            nid = 0
+                        if nid > 0:
+                            touched.append(nid)
+                    for raw in list(out.get("created_prereq_nids", []) or []):
+                        try:
+                            nid2 = int(raw)
+                        except Exception:
+                            nid2 = 0
+                        if nid2 > 0:
+                            touched.append(nid2)
+                    dedup: list[int] = []
+                    seen: set[int] = set()
+                    for nid3 in touched:
+                        if nid3 in seen:
+                            continue
+                        seen.add(nid3)
+                        dedup.append(nid3)
+                    if not dedup:
+                        return
+                    if len(dedup) <= 250:
+                        self._enqueue_note_delta(dedup, "ai create apply")
+                    else:
+                        self._schedule_refresh("ai create apply bulk")
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiCreateApplyResult",
+                    op_name="create_apply",
+                    op_fn=_op_create_apply,
+                    on_success=_on_create_apply_success,
+                )
+                return None
+
+            if kind == "create_regen_mnemonic":
+                def _op_create_regen_mnemonic():
+                    data = _decode_payload()
+                    preview = data.get("preview") if isinstance(data.get("preview"), dict) else {}
+                    reason = str(data.get("reason") or "")
+                    fn = api.get("regenerate_mnemonic_for_preview")
+                    if not callable(fn):
+                        raise RuntimeError("regenerate_mnemonic_for_preview is not available")
+                    return fn(preview=preview, rejection_reason=reason)
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiCreateMnemonicResult",
+                    op_name="create_regen_mnemonic",
+                    op_fn=_op_create_regen_mnemonic,
+                )
+                return None
+
+            if kind == "enrich_preview":
+                def _op_enrich_preview():
+                    data = _decode_payload()
+                    try:
+                        nid = int(data.get("nid") or 0)
+                    except Exception:
+                        nid = 0
+                    mode = str(data.get("mode") or "correct_all").strip() or "correct_all"
+                    if nid <= 0:
+                        raise ValueError("invalid nid")
+                    fn = api.get("preview_enrich_for_nid")
+                    if not callable(fn):
+                        raise RuntimeError("preview_enrich_for_nid is not available")
+                    return fn(nid=nid, mode=mode)
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiEnrichPreviewResult",
+                    op_name="enrich_preview",
+                    op_fn=_op_enrich_preview,
+                )
+                return None
+
+            if kind == "enrich_apply":
+                def _op_enrich_apply():
+                    data = _decode_payload()
+                    try:
+                        nid = int(data.get("nid") or 0)
+                    except Exception:
+                        nid = 0
+                    patch = data.get("patch") if isinstance(data.get("patch"), dict) else {}
+                    fields = data.get("fields")
+                    if not isinstance(fields, list):
+                        fields = []
+                    if nid <= 0:
+                        raise ValueError("invalid nid")
+                    fn_selected = api.get("apply_enrich_patch_selected")
+                    if callable(fn_selected) and fields:
+                        return fn_selected(nid=nid, patch=patch, fields=fields)
+                    fn = api.get("apply_enrich_patch")
+                    if not callable(fn):
+                        raise RuntimeError("apply_enrich_patch is not available")
+                    return fn(nid, patch)
+
+                def _on_enrich_apply_success(result: Any) -> None:
+                    out = result if isinstance(result, dict) else {}
+                    if not bool(out.get("ok", False)):
+                        return
+                    try:
+                        nid = int(out.get("nid") or 0)
+                    except Exception:
+                        nid = 0
+                    changed = list(out.get("changed_fields", []) or [])
+                    if nid > 0 and changed:
+                        self._enqueue_note_delta([nid], "ai enrich apply")
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiEnrichApplyResult",
+                    op_name="enrich_apply",
+                    op_fn=_op_enrich_apply,
+                    on_success=_on_enrich_apply_success,
+                )
+                return None
+
+            if kind == "enrich_regen_mnemonic":
+                def _op_enrich_regen_mnemonic():
+                    data = _decode_payload()
+                    try:
+                        nid = int(data.get("nid") or 0)
+                    except Exception:
+                        nid = 0
+                    patch = data.get("patch") if isinstance(data.get("patch"), dict) else {}
+                    reason = str(data.get("reason") or "")
+                    if nid <= 0:
+                        raise ValueError("invalid nid")
+                    fn = api.get("regenerate_mnemonic_for_enrich_patch")
+                    if not callable(fn):
+                        raise RuntimeError("regenerate_mnemonic_for_enrich_patch is not available")
+                    return fn(nid=nid, patch=patch, rejection_reason=reason)
+
+                self._graph_ai_run_background(
+                    callback_name="onGraphAiEnrichMnemonicResult",
+                    op_name="enrich_regen_mnemonic",
+                    op_fn=_op_enrich_regen_mnemonic,
+                )
+                return None
+
+            logger.dbg("ai unknown kind", kind, payload)
         elif message.startswith("ctx:"):
             try:
                 _prefix, rest = message.split(":", 1)
