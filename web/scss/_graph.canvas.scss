@@ -1,4 +1,4 @@
-﻿#main-layout {
+#main-layout {
   flex: 1 1 auto;
   display: flex;
   min-width: 0;
@@ -11,20 +11,9 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-  background: var(--bg-main);
+  background: var(--bg-dark);
   overflow: hidden;
   isolation: isolate;
-}
-
-#graph-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: var(--bg-main-100);
-  opacity: 0;
-  transition: opacity 120ms ease;
 }
 
 #graph-panel.focus-mode::after {
@@ -53,11 +42,11 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 14px;
   padding: 8px 14px;
-  background: var(--bg-main);
-  border: 1px solid var(--border-100);
+  background: var(--bg);
+  border: 1px solid oklch(from var(--border) calc(l - 0.05) c h);
   border-radius: 999px;
   z-index: 4;
 }

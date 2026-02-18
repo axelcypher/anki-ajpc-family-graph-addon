@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
+import math
 import os
 import re
 
@@ -1014,29 +1015,276 @@ setTimeout(bindChromeObserver,120);
                 out[name] = value
         return out
 
+    def _split_css_top_level(self, raw: str, sep: str = ",") -> list[str]:
+        out: list[str] = []
+        cur: list[str] = []
+        depth = 0
+        for ch in str(raw or ""):
+            if ch == "(":
+                depth += 1
+                cur.append(ch)
+                continue
+            if ch == ")":
+                depth = max(0, depth - 1)
+                cur.append(ch)
+                continue
+            if ch == sep and depth == 0:
+                token = "".join(cur).strip()
+                if token:
+                    out.append(token)
+                cur = []
+                continue
+            cur.append(ch)
+        tail = "".join(cur).strip()
+        if tail:
+            out.append(tail)
+        return out
+
+    def _clamp01(self, value: float) -> float:
+        if value < 0.0:
+            return 0.0
+        if value > 1.0:
+            return 1.0
+        return value
+
+    def _parse_css_alpha_value(self, token: str) -> float | None:
+        s = str(token or "").strip().lower()
+        if not s:
+            return None
+        try:
+            if s.endswith("%"):
+                return self._clamp01(float(s[:-1].strip()) / 100.0)
+            val = float(s)
+            if val > 1.0:
+                val = val / 255.0
+            return self._clamp01(val)
+        except Exception:
+            return None
+
+    def _parse_css_rgb_channel(self, token: str) -> float | None:
+        s = str(token or "").strip().lower()
+        if not s:
+            return None
+        try:
+            if s.endswith("%"):
+                return self._clamp01(float(s[:-1].strip()) / 100.0)
+            return self._clamp01(float(s) / 255.0)
+        except Exception:
+            return None
+
+    def _parse_css_hex_color(self, value: str) -> tuple[float, float, float, float] | None:
+        s = str(value or "").strip()
+        if not s.startswith("#"):
+            return None
+        hexv = s[1:]
+        try:
+            if len(hexv) == 3:
+                r = int(hexv[0] * 2, 16)
+                g = int(hexv[1] * 2, 16)
+                b = int(hexv[2] * 2, 16)
+                a = 255
+            elif len(hexv) == 4:
+                r = int(hexv[0] * 2, 16)
+                g = int(hexv[1] * 2, 16)
+                b = int(hexv[2] * 2, 16)
+                a = int(hexv[3] * 2, 16)
+            elif len(hexv) == 6:
+                r = int(hexv[0:2], 16)
+                g = int(hexv[2:4], 16)
+                b = int(hexv[4:6], 16)
+                a = 255
+            elif len(hexv) == 8:
+                # CSS 8-digit hex is #RRGGBBAA.
+                r = int(hexv[0:2], 16)
+                g = int(hexv[2:4], 16)
+                b = int(hexv[4:6], 16)
+                a = int(hexv[6:8], 16)
+            else:
+                return None
+        except Exception:
+            return None
+        return (r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+
+    def _parse_css_rgb_function(self, value: str) -> tuple[float, float, float, float] | None:
+        m = re.match(r"^\s*rgba?\((.*)\)\s*$", str(value or ""), flags=re.IGNORECASE | re.DOTALL)
+        if not m:
+            return None
+        body = str(m.group(1) or "").strip()
+        alpha = 1.0
+        if "/" in body:
+            parts_raw, alpha_raw = body.rsplit("/", 1)
+            body = parts_raw.strip()
+            parsed_alpha = self._parse_css_alpha_value(alpha_raw)
+            if parsed_alpha is None:
+                return None
+            alpha = parsed_alpha
+        if "," in body:
+            parts = [p.strip() for p in body.split(",") if p.strip()]
+        else:
+            parts = [p.strip() for p in re.split(r"\s+", body) if p.strip()]
+        if len(parts) not in {3, 4}:
+            return None
+        if len(parts) == 4:
+            parsed_alpha = self._parse_css_alpha_value(parts[3])
+            if parsed_alpha is None:
+                return None
+            alpha = parsed_alpha
+        r = self._parse_css_rgb_channel(parts[0])
+        g = self._parse_css_rgb_channel(parts[1])
+        b = self._parse_css_rgb_channel(parts[2])
+        if r is None or g is None or b is None:
+            return None
+        return (r, g, b, alpha)
+
+    def _parse_css_oklch(self, value: str) -> tuple[float, float, float, float] | None:
+        m = re.match(r"^\s*oklch\((.*)\)\s*$", str(value or ""), flags=re.IGNORECASE | re.DOTALL)
+        if not m:
+            return None
+        body = str(m.group(1) or "").strip()
+        alpha = 1.0
+        if "/" in body:
+            main_raw, alpha_raw = body.rsplit("/", 1)
+            body = main_raw.strip()
+            parsed_alpha = self._parse_css_alpha_value(alpha_raw)
+            if parsed_alpha is None:
+                return None
+            alpha = parsed_alpha
+        parts = [p.strip() for p in re.split(r"\s+", body) if p.strip()]
+        if len(parts) < 3:
+            return None
+        l_raw = str(parts[0]).lower()
+        c_raw = str(parts[1]).lower()
+        h_raw = str(parts[2]).lower().removesuffix("deg")
+        try:
+            if l_raw.endswith("%"):
+                l = float(l_raw[:-1].strip()) / 100.0
+            else:
+                l = float(l_raw)
+                if l > 1.0:
+                    l = l / 100.0
+            if c_raw.endswith("%"):
+                c = float(c_raw[:-1].strip()) / 100.0
+            else:
+                c = float(c_raw)
+            h = float(h_raw)
+        except Exception:
+            return None
+
+        a = c * math.cos(math.radians(h))
+        b = c * math.sin(math.radians(h))
+        l_ = l + 0.3963377774 * a + 0.2158037573 * b
+        m_ = l - 0.1055613458 * a - 0.0638541728 * b
+        s_ = l - 0.0894841775 * a - 1.2914855480 * b
+        l3 = l_ * l_ * l_
+        m3 = m_ * m_ * m_
+        s3 = s_ * s_ * s_
+        r_lin = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3
+        g_lin = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3
+        b_lin = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3
+
+        def _lin_to_srgb(v: float) -> float:
+            if v <= 0.0:
+                return 0.0
+            if v <= 0.0031308:
+                return self._clamp01(12.92 * v)
+            return self._clamp01(1.055 * (v ** (1.0 / 2.4)) - 0.055)
+
+        return (_lin_to_srgb(r_lin), _lin_to_srgb(g_lin), _lin_to_srgb(b_lin), self._clamp01(alpha))
+
+    def _css_color_to_rgba(self, value: str) -> tuple[float, float, float, float] | None:
+        s = str(value or "").strip()
+        if not s:
+            return None
+        if s.lower() == "transparent":
+            return (0.0, 0.0, 0.0, 0.0)
+        return self._parse_css_hex_color(s) or self._parse_css_rgb_function(s) or self._parse_css_oklch(s)
+
+    def _rgba_to_qt_color(self, rgba: tuple[float, float, float, float]) -> str:
+        r, g, b, a = rgba
+        rb = int(round(self._clamp01(r) * 255.0))
+        gb = int(round(self._clamp01(g) * 255.0))
+        bb = int(round(self._clamp01(b) * 255.0))
+        ab = int(round(self._clamp01(a) * 255.0))
+        if ab >= 255:
+            return f"#{rb:02x}{gb:02x}{bb:02x}"
+        return f"rgba({rb}, {gb}, {bb}, {ab})"
+
+    def _parse_color_mix_part(self, value: str) -> tuple[str, float | None]:
+        s = str(value or "").strip()
+        m = re.match(r"^(.*)\s+([0-9]*\.?[0-9]+)%\s*$", s, flags=re.DOTALL)
+        if not m:
+            return s, None
+        expr = str(m.group(1) or "").strip()
+        try:
+            weight = float(str(m.group(2) or "").strip()) / 100.0
+        except Exception:
+            weight = None
+        return expr, weight
+
+    def _resolve_color_mix_to_qt(self, value: str, resolve_fn, depth: int) -> str | None:
+        m = re.match(r"^\s*color-mix\((.*)\)\s*$", str(value or ""), flags=re.IGNORECASE | re.DOTALL)
+        if not m:
+            return None
+        body = str(m.group(1) or "").strip()
+        mode = re.match(r"^\s*in\s+srgb\s*,(.*)\s*$", body, flags=re.IGNORECASE | re.DOTALL)
+        if not mode:
+            return None
+        parts = self._split_css_top_level(str(mode.group(1) or "").strip(), ",")
+        if len(parts) < 2:
+            return None
+        first_expr, first_w = self._parse_color_mix_part(parts[0])
+        second_expr, second_w = self._parse_color_mix_part(parts[1])
+        c1 = self._css_color_to_rgba(resolve_fn(first_expr, depth + 1))
+        c2 = self._css_color_to_rgba(resolve_fn(second_expr, depth + 1))
+        if c1 is None or c2 is None:
+            return None
+        if first_w is None and second_w is None:
+            first_w, second_w = 0.5, 0.5
+        elif first_w is None:
+            first_w = max(0.0, 1.0 - float(second_w or 0.0))
+        elif second_w is None:
+            second_w = max(0.0, 1.0 - float(first_w or 0.0))
+        total = float(first_w or 0.0) + float(second_w or 0.0)
+        if total <= 0.0:
+            return None
+        w1 = float(first_w or 0.0) / total
+        w2 = float(second_w or 0.0) / total
+        mixed = (
+            c1[0] * w1 + c2[0] * w2,
+            c1[1] * w1 + c2[1] * w2,
+            c1[2] * w1 + c2[2] * w2,
+            c1[3] * w1 + c2[3] * w2,
+        )
+        return self._rgba_to_qt_color(mixed)
+
     def _resolve_embedded_css_value(self, value: str) -> str:
         vars_map = self._get_embedded_editor_css_vars()
-        if not vars_map:
-            return str(value or "").strip()
 
         def _resolve(v: str, depth: int = 0) -> str:
-            if depth > 8:
-                return v
+            if depth > 16:
+                return str(v or "").strip()
             s = str(v or "").strip()
-            if "color-mix(" in s:
-                # Qt QSS cannot parse color-mix; use nearby token fallback.
-                return vars_map.get("--bg-chip-100", vars_map.get("--bg-chip", "#3e4350"))
             m = re.search(r"var\((--[a-zA-Z0-9_-]+)\)", s)
-            if not m:
-                return s
-            key = str(m.group(1) or "").strip()
-            rep = vars_map.get(key, "")
-            if not rep:
-                return s
-            s = s.replace(f"var({key})", rep)
-            return _resolve(s, depth + 1)
+            while m and depth <= 16:
+                key = str(m.group(1) or "").strip()
+                rep = vars_map.get(key, "")
+                if not rep:
+                    break
+                s = s.replace(str(m.group(0) or ""), rep, 1)
+                depth += 1
+                m = re.search(r"var\((--[a-zA-Z0-9_-]+)\)", s)
+            mixed = self._resolve_color_mix_to_qt(s, _resolve, depth)
+            if mixed:
+                return mixed
+            rgba = self._css_color_to_rgba(s)
+            if rgba is not None:
+                return self._rgba_to_qt_color(rgba)
+            if "color-mix(" in s:
+                # Last fallback when a mix expression cannot be parsed.
+                return vars_map.get("--bg-chip-100", vars_map.get("--bg-chip", "#3e4350"))
+            return s
 
-        return _resolve(value)
+        return _resolve(str(value or "").strip())
 
     def _strip_embedded_editor_chrome(self) -> None:
         # Remove legacy top "Edit" caption and divider from embedded Qt form, if present.

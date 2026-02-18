@@ -5,8 +5,8 @@
   // general style
   html,
   body {
-    background: var(--bg-panel) !important;
-    color: var(--text-main) !important;
+    background: var(--panel-bg) !important;
+    color: var(--text) !important;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -25,10 +25,10 @@
   }
 
   button {
-    border-radius: var(--radius-small) !important;
-    border: 1px solid var(--border-100) !important;
-    background: var(--bg-btn) !important;
-    color: var(--text-main) !important;
+    border-radius: var(--radius) !important;
+    border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h) !important;
+    background: var(--btn-bg) !important;
+    color: var(--text) !important;
     padding: 8px 10px;
     font-size: 13px;
     box-shadow:
@@ -41,7 +41,8 @@
     &:hover,
     &:active,
     &:focus-visible {
-      background: var(--bg-btn-soft) !important;
+      border: 1px solid oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+    background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
     }
   }
 
@@ -62,7 +63,7 @@
     }
 
     .label-name {
-      color: var(--text-soft);
+      color: var(--text-muted);
       font-size: 11px !important;
       margin-left: 5px !important;
       grid-area: select;
@@ -74,7 +75,7 @@
       justify-self: end;
       width: 0.8em;
       height: 0.5em;
-      background: var(--accent-100);
+      background: 1px solid oklch(from var(--accent) l c h / 75%);
       clip-path: polygon(100% 0%, 0 0%, 50% 100%);
       transition: transform .16s ease;
     }
@@ -89,7 +90,7 @@
   .cloze,
   mark {
     background: rgba(246, 134, 59, 0.25) !important;
-    color: var(--text-main) !important;
+    color: var(--text) !important;
   }
 
   .hidden {
@@ -110,8 +111,8 @@
 
       #ajpc-graph-editor-devtools,
       #ajpc-graph-editor-css-reload {
-        border-color: var(--accent-300) !important;
-        background: var(--accent-200) !important;
+        border-color: oklch(from var(--accent) l c h / 50%) !important;
+        background: oklch(from var(--accent) l c h / 75%) !important;
         box-shadow:
           0px 2px 1px -1px rgba(20, 20, 20, .12),
           0px 1px 1px 0px rgba(20, 20, 20, .06),
@@ -119,8 +120,8 @@
 
         &:hover,
         &:active {
-          border-color: var(--accent-200) !important;
-          background: var(--accent-100) !important;
+          border-color: oklch(from var(--accent) l c h / 50%) !important;
+          background: oklch(from var(--accent) l c h / 75%) !important;
         }
       }
 
@@ -143,14 +144,18 @@
     height: calc(100% - 59px) !important;
 
     .editor-toolbar {
-      background: var(--bg-panel) !important;
-      border-color: var(--border-100) !important;
+      background: var(--panel-bg) !important;
+      border-color: oklch(from var(--border) calc(l + 0.05) c h) !important;
       margin: 0 !important;
       padding: 3px 10px 3px 20px !important;
 
       [data-command="_ajpc_browser_graph_toggle_prio"],
       [data-command="_ajpc_browser_graph_toggle_graph"],
-      [data-command="_ajpc_browser_graph_toggle"] {
+      [data-command="_ajpc_browser_graph_toggle"],
+      [data-command="ajpc_ai_enrich_all"],
+      [data-command="ajpc_ai_enrich_mnemonic"],
+      [data-command="ajpc_ai_enrich_sent"]
+       {
         display: none !important;
       }
 
@@ -163,17 +168,17 @@
           &:hover,
           &:active,
           &:focus-visible {
-            background: var(--bg-btn-soft) !important;
+            background: oklch(from var(--accent) l c h / 75%) !important;
           }
 
           &.ajpc-edge-first {
-            border-top-left-radius: 5px !important;
-            border-bottom-left-radius: 5px !important;
+            border-top-left-radius: var(--radius-small) !important;
+            border-bottom-left-radius: var(--radius-small) !important;
           }
 
           &.ajpc-edge-last {
-            border-top-right-radius: 5px !important;
-            border-bottom-right-radius: 5px !important;
+            border-top-right-radius: var(--radius-small) !important;
+            border-bottom-right-radius: var(--radius-small) !important;
           }
         }
       }
@@ -195,9 +200,9 @@
     }
 
     .fields {
-      border: 1px solid var(--border-100) !important;
-      border-radius: var(--radius-small) !important;
-      background: var(--bg-panel-100) !important;
+      border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+      border-radius: var(--radius) !important;
+      background: color-mix(in oklch, var(--panel-bg), transparent 50%) !important;
       padding: 10px !important;
 
       .collapsible {
@@ -209,9 +214,9 @@
         grid-template-columns: 1fr;
         gap: 0px;
         align-items: center;
-        border: 1px solid var(--border-100);
-        border-radius: var(--radius-small);
-        background: var(--bg-panel);
+        border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+        border-radius: var(--radius);
+        background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
         padding: 5px 6px;
         font-size: 12px;
 
@@ -234,16 +239,16 @@
             outline: none;
 
             .editing-area {
-              background: var(--bg-chip);
-              border: 1px solid var(--border-100);
-              border-radius: var(--radius-small);
+              background: var(--chip-bg);
+              border: 1px solid oklch(from var(--chip-bg) calc(l + 0.025) c h);
+              border-radius: var(--radius);
 
               &:hover,
               &:active,
               &:focus,
               &:focus-visible {
 
-                border: 1px solid var(--accent-200);
+                border: 1px solid oklch(from var(--accent) l c h / 50%);
                 outline: none;
               }
 
@@ -252,13 +257,13 @@
               }
 
               &>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
-                border-radius: var(--radius-small);
-                background: var(--bg-chip);
+                border-radius: var(--radius);
+                background: var(--chip-bg);
               }
 
               &>.collapsible.full-hide:not(.hidden)>.rich-text-input {
-                border-radius: var(--radius-small);
-                background: var(--bg-chip-100);
+                border-radius: var(--radius);
+                background: oklch(from var(--chip-bg) calc(l + 0.02) c h);
               }
 
               &.ajpc-pair-plain-rich>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
@@ -298,13 +303,13 @@
     .collapsible {
       background: transparent !important;
       border: none !important;
-      color: var(--text-soft);
+      color: var(--text-muted);
       font-size: 12px !important;
 
       .tag-editor {
-        background: var(--bg-chip) !important;
-        border-radius: var(--radius-small) !important;
-        border: 1px solid var(--border-100) !important;
+        background: var(--chip-bg) !important;
+        border-radius: var(--radius) !important;
+        border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
         padding: 5px 6px !important;
         margin: 0 0 10px 0 !important;
         color: var(--text) !important;
@@ -312,19 +317,19 @@
         font-weight: 400 !important;
 
         .tag {
-          background: var(--bg-panel) !important;
-          color: var(--text-main) !important;
-          border: 1px solid var(--border-100) !important;
+          background: var(--panel-bg) !important;
+          color: var(--text) !important;
+          border: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h) !important;
           padding: 0px 3px 0px 3px;
           font-size: 12px !important;
-          border-radius: var(--radius-small) !important;
+          border-radius: var(--radius) !important;
           box-shadow: none !important;
           cursor: pointer;
 
           &:hover,
           &:active,
           &:focus-visible {
-            background: var(--bg-btn-soft) !important;
+            background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
           }
 
         }
@@ -333,34 +338,34 @@
   }
 
   .floating {
-    border-radius: var(--radius-small);
+    border-radius: var(--radius);
 
     .popover {
       padding: 0 !important;
-      border: 1px solid var(--border-100) !important;
-      background: var(--bg-popup) !important;
-      color: var(--text-main) !important;
-      border-radius: var(--radius-small);
+      border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+      background: var(--popup-bg) !important;
+      color: var(--text) !important;
+      border-radius: var(--radius);
 
       .autocomplete-menu {
         @include mixins.scrollbar();
-        border-radius: var(--radius-small);
+        border-radius: var(--radius);
 
         .autocomplete-item {
           border: none !important;
-          border-bottom: 1px solid var(--border) !important;
+          border-bottom: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
           padding: 7px 9px;
 
           &:hover {
             background: var(--bg-chip-100) !important;
             border: none !important;
-            border-bottom: 1px solid var(--accent-200) !important;
+            border-bottom: 1px solid oklch(from var(--accent) l c h / 75%) !important;
           }
 
           &.selected {
-            background: var(--accent-200) !important;
+            background: oklch(from var(--accent) l c h / 75%) !important;
             border: none !important;
-            border-bottom: 1px solid var(--accent-200) !important;
+            border-bottom: 1px solid oklch(from var(--accent) l c h / 75%) !important;
           }
         }
       }
@@ -368,7 +373,7 @@
 
     .floating-arrow {
       .arrow {
-        background: var(--bg-popup) !important;
+        background: var(--popup-bg) !important;
       }
     }
   }
@@ -377,9 +382,9 @@
 
     .tooltip-arrow,
     .tooltip-inner {
-      border: 1px solid var(--border-100) !important;
-      background: var(--bg-popup) !important;
-      color: var(--text-main) !important;
+      border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+      background: var(--popup-bg) !important;
+      color: var(--text) !important;
     }
   }
 

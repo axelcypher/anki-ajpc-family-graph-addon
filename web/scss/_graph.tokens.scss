@@ -1,54 +1,43 @@
-﻿:root,
+:root,
 #app {
-  --bg-main:          #16181d; 
-  --bg-main-100:      #16181d69; 
-
-  --bg-panel:         #20232b; 
-  --bg-panel-100:     #34394660; 
-  --bg-panel-200:     #4d55686b; 
-
-  --bg-chip:          #282c35; 
-  --bg-chip-100:      #3e435080; 
-  --bg-chip-200:      #17191f54; 
-
-  --bg-popup:         #2d313d; 
-
-  --bg-btn:           #282c35;  
-  --bg-btn-soft:      color-mix(
-                        in srgb, 
-                        var(--bg-btn), 
-                        var(--accent) 25%
-                      ); 
-
-  --border:           #17181a; 
-  --border-100:       #232427; 
-  --border-200:       #37393d83; 
-
-  --accent:           #6247AA;
-  --accent-100:       #6147aab2; 
-  --accent-200:       #6147aa80; 
-  --accent-300:       #6147aa49; 
-
-  --text-main:        #dbdbdb; 
-  --text-soft:        #adadad; 
 
 
-  --radius-small:     10px;
-  --radius-medium:    20px; 
-  --radius-large:     40px;
+  
+  --bg-dark:          oklch(15% 0.010 268);
+  --bg:               oklch(20% 0.010 268);
+  --bg-light:         oklch(25% 0.010 268);
+  
+  --panel-bg:         oklch(30% 0.015 273); 
+  --chip-bg:          oklch(from var(--panel-bg) calc(l - 0.025) c h); 
+  --popup-bg:         oklch(from var(--panel-bg) calc(l + 0.025) c h); //oklch(30% 0.022 270); 
+  --btn-bg:           oklch(from var(--panel-bg) calc(l - 0.055) c h);
 
-  --ok:               #6ee7b7;
-  --warn:             #fbcb71;
-  --danger:           #fb7185;
+  --accent:           oklch(35.558% 0.12502 322.71);
 
 
 
+  --border:           oklch(from var(--panel-bg) calc(l - 0.025) c h); 
 
-  --bg-btn-rfs-border:#83601a; 
-  --bg-btn-rfs:       #2d2210; 
-  --line:             #1f2027; //Dark Evergreen
-  --accent-light:     #A06CD5; //Lavender Purple
-  --accent-lighter:   #C19EE0; //Wisteria
-  --bg-main-soft:     #22252e; //Jet Black (medium)
+  --radius-small:     5px;
+  --radius:           10px; 
+  --radius-large:     20px;
+
+
+
+  --text:             oklch(90% 0 0); 
+  --text-muted:       oklch(75% 0 0); 
+
+  --text-size-small:  11px;
+  --text-size:        13px;
+  --text-size-large:  15px;
+
+  --shadow:           0px 2px 1px -1px rgba(20, 20, 20, .12), 0px 1px 1px 0px rgba(20, 20, 20, .06), 0px 1px 3px 0px rgba(20, 20, 20, .04);
+
+
+
+  --danger:           oklch(85% 0.150 015);
+  --warn:             oklch(85% 0.150 080);
+  --ok:               oklch(85% 0.150 165);
+  --info:             oklch(85% 0.150 230);
+
 }
-

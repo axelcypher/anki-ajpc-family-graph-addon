@@ -1,4 +1,119 @@
-﻿@use "graph.mixins" as mixins;
+@use "graph.mixins" as mixins;
+
+#toolbar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.1fr) minmax(300px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 25px;
+  background: var(--panel-bg);
+}
+
+#toolbar-left,
+#toolbar-center,
+#toolbar-right {
+  min-width: 0;
+}
+
+#toolbar-right {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+
+
+
+#btn-refresh,
+#btn-ai-create {
+  @include mixins.interactive-control-inverted(
+    $border: var(--accent),
+    $background: oklch(from var(--accent) calc(l + 0.05) c h / 30%)
+  );
+}
+
+#toolbar-debug {
+  @include mixins.button-group();
+  button {
+    @include mixins.interactive-control-inverted(
+      $border: oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h),
+      $background: oklch(from var(--accent) calc(l + 0.05) c h / 50%),
+      $radius: 0
+    );
+  }
+}
+
+#search-wrap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0;
+
+  #search-input-wrap{
+    position: relative;
+    margin-right: 0;
+    #search-input {
+      @include mixins.interactive-control(
+        $border: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%),
+        $background: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%),
+      );
+      position: absolute;
+      inset: 1px;
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+
+      &:hover,
+      &.active,
+      &:focus {
+        border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h / 50%);
+        background: oklch(from var(--chip-bg) calc(l + 0.05) c h / 50%);
+      }
+    }
+  }
+  #search-go {
+    width: 50px;
+    margin-left: 1px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+  #search-suggest {
+    @include mixins.scrollbar();
+    position: absolute;
+    top: calc(100% + 0px);
+    width: calc(100% - 50px);
+    left: 0;
+    right: 85px;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--popup-bg);
+    border-radius: var(--radius);
+    z-index: 500;
+
+    &.is-visible {
+      display: block;
+          border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+
+    }
+    .suggest-item {
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+
+      &:hover,
+      &:active {
+        background: oklch(from var(--popup-bg) calc(l + 0.05) c h / 50%);
+        border-bottom: 1px solid var(--accent);
+      }
+      .suggest-meta {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+
 
 #settings-panel {
   $cut-border-width: 2px;
@@ -9,7 +124,7 @@
   bottom: 0;
   width: min(390px, 42vw);
   min-height: 0;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
@@ -17,16 +132,16 @@
   &::before {
     content: "";
     position: absolute;
-    left: calc(var(--radius-large) * -1);
+    left: calc(var(--radius-large) * -2);
     top: 0;
-    width: var(--radius-large);
-    height: var(--radius-large);
-    background: var(--bg-panel);
+    width: calc(var(--radius-large) * 2);
+    height: calc(var(--radius-large) * 2);
+    background: var(--panel-bg);
     pointer-events: none;
     z-index: 121;
-    mask: radial-gradient(circle var(--radius-large) at 0 100%,
-        transparent calc(var(--radius-large) - 0px),
-        #000 var(--radius-large));
+    mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%,
+        transparent calc((var(--radius-large) * 2) - 0px),
+        #000 calc(var(--radius-large) * 2));
   }
 
   &.closed {
@@ -41,8 +156,9 @@
     overflow: auto;
     padding: 12px 12px;
     box-sizing: border-box;
-    border-bottom: 1px solid var(--border);
-
+    border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h);
+    box-shadow: var(--shadow);
+    
     .panel-head {
       display: flex;
       align-items: center;
@@ -57,60 +173,31 @@
     }
 
     #settings-tabs {
+      @include mixins.button-group();
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0px;
       
-
-      button {
-        @include mixins.interactive-control($background: var(--bg-btn));
-        cursor: pointer;
+      &button {
+        @include mixins.interactive-control(
+          $radius: 0
+        );
         font-weight: 600;
-        border-radius: 0;
-        margin: 0;
-
-        &:hover,
-        &.active {
-          @include mixins.interactive-control($background: var(--bg-btn-soft));
-          border-radius: 0;
-        }
-
-        &.active {
-          font-weight: 800;
-        }
       }
-
-      button:first-child {
-        border-top-left-radius: var(--radius-small);
-        border-bottom-left-radius: var(--radius-small);
-
-        &:hover:last-child,
-        &:active:last-child {
-          @include mixins.interactive-control($background: var(--bg-btn-soft));
-          border-top-left-radius: var(--radius-small);
-          border-bottom-left-radius: var(--radius-small);
-        }
+      .settings-tab.active{
+          border: 1px solid oklch(from var(--accent) l + 0.05 c h / 25%);
+          background: oklch(from var(--accent) l c h / 50%);
       }
-
-      button:last-child {
-        border-top-right-radius: var(--radius-small);
-        border-bottom-right-radius: var(--radius-small);
-
-        &:hover:first-child,
-        &:active:first-child {
-          @include mixins.interactive-control($background: var(--bg-btn-soft));
-          border-top-right-radius: var(--radius-small);
-          border-bottom-right-radius: var(--radius-small);
-        }
+      .settings-tab.active:hover{
+          border: 1px solid oklch(from var(--accent) l + 0.05 c h / 50%);
+          background: oklch(from var(--accent) l c h / 75%);
       }
-
     }
   }
 
 
   .settings-scroll {
     @include mixins.scrollbar();
-
     height: 88%;
     min-height: 0;
     overflow: auto;
@@ -118,28 +205,17 @@
     box-sizing: border-box;
     border: none;
 
-
-
-
-
     .settings-block {
-      @include mixins.surface-card($border: var(--border-100),
-        $background: var(--bg-panel-100),
-        $radius: var(--radius-small),
+      @include mixins.surface-card(
+        $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
+        $background: oklch(from var(--panel-bg) calc(l - 0.055) c h),
+        $radius: var(--radius),
         $padding: 10px);
       margin-bottom: 10px;
 
       h3 {
         margin: 0 0 8px 0;
         font-size: 14px;
-      }
-
-      #note-runtime-settings {
-        .line-item {
-          @include mixins.row-chip(
-            $background: var(--bg-panel),
-          );
-        }
       }
 
       #note-type-list {
@@ -154,13 +230,18 @@
             gap: 8px;
             margin-bottom: 6px;
             transition: margin-bottom 180ms ease;
-          
+
+            .line-item {
+              @include mixins.row-chip(
+                $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
+                $background: oklch(from var(--panel-bg) calc(l - 0.025) c h),
+              );
+            } 
             .note-type-name {
               font-size: 13px;
               font-weight: 700;
             }
           }
-
           .note-type-body {
             display: grid;
             grid-template-rows: 1fr;
@@ -170,9 +251,9 @@
             .note-type-body-inner {
               min-height: 0;
               overflow: hidden;
+              
             }
           }
-
           &.is-collapsed {
             .note-type-head {
               margin-bottom: 0;
@@ -184,8 +265,6 @@
               pointer-events: none;
             }
           }
-
-
           .note-field-grid {
             display: flex;
             flex-wrap:wrap;
@@ -206,14 +285,9 @@
             }
           }
         }
-
-
-
       }
-
       #link-runtime-settings {
         display: grid;
-        
         gap: 8px;
 
         #link-settings {
@@ -221,7 +295,6 @@
           gap: 8px;
         }
       }
-
       #link-layer-list {
         .link-type-card {
           @include mixins.surface-card();
@@ -240,13 +313,11 @@
               font-weight: 700;
               cursor: pointer;
             }
-
             .link-type-head-right {
               display: flex;
               align-items: center;
               gap: 6px;
             }
-
             .ln-collapse-indicator {
               width: 14px;
               height: 14px;
@@ -259,7 +330,7 @@
                 content: "";
                 width: 0.8em;
                 height: 0.5em;
-                background: var(--accent-100);
+                background: oklch(from var(--accent) l c h / 75%);
                 clip-path: polygon(100% 0%, 0 0%, 50% 100%);
                 transform: rotate(90deg);
                 transform-origin: 50% 50%;
@@ -350,7 +421,7 @@
 
                 .ln-ml-group-row {
                   @include mixins.row-chip(
-                    $background: var(--bg-panel),
+                    $background: var(--panel-bg),
                   );
                 }
               }
@@ -388,7 +459,7 @@
   bottom: 0;
   width: min(390px, 42vw);
   min-height: 0;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
@@ -396,16 +467,16 @@
   &::before {
     content: "";
     position: absolute;
-    right: calc(var(--radius-medium) * -1);
+    right: calc(var(--radius-large) * -1);
     top: 24px;
-    width: var(--radius-medium);
-    height: var(--radius-medium);
-    background: var(--bg-panel);
+    width: var(--radius-large);
+    height: var(--radius-large);
+    background: var(--panel-bg);
     pointer-events: none;
     z-index: 121;
-    mask: radial-gradient(circle var(--radius-medium) at 100% 100%,
-        transparent calc(var(--radius-medium) - 0px),
-        #000 var(--radius-medium));
+    mask: radial-gradient(circle var(--radius-large) at 100% 100%,
+        transparent calc(var(--radius-large) - 0px),
+        #000 var(--radius-large));
   }
 
   &.closed {
@@ -413,58 +484,5 @@
     opacity: 0;
     pointer-events: none;
     visibility: hidden;
-  }
-
-  #edit-head {
-    height: 12%;
-    overflow: auto;
-    padding: 12px 12px;
-    box-sizing: border-box;
-    border-bottom: 1px solid var(--border);
-
-    .panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-
-      h2 {
-        margin: 0;
-        font-size: 18px;
-      }
-    }
-  }
-  .edit-scroll {
-    @include mixins.scrollbar();
-
-    height: 88%;
-    min-height: 0;
-    overflow: auto;
-    padding: 12px 12px;
-    box-sizing: border-box;
-    border: none;
-
-    .editor-block {
-      @include mixins.surface-card($border: var(--border-100),
-        $background: var(--bg-panel-100),
-        $radius: var(--radius-small),
-        $padding: 10px
-      );
-      margin-bottom: 10px;
-
-      h3 {
-        margin: 0 0 8px 0;
-        font-size: 14px;
-      }
-    }
-
-    .tab-pane {
-      display: none;
-
-      &.active {
-        display: block;
-      }
-    }
-  }
+  }  
 }

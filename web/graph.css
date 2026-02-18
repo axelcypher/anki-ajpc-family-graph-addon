@@ -1,41 +1,27 @@
 :root,
 #app {
-  --bg-main: #16181d;
-  --bg-main-100: #16181d69;
-  --bg-panel: #20232b;
-  --bg-panel-100: #34394660;
-  --bg-panel-200: #4d55686b;
-  --bg-chip: #282c35;
-  --bg-chip-100: #3e435080;
-  --bg-chip-200: #17191f54;
-  --bg-popup: #2d313d;
-  --bg-btn: #282c35;
-  --bg-btn-soft: color-mix(
-                        in srgb,
-                        var(--bg-btn),
-                        var(--accent) 25%
-                      );
-  --border: #17181a;
-  --border-100: #232427;
-  --border-200: #37393d83;
-  --accent: #6247AA;
-  --accent-100: #6147aab2;
-  --accent-200: #6147aa80;
-  --accent-300: #6147aa49;
-  --text-main: #dbdbdb;
-  --text-soft: #adadad;
-  --radius-small: 10px;
-  --radius-medium: 20px;
-  --radius-large: 40px;
-  --ok: #6ee7b7;
-  --warn: #fbcb71;
-  --danger: #fb7185;
-  --bg-btn-rfs-border:#83601a;
-  --bg-btn-rfs: #2d2210;
-  --line: #1f2027;
-  --accent-light: #A06CD5;
-  --accent-lighter: #C19EE0;
-  --bg-main-soft: #22252e;
+  --bg-dark: oklch(15% 0.010 268);
+  --bg: oklch(20% 0.010 268);
+  --bg-light: oklch(25% 0.010 268);
+  --panel-bg: oklch(30% 0.015 273);
+  --chip-bg: oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  --popup-bg: oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  --btn-bg: oklch(from var(--panel-bg) calc(l - 0.055) c h);
+  --accent: oklch(35.558% 0.12502 322.71);
+  --border: oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  --radius-small: 5px;
+  --radius: 10px;
+  --radius-large: 20px;
+  --text: oklch(90% 0 0);
+  --text-muted: oklch(75% 0 0);
+  --text-size-small: 11px;
+  --text-size: 13px;
+  --text-size-large: 15px;
+  --shadow: 0px 2px 1px -1px rgba(20, 20, 20, .12), 0px 1px 1px 0px rgba(20, 20, 20, .06), 0px 1px 3px 0px rgba(20, 20, 20, .04);
+  --danger: oklch(85% 0.150 015);
+  --warn: oklch(85% 0.150 080);
+  --ok: oklch(85% 0.150 165);
+  --info: oklch(85% 0.150 230);
 }
 
 *,
@@ -53,8 +39,8 @@ body {
 
 body {
   font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
-  color: var(--text-main);
-  background: var(--bg-main);
+  color: var(--text);
+  background: var(--bg-dark);
 }
 
 #app {
@@ -66,141 +52,270 @@ body {
   min-height: 0;
 }
 
+a {
+  text-decoration: none;
+  color: var(--text);
+}
+a:hover {
+  color: oklch(from var(--accent) calc(l + 0.25) c h);
+}
+
 .hidden {
   display: none !important;
-}
-
-.stack {
-  display: grid;
-  gap: 8px;
-}
-
-.line-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--border-100);
-  border-radius: 8px;
-  background: var(--bg-chip);
-  padding: 5px 6px;
-  font-size: 12px;
-}
-
-.control-row {
-  display: grid;
-  grid-template-columns: 1fr minmax(66px, auto);
-  gap: 8px;
-  align-items: center;
-  border: 1px solid var(--border-100);
-  border-radius: 8px;
-  background: var(--bg-panel);
-  padding: 5px 6px;
-  font-size: 12px;
-}
-.control-row label {
-  color: var(--text-soft);
-  font-size: 11px;
-}
-
-.inline-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.inline-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-}
-
-.inline-4 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-.field-grid label {
-  display: grid;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-soft);
-}
-
-.hint {
-  margin: 0 0 8px 0;
-  color: var(--text-soft);
-  font-size: 11px;
 }
 
 .swatch {
   width: 10px;
   height: 10px;
-  border-radius: 5px;
-  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-small);
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
 }
 
-.fancy button,
-button {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
+.layer-pill {
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
+  background: var(--btn-bg);
+  color: var(--text);
+  padding: 4px 10px;
+  color: var(--text);
+  font-size: 11px;
+  box-shadow: var(--shadow);
+  outline: none;
   cursor: pointer;
+  user-select: none;
+}
+.layer-pill:hover, .layer-pill:focus {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+.layer-pill.active {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+.layer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+button {
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
+  background: var(--btn-bg);
+  color: var(--text);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+button:hover, button:focus {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+button.active {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+button {
   font-weight: 600;
 }
-.fancy button:hover, .fancy button:active,
-button:hover,
-button:active {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn-soft);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
-}
 
+input[type=number],
 input[type=text] {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
+  border-radius: 7px;
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: var(--chip-bg);
+  color: var(--text);
+  padding: 5px 6px;
+  color: var(--text);
+  font-size: var(--text-size-small);
+  outline: none;
+  cursor: pointer;
+}
+input[type=number]:hover, input[type=number].active, input[type=number]:focus,
+input[type=text]:hover,
+input[type=text].active,
+input[type=text]:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+input[type=number].active, input[type=number]:focus,
+input[type=text].active,
+input[type=text]:focus {
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+}
+input[type=number],
+input[type=text] {
   width: 100%;
 }
-input[type=text]:hover, input[type=text].active, input[type=text]:focus {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--accent-200);
-  background: var(--bg-chip);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
+
+input[type=checkbox] {
+  appearance: none;
+  border-radius: 7px;
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: var(--chip-bg);
+  color: var(--text);
+  padding: 0;
+  color: var(--text);
+  font-size: var(--text-size-small);
   outline: none;
+  cursor: pointer;
+}
+input[type=checkbox]:hover, input[type=checkbox].active, input[type=checkbox]:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+input[type=checkbox].active, input[type=checkbox]:focus {
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+}
+input[type=checkbox] {
+  margin: 0;
+  font: inherit;
+  width: var(--text-size);
+  height: var(--text-size);
+  border-radius: 2px;
+  display: grid;
+  place-content: center;
+}
+input[type=checkbox]::before {
+  content: "";
+  width: calc(var(--text-size) * 0.6);
+  height: calc(var(--text-size) * 0.6);
+  border-radius: 1px;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset var(--text-size) var(--text-size) var(--accent);
+}
+input[type=checkbox]:checked::before {
+  transform: scale(1);
+}
+
+.color-picker {
+  border-radius: 9999px;
+  padding: 2px;
+  width: 80%;
+  aspect-ratio: 1;
+  border: 0;
+}
+
+input[type=color] {
+  border-radius: 9999px;
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: transparent;
+  color: var(--text);
+  padding: 0px;
+  color: var(--text);
+  font-size: var(--text-size-small);
+  outline: none;
+  cursor: pointer;
+}
+input[type=color]:hover, input[type=color].active, input[type=color]:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+input[type=color].active, input[type=color]:focus {
+  background: oklch(from transparent calc(l + 0.05) c h);
+}
+input[type=color] {
+  width: 100%;
+  height: 100%;
+  margin-top: -2px;
+  cursor: pointer;
+  overflow: hidden;
+}
+input[type=color]:hover, input[type=color]:focus {
+  border: 2px solid var(--accent);
+}
+input[type=color]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 9999px;
+  border: transparent;
+}
+input[type=color]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 9999px;
+}
+
+.select {
+  border-radius: 7px;
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: var(--chip-bg);
+  color: var(--text);
+  padding: 5px 6px;
+  color: var(--text);
+  font-size: var(--text-size-small);
+  outline: none;
+  cursor: pointer;
+}
+.select:hover, .select.active, .select:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+.select.active, .select:focus {
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+}
+.select {
+  position: relative;
+  display: grid;
+  grid-template-areas: "select";
+  align-items: center;
+  cursor: pointer;
+  line-height: 1.1;
+}
+.select::after {
+  grid-area: select;
+}
+.select:hover, .select.active, .select:focus {
+  border: 1px solid transparent;
+}
+.select:not(.select--multiple)::after {
+  content: "";
+  grid-area: select;
+  justify-self: end;
+  width: 0.8em;
+  height: 0.5em;
+  background: var(--accent);
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+}
+.select:not(.select--multiple) option {
+  border-radius: 7px;
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: var(--chip-bg);
+  color: var(--text);
+  padding: 5px 6px;
+  color: var(--text);
+  font-size: var(--text-size-small);
+  outline: none;
+  cursor: pointer;
+}
+.select:not(.select--multiple) option:hover, .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+.select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h);
+}
+.select:not(.select--multiple) option {
+  display: flex;
+  justify-content: flex-start;
+  transition: 0.4s;
 }
 
 select::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 select::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-button {
@@ -221,70 +336,43 @@ select {
   line-height: inherit;
   outline: none;
   z-index: 1;
+  color: var(--text);
+  grid-area: select;
 }
 select::-ms-expand {
   display: none;
 }
-
-.select {
-  border-radius: 7px;
-  border: 1px solid var(--border-100);
-  background-color: var(--bg-panel-100);
-  color: var(--text-main);
-  padding: 5px 6px;
-  font-size: 12px;
-  position: relative;
-  display: grid;
-  grid-template-areas: "select";
-  align-items: center;
-  cursor: pointer;
-  line-height: 1.1;
-}
-.select select, .select::after {
-  grid-area: select;
-}
-.select:not(.select--multiple)::after {
-  content: "";
-  grid-area: select;
-  justify-self: end;
-  width: 0.8em;
-  height: 0.5em;
-  background: var(--accent-100);
-  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
-}
-.select:not(.select--multiple) option {
-  display: flex;
-  justify-content: flex-start;
-  background: var(--bg-panel);
-  transition: 0.4s;
-}
-
-select:hover + .focus,
-select:focus + .focus {
+select:hover + .focus, select:focus + .focus {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  border-radius: inherit;
   position: absolute;
   top: -1px;
   left: -1px;
   right: -1px;
   bottom: -1px;
-  border: 1px solid var(--accent-200);
-  border-radius: inherit;
 }
 
 .select--multiple {
   padding: 0;
+  outline: none;
+  border: 1px solid transparent;
+}
+.select--multiple:hover, .select--multiple:focus {
+  border: 1px solid transparent;
+  outline: none;
 }
 
 select[multiple]::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 select[multiple]::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-button {
@@ -294,18 +382,33 @@ select[multiple]::-webkit-scrollbar-button {
 }
 select[multiple] {
   border-radius: 7px;
-  border: 1px solid var(--border-100);
-  background-color: transparent;
-  color: var(--text-main);
+  border: 1px solid oklch(from var(--chip-bg) calc(l - 0.02) c h);
+  background: transparent;
+  color: var(--text);
   padding: 5px 6px;
-  font-size: 12px;
+  color: var(--text);
+  font-size: var(--text-size-small);
+  outline: none;
+  cursor: pointer;
+}
+select[multiple]:hover, select[multiple].active, select[multiple]:focus {
+  border: 1px solid oklch(from var(--accent) l c h);
+  outline: none;
+}
+select[multiple].active, select[multiple]:focus {
+  background: oklch(from transparent calc(l + 0.05) c h);
+}
+select[multiple] {
   height: 5rem;
+}
+select[multiple]:hover, select[multiple]:focus {
+  border: 1px solid transparent;
+  outline: none;
 }
 select[multiple] option {
   white-space: normal;
-  outline-color: var(--border-100);
   padding-left: 0.5em;
-  color: var(--text-soft) !important;
+  color: var(--text-muted) !important;
 }
 select[multiple]:not(:disabled) option {
   border-radius: 2px;
@@ -313,91 +416,71 @@ select[multiple]:not(:disabled) option {
   transition: 120ms all ease-in;
 }
 select[multiple]:not(:disabled) option:checked {
-  background: var(--accent-200);
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%);
   padding-left: 0.5em;
-  color: var(--text-main) !important;
-}
-select[multiple]:hover, select[multiple]:focus {
-  border-color: var(--accent-200);
+  color: var(--text) !important;
 }
 
-.color-picker {
-  border-radius: 9999px;
-  padding: 2px;
-  width: 80%;
-  aspect-ratio: 1;
-  border: 0;
-}
-.color-picker input[type=color] {
-  appearance: none;
-  -webkit-appearance: none;
-  border-radius: 7px;
-  border: 1px solid var(--border-100);
-  background-color: var(--bg-panel);
-  color: var(--text-main);
-  padding: 0px;
-  font-size: 12px;
-  width: 100%;
-  height: 100%;
-  margin-top: -2px;
-  border-radius: 9999px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  overflow: hidden;
-}
-.color-picker input[type=color]::-webkit-color-swatch-wrapper {
-  padding: 0;
-  border-radius: 9999px;
-}
-.color-picker input[type=color]::-webkit-color-swatch-wrapper:hover, .color-picker input[type=color]::-webkit-color-swatch-wrapper:focus {
-  border: 1px solid var(--accent);
-}
-.color-picker input[type=color]::-webkit-color-swatch {
-  border: 0;
-  border-radius: 9999px;
+.stack {
+  display: grid;
+  gap: 8px;
 }
 
-input[type=number] {
-  border-radius: 7px;
-  border: 1px solid var(--border-100);
-  background-color: var(--bg-chip);
-  color: var(--text-main);
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.field-grid label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.line-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  border-radius: 8px;
+  background: oklch(from var(--panel-bg) calc(l + 0.025) c h);
   padding: 5px 6px;
   font-size: 12px;
-  width: 100%;
-  outline: none;
-}
-input[type=number]:hover, input[type=number].active, input[type=number]:focus {
-  border-color: var(--accent-200);
-  outline: none;
 }
 
-input[type=checkbox] {
-  appearance: none;
-  background-color: var(--bg-chip-100);
-  margin: 0;
-  font: inherit;
-  color: currentColor;
-  width: 1em;
-  height: 1em;
-  border: 0.1em solid var(--bg-chip-100);
-  border-radius: 0.1em;
+.control-row {
   display: grid;
-  place-content: center;
-  outline: var(--accent-100);
+  grid-template-columns: 1fr minmax(66px, auto);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  border-radius: 8px;
+  background: oklch(from var(--panel-bg) calc(l + 0.025) c h);
+  padding: 5px 6px;
+  font-size: 12px;
 }
-input[type=checkbox]::before {
-  content: "";
-  width: 0.67em;
-  height: 0.67em;
-  border-radius: 0.1em;
-  transform: scale(0);
-  transition: 120ms transform ease-in-out;
-  box-shadow: inset 1em 1em var(--accent);
+.control-row label {
+  color: var(--text-muted);
+  font-size: 11px;
 }
-input[type=checkbox]:checked::before {
-  transform: scale(1);
+
+.chip-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.inline-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.hint {
+  margin: 0 0 8px 0;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 @media (max-width: 1180px) {
@@ -426,7 +509,7 @@ input[type=checkbox]:checked::before {
   gap: 12px;
   align-items: center;
   padding: 10px 25px;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
 }
 
 #toolbar-left,
@@ -441,65 +524,87 @@ input[type=checkbox]:checked::before {
   justify-content: flex-end;
 }
 
-.chip-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.layer-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: var(--bg-chip);
-  border-radius: var(--radius-small);
-  font-size: 12px;
-  color: var(--text-main);
+#btn-refresh,
+#btn-ai-create {
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: oklch(from var(--accent) calc(l + 0.05) c h/30%);
+  color: var(--text);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
   cursor: pointer;
   user-select: none;
 }
-
-#btn-refresh {
-  border-color: var(--accent-100);
-  background: var(--accent-300);
+#btn-refresh:hover, #btn-refresh:focus,
+#btn-ai-create:hover,
+#btn-ai-create:focus {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
 }
-#btn-refresh:hover, #btn-refresh:active {
-  border-color: var(--accent);
-  background: var(--accent-100);
+#btn-refresh.active,
+#btn-ai-create.active {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
 }
-
-#btn-ai-create {
-  border-color: color-mix(in srgb, var(--accent-100), var(--border-100) 50%);
-  background: color-mix(in srgb, var(--accent-300), var(--bg-chip-100) 45%);
-}
-#btn-ai-create:hover, #btn-ai-create:active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent-100), var(--bg-chip-100) 42%);
+#btn-refresh:hover, #btn-refresh:active,
+#btn-ai-create:hover,
+#btn-ai-create:active {
+  border: 1px solid oklch(from var(--accent) calc(l - 0.05) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) l c h/75%);
 }
 
 #toolbar-debug {
-  display: flex;
-  gap: 0px;
+  display: inline-flex;
+}
+#toolbar-debug > * {
+  border-radius: 0;
+  position: relative;
+}
+#toolbar-debug > * + * {
+  margin-left: -1px;
+}
+#toolbar-debug > :first-child {
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+#toolbar-debug > :last-child {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+#toolbar-debug > :first-child:last-child {
+  border-radius: var(--radius);
+}
+#toolbar-debug > *:hover,
+#toolbar-debug > *:active {
+  z-index: 1;
 }
 #toolbar-debug button {
-  border-color: var(--accent-300);
-  background: var(--accent-200);
+  border-radius: 0;
+  border: 1px solid oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h);
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  color: var(--text);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+#toolbar-debug button:hover, #toolbar-debug button:focus {
+  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+}
+#toolbar-debug button.active {
+  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
 }
 #toolbar-debug button:hover, #toolbar-debug button:active {
-  border-color: var(--accent-200);
-  background: var(--accent-100);
-}
-#toolbar-debug #btn-dev-tools {
-  margin-right: 0;
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-  border-right: none;
-}
-#toolbar-debug #btn-reload-css {
-  margin-left: 0;
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
+  border: 1px solid oklch(from oklch(from var(--accent) calc(l - 0.25) calc(c - 0.05) h) calc(l - 0.05) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/50%) l c h/75%);
 }
 
 #search-wrap {
@@ -508,43 +613,58 @@ input[type=checkbox]:checked::before {
   grid-template-columns: 1fr auto;
   gap: 0;
 }
-#search-wrap #search-input {
+#search-wrap #search-input-wrap {
+  position: relative;
   margin-right: 0;
+}
+#search-wrap #search-input-wrap #search-input {
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
+  color: var(--text);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+#search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input:focus {
+  border: 1px solid oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+}
+#search-wrap #search-input-wrap #search-input.active {
+  border: 1px solid oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--chip-bg) calc(l + 0.05) c h/50%) calc(l + 0.02) c h);
+}
+#search-wrap #search-input-wrap #search-input {
+  position: absolute;
+  inset: 1px;
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-  background-color: var(--bg-chip-100);
+}
+#search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input.active, #search-wrap #search-input-wrap #search-input:focus {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.05) c h/50%);
+  background: oklch(from var(--chip-bg) calc(l + 0.05) c h/50%);
 }
 #search-wrap #search-go {
   width: 50px;
-  margin-left: 0;
+  margin-left: 1px;
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
-  border-left: none;
-}
-#search-wrap #search-suggest {
-  position: absolute;
-  top: calc(100% + 5px);
-  width: calc(100% - 50px);
-  left: 0;
-  right: 85px;
-  max-height: 260px;
-  overflow: auto;
-  background: var(--bg-popup);
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  z-index: 500;
 }
 #search-wrap #search-suggest::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-button {
@@ -552,87 +672,35 @@ input[type=checkbox]:checked::before {
   width: 0 !important;
   height: 0 !important;
 }
+#search-wrap #search-suggest {
+  position: absolute;
+  top: calc(100% + 0px);
+  width: calc(100% - 50px);
+  left: 0;
+  right: 85px;
+  max-height: 260px;
+  overflow: auto;
+  background: var(--popup-bg);
+  border-radius: var(--radius);
+  z-index: 500;
+}
 #search-wrap #search-suggest.is-visible {
   display: block;
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
 }
-#search-wrap .suggest-item {
+#search-wrap #search-suggest .suggest-item {
   padding: 7px 9px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
-#search-wrap .suggest-item:hover, #search-wrap .suggest-item:active {
-  background: var(--bg-chip-100);
-  border-bottom: 1px solid var(--accent-200);
+#search-wrap #search-suggest .suggest-item:hover, #search-wrap #search-suggest .suggest-item:active {
+  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
+  border-bottom: 1px solid var(--accent);
 }
-#search-wrap .suggest-meta {
+#search-wrap #search-suggest .suggest-item .suggest-meta {
   display: block;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 11px;
-}
-
-#main-layout {
-  flex: 1 1 auto;
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-}
-
-#graph-panel {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-  background: var(--bg-main);
-  overflow: hidden;
-  isolation: isolate;
-}
-
-#graph-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: var(--bg-main-100);
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-#graph-panel.focus-mode::after {
-  opacity: 1;
-}
-
-#graph {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-}
-
-#gl-bench {
-  top: 50px;
-}
-
-#flow-canvas {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-}
-
-#graph-empty {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--text-soft);
-  font-size: 14px;
-  padding: 8px 14px;
-  background: var(--bg-main);
-  border: 1px solid var(--border-100);
-  border-radius: 999px;
-  z-index: 4;
 }
 
 #settings-panel {
@@ -642,7 +710,7 @@ input[type=checkbox]:checked::before {
   bottom: 0;
   width: min(390px, 42vw);
   min-height: 0;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
@@ -650,14 +718,14 @@ input[type=checkbox]:checked::before {
 #settings-panel::before {
   content: "";
   position: absolute;
-  left: calc(var(--radius-large) * -1);
+  left: calc(var(--radius-large) * -2);
   top: 0;
-  width: var(--radius-large);
-  height: var(--radius-large);
-  background: var(--bg-panel);
+  width: calc(var(--radius-large) * 2);
+  height: calc(var(--radius-large) * 2);
+  background: var(--panel-bg);
   pointer-events: none;
   z-index: 121;
-  mask: radial-gradient(circle var(--radius-large) at 0 100%, transparent calc(var(--radius-large) - 0px), #000 var(--radius-large));
+  mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%, transparent calc(var(--radius-large) * 2 - 0px), #000 calc(var(--radius-large) * 2));
 }
 #settings-panel.closed {
   transform: translateX(calc(100% + 16px));
@@ -670,7 +738,8 @@ input[type=checkbox]:checked::before {
   overflow: auto;
   padding: 12px 12px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h);
+  box-shadow: var(--shadow);
 }
 #settings-panel #settings-head .panel-head {
   display: flex;
@@ -684,77 +753,78 @@ input[type=checkbox]:checked::before {
   font-size: 18px;
 }
 #settings-panel #settings-head #settings-tabs {
+  display: inline-flex;
+}
+#settings-panel #settings-head #settings-tabs > * {
+  border-radius: 0;
+  position: relative;
+}
+#settings-panel #settings-head #settings-tabs > * + * {
+  margin-left: -1px;
+}
+#settings-panel #settings-head #settings-tabs > :first-child {
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+#settings-panel #settings-head #settings-tabs > :last-child {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+#settings-panel #settings-head #settings-tabs > :first-child:last-child {
+  border-radius: var(--radius);
+}
+#settings-panel #settings-head #settings-tabs > *:hover,
+#settings-panel #settings-head #settings-tabs > *:active {
+  z-index: 1;
+}
+#settings-panel #settings-head #settings-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0px;
 }
-#settings-panel #settings-head #settings-tabs button {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn);
-  color: var(--text-main);
+#settings-panel #settings-head #settings-tabsbutton {
+  border-radius: 0;
+  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h);
+  background: var(--btn-bg);
+  color: var(--text);
   padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
   cursor: pointer;
+  user-select: none;
+}
+#settings-panel #settings-head #settings-tabsbutton:hover, #settings-panel #settings-head #settings-tabsbutton:focus {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+#settings-panel #settings-head #settings-tabsbutton.active {
+  border: 1px solid oklch(from oklch(from var(--btn-bg) calc(l - 0.02) c h) calc(l + 0.02) c h);
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h);
+}
+#settings-panel #settings-head #settings-tabsbutton {
   font-weight: 600;
-  border-radius: 0;
-  margin: 0;
 }
-#settings-panel #settings-head #settings-tabs button:hover, #settings-panel #settings-head #settings-tabs button.active {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn-soft);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
-  border-radius: 0;
+#settings-panel #settings-head #settings-tabs .settings-tab.active {
+  border: 1px solid oklch(from var(--accent) l0.05 c h/25%);
+  background: oklch(from var(--accent) l c h/50%);
 }
-#settings-panel #settings-head #settings-tabs button.active {
-  font-weight: 800;
-}
-#settings-panel #settings-head #settings-tabs button:first-child {
-  border-top-left-radius: var(--radius-small);
-  border-bottom-left-radius: var(--radius-small);
-}
-#settings-panel #settings-head #settings-tabs button:first-child:hover:last-child, #settings-panel #settings-head #settings-tabs button:first-child:active:last-child {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn-soft);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
-  border-top-left-radius: var(--radius-small);
-  border-bottom-left-radius: var(--radius-small);
-}
-#settings-panel #settings-head #settings-tabs button:last-child {
-  border-top-right-radius: var(--radius-small);
-  border-bottom-right-radius: var(--radius-small);
-}
-#settings-panel #settings-head #settings-tabs button:last-child:hover:first-child, #settings-panel #settings-head #settings-tabs button:last-child:active:first-child {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-btn-soft);
-  color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 13px;
-  box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04);
-  border-top-right-radius: var(--radius-small);
-  border-bottom-right-radius: var(--radius-small);
+#settings-panel #settings-head #settings-tabs .settings-tab.active:hover {
+  border: 1px solid oklch(from var(--accent) l0.05 c h/50%);
+  background: oklch(from var(--accent) l c h/75%);
 }
 #settings-panel .settings-scroll::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-button {
@@ -771,9 +841,9 @@ input[type=checkbox]:checked::before {
   border: none;
 }
 #settings-panel .settings-scroll .settings-block {
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  background: var(--bg-panel-100);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border-radius: var(--radius);
+  background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
   padding: 10px;
   margin-bottom: 10px;
 }
@@ -781,16 +851,10 @@ input[type=checkbox]:checked::before {
   margin: 0 0 8px 0;
   font-size: 14px;
 }
-#settings-panel .settings-scroll .settings-block #note-runtime-settings .line-item {
-  border: 1px solid var(--border-100);
-  border-radius: 8px;
-  background: var(--bg-panel);
-  padding: 5px 6px;
-}
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card {
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  background: var(--bg-panel);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border-radius: var(--radius);
+  background: oklch(from var(--panel-bg) l c h);
   padding: 8px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -801,6 +865,12 @@ input[type=checkbox]:checked::before {
   gap: 8px;
   margin-bottom: 6px;
   transition: margin-bottom 180ms ease;
+}
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .line-item {
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border-radius: 8px;
+  background: oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  padding: 5px 6px;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .note-type-name {
   font-size: 13px;
@@ -841,14 +911,14 @@ input[type=checkbox]:checked::before {
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
@@ -865,9 +935,9 @@ input[type=checkbox]:checked::before {
   gap: 8px;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card {
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  background: var(--bg-panel);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border-radius: var(--radius);
+  background: oklch(from var(--panel-bg) l c h);
   padding: 8px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -901,7 +971,7 @@ input[type=checkbox]:checked::before {
   content: "";
   width: 0.8em;
   height: 0.5em;
-  background: var(--accent-100);
+  background: oklch(from var(--accent) l c h/75%);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
   transform: rotate(90deg);
   transform-origin: 50% 50%;
@@ -970,9 +1040,9 @@ input[type=checkbox]:checked::before {
   gap: 4px;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list .ln-ml-group-row {
-  border: 1px solid var(--border-100);
+  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.05) c h);
   border-radius: 8px;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   padding: 5px 6px;
 }
 #settings-panel .settings-scroll .settings-block #engine-list .control-row,
@@ -994,7 +1064,7 @@ input[type=checkbox]:checked::before {
   bottom: 0;
   width: min(390px, 42vw);
   min-height: 0;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
@@ -1002,14 +1072,14 @@ input[type=checkbox]:checked::before {
 #editor-panel::before {
   content: "";
   position: absolute;
-  right: calc(var(--radius-medium) * -1);
+  right: calc(var(--radius-large) * -1);
   top: 24px;
-  width: var(--radius-medium);
-  height: var(--radius-medium);
-  background: var(--bg-panel);
+  width: var(--radius-large);
+  height: var(--radius-large);
+  background: var(--panel-bg);
   pointer-events: none;
   z-index: 121;
-  mask: radial-gradient(circle var(--radius-medium) at 100% 100%, transparent calc(var(--radius-medium) - 0px), #000 var(--radius-medium));
+  mask: radial-gradient(circle var(--radius-large) at 100% 100%, transparent calc(var(--radius-large) - 0px), #000 var(--radius-large));
 }
 #editor-panel.closed {
   transform: translateX(calc((100% + 16px) * -1));
@@ -1017,79 +1087,72 @@ input[type=checkbox]:checked::before {
   pointer-events: none;
   visibility: hidden;
 }
-#editor-panel #edit-head {
-  height: 12%;
-  overflow: auto;
-  padding: 12px 12px;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--border);
-}
-#editor-panel #edit-head .panel-head {
+
+#main-layout {
+  flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-#editor-panel #edit-head .panel-head h2 {
-  margin: 0;
-  font-size: 18px;
-}
-#editor-panel .edit-scroll::-webkit-scrollbar {
-  width: 10px !important;
-  background: transparent !important;
-  margin: var(--radius-small) 0 !important;
-}
-#editor-panel .edit-scroll::-webkit-scrollbar-track {
-  background: transparent !important;
-  border-radius: 999px !important;
-}
-#editor-panel .edit-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
-  border-radius: 999px !important;
-}
-#editor-panel .edit-scroll::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-#editor-panel .edit-scroll {
-  height: 88%;
+  min-width: 0;
   min-height: 0;
-  overflow: auto;
-  padding: 12px 12px;
-  box-sizing: border-box;
-  border: none;
+  position: relative;
 }
-#editor-panel .edit-scroll .editor-block {
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  background: var(--bg-panel-100);
-  padding: 10px;
-  margin-bottom: 10px;
+
+#graph-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  background: var(--bg-dark);
+  overflow: hidden;
+  isolation: isolate;
 }
-#editor-panel .edit-scroll .editor-block h3 {
-  margin: 0 0 8px 0;
+
+#graph-panel.focus-mode::after {
+  opacity: 1;
+}
+
+#graph {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+}
+
+#gl-bench {
+  top: 50px;
+}
+
+#flow-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+#graph-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-muted);
   font-size: 14px;
-}
-#editor-panel .edit-scroll .tab-pane {
-  display: none;
-}
-#editor-panel .edit-scroll .tab-pane.active {
-  display: block;
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1px solid oklch(from var(--border) calc(l - 0.05) c h);
+  border-radius: 999px;
+  z-index: 4;
 }
 
 /* Hover Tooltip */
 #hover-tip {
   position: fixed;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   backdrop-filter: blur(8px);
   padding: 8px 10px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
   pointer-events: none;
   min-width: 180px;
@@ -1105,20 +1168,20 @@ input[type=checkbox]:checked::before {
   margin-bottom: 4px;
 }
 #hover-tip .tip-muted {
-  color: var(--text-soft);
+  color: var(--text-muted);
 }
 
 /* Conteext Menu */
 #ctx-menu {
   position: fixed;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   backdrop-filter: blur(8px);
   padding: 6px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
   display: none;
   min-width: 220px;
@@ -1134,15 +1197,17 @@ input[type=checkbox]:checked::before {
   padding: 7px 9px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text-main);
+  color: var(--text);
+  border-bottom: 1px solid transparent;
 }
 #ctx-menu .item:hover {
-  background: var(--bg-chip-100);
+  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
+  border-bottom: 1px solid var(--accent);
 }
 #ctx-menu .divider {
   height: 1px;
   margin: 5px 4px;
-  background: var(--border-100);
+  background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
 }
 #ctx-menu .ctx-icon-placeholder, #ctx-menu .ctx-icon-base {
   display: inline-block;
@@ -1154,8 +1219,8 @@ input[type=checkbox]:checked::before {
   vertical-align: middle;
 }
 #ctx-menu .ctx-icon-base {
-  --ctx-icon-primary: var(--text-main);
-  --ctx-icon-secondary: var(--text-main);
+  --ctx-icon-primary: var(--text);
+  --ctx-icon-secondary: var(--text);
   --ctx-icon-family: var(--ctx-icon-primary);
   overflow: visible;
   color: var(--ctx-icon-primary);
@@ -1196,10 +1261,10 @@ input[type=checkbox]:checked::before {
   width: min(360px, 92vw);
   max-height: min(72vh, 520px);
   border-radius: 14px;
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   box-shadow: 0 12px 28px rgba(2, 6, 23, 0.5);
-  color: var(--text-main);
+  color: var(--text);
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
@@ -1222,19 +1287,19 @@ input[type=checkbox]:checked::before {
   display: flex;
   gap: 8px;
   padding: 10px 12px 12px 12px;
-  border-top: 1px solid var(--border-100);
+  border-top: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
 }
 #ctx-picker .btn {
   flex: 1 1 auto;
   border-radius: 9px;
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
-  color: var(--text-main);
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  color: var(--text);
   padding: 7px 10px;
   cursor: pointer;
 }
 #ctx-picker .btn:hover {
-  background: var(--bg-chip-200);
+  background: oklch(from var(--popup-bg) calc(l + 0.05) c h/50%);
 }
 #ctx-picker .btn.primary {
   border-color: var(--border-dark);
@@ -1269,32 +1334,32 @@ input[type=checkbox]:checked::before {
   gap: 10px;
   overflow: visible;
   padding: 0px 20px 10px 25px;
-  background: var(--bg-panel);
+  background: var(--panel-bg);
   border-bottom-right-radius: 10px;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px;
 }
 #status-overlay-top-left #statusbar::after {
   content: "";
   position: absolute;
-  right: calc(var(--radius-small) * -1);
+  right: calc(var(--radius) * -1);
   box-sizing: border-box;
-  width: var(--radius-small);
-  height: var(--radius-small);
-  background: var(--bg-panel);
+  width: var(--radius);
+  height: var(--radius);
+  background: var(--panel-bg);
   pointer-events: none;
-  mask: radial-gradient(circle at 100% 100%, transparent calc(var(--radius-small) - 0px), #000 var(--radius-small));
+  mask: radial-gradient(circle at 100% 100%, transparent calc(var(--radius) - 0px), #000 var(--radius));
 }
 #status-overlay-top-left #status-active {
   position: relative;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   backdrop-filter: blur(8px);
   padding: 2px 12px 12px 12px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
   position: relative;
   width: 100%;
@@ -1317,7 +1382,7 @@ input[type=checkbox]:checked::before {
   display: block;
   white-space: normal;
   line-height: 1.35;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
   z-index: 100;
 }
@@ -1337,27 +1402,27 @@ input[type=checkbox]:checked::before {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-head {
   padding: 6px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 34%);
+  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-col {
   font-size: 10px;
   line-height: 1.2;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-weight: 700;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
@@ -1372,9 +1437,9 @@ input[type=checkbox]:checked::before {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row {
   padding: 6px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 52%);
+  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
   font-size: 11px;
-  color: var(--text-main);
+  color: var(--text);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row:last-child {
   border-bottom: none;
@@ -1395,11 +1460,11 @@ input[type=checkbox]:checked::before {
 #status-overlay-top-left #status-active #status-active-deptree {
   display: block;
   margin: 18px 0;
-  border-top: 1px solid color-mix(in srgb, var(--border-100), transparent 42%);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 42%);
+  border-top: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
   white-space: normal;
   line-height: 1.35;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 11px;
 }
 #status-overlay-top-left #status-active #status-active-deptree .dep-tree-canvas {
@@ -1436,14 +1501,14 @@ input[type=checkbox]:checked::before {
 }
 #status-overlay-bottom-right #status-zoom-pill {
   position: relative;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
   width: fit-content;
   align-self: flex-end;
@@ -1451,14 +1516,14 @@ input[type=checkbox]:checked::before {
 }
 #status-overlay-bottom-right #status-debug-panel {
   position: relative;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
   z-index: 500;
   width: 250px;
@@ -1484,16 +1549,16 @@ input[type=checkbox]:checked::before {
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key,
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   padding: 2px 4px;
-  border-top: var(--border-100);
+  border-top: oklch(from var(--border) calc(l + 0.05) c h);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key {
   text-align: left;
   font-weight: 600;
-  color: var(--text-soft);
+  color: var(--text-muted);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   text-align: right;
-  color: var(--text-main);
+  color: var(--text);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-empty {
   color: transparent;
@@ -1518,16 +1583,22 @@ input[type=checkbox]:checked::before {
 .graph-ai-dialog .graph-ai-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(2, 6, 23, 0.58);
+  background: rgba(2, 6, 23, 0.2);
 }
 .graph-ai-dialog .graph-ai-dialog__window {
   position: relative;
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h/25%);
+  backdrop-filter: blur(8px);
+  padding: 2px 12px 12px 12px;
+  color: var(--text);
+  font-size: 12px;
+  box-shadow: var(--shadow);
+  z-index: 500;
+  position: relative;
   width: min(1240px, 94vw);
   max-height: min(90vh, 980px);
-  border-radius: 14px;
-  border: 1px solid var(--border-100);
-  background: color-mix(in srgb, var(--bg-popup), #000 9%);
-  box-shadow: 0 20px 46px rgba(2, 6, 23, 0.55);
   display: grid;
   grid-template-rows: auto 1fr;
   overflow: hidden;
@@ -1547,14 +1618,13 @@ input[type=checkbox]:checked::before {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-100);
-  background: color-mix(in srgb, var(--bg-chip-200), transparent 14%);
+  border-bottom: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
 }
 .graph-ai-dialog .graph-ai-dialog__head h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text);
 }
 .graph-ai-dialog .graph-ai-dialog__content {
   display: grid;
@@ -1566,14 +1636,14 @@ input[type=checkbox]:checked::before {
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-button {
@@ -1583,15 +1653,15 @@ input[type=checkbox]:checked::before {
 }
 
 .graph-ai-block {
-  border: 1px solid color-mix(in srgb, var(--border-100), transparent 18%);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-chip-100), transparent 20%);
+  background: oklch(from var(--panel-bg) calc(l - 0.1) c h);
   padding: 10px 12px;
 }
 .graph-ai-block h3 {
   margin: 0 0 8px 0;
   font-size: 13px;
-  color: var(--text-main);
+  color: var(--text);
 }
 
 .graph-ai-form-row {
@@ -1602,16 +1672,16 @@ input[type=checkbox]:checked::before {
   margin-bottom: 8px;
 }
 .graph-ai-form-row label {
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
 }
 .graph-ai-form-row select, .graph-ai-form-row input, .graph-ai-form-row textarea {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--border-100);
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
   background: var(--bg-chip-100);
-  color: var(--text-main);
+  color: var(--text);
   padding: 7px 9px;
   font: inherit;
 }
@@ -1640,26 +1710,33 @@ input[type=checkbox]:checked::before {
 }
 
 .graph-ai-btn {
-  border-radius: 8px;
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
-  color: var(--text-main);
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: oklch(from var(--accent) calc(l + 0.05) c h/30%);
+  color: var(--text);
   padding: 6px 10px;
+  color: var(--text);
+  font-size: var(--text-size);
+  box-shadow: var(--shadow);
+  outline: none;
   cursor: pointer;
+  user-select: none;
 }
-
-.graph-ai-btn:hover,
-.graph-ai-btn:active {
-  background: color-mix(in srgb, var(--bg-chip-100), var(--bg-chip-200) 36%);
+.graph-ai-btn:hover, .graph-ai-btn:focus {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
+}
+.graph-ai-btn.active {
+  border: 1px solid oklch(from var(--accent) calc(l + 0.02) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) calc(l + 0.02) c h);
+}
+.graph-ai-btn:hover, .graph-ai-btn:active {
+  border: 1px solid oklch(from var(--accent) calc(l - 0.05) c h);
+  background: oklch(from oklch(from var(--accent) calc(l + 0.05) c h/30%) l c h/75%);
 }
 
 .graph-ai-btn--ghost {
   background: transparent;
-}
-
-.graph-ai-btn--accent {
-  border-color: color-mix(in srgb, var(--accent-100), var(--border-100) 38%);
-  background: color-mix(in srgb, var(--accent-300), var(--bg-chip-100) 36%);
 }
 
 .graph-ai-nav {
@@ -1675,20 +1752,20 @@ input[type=checkbox]:checked::before {
   gap: 8px;
 }
 .graph-ai-nav label, .graph-ai-nav span {
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px;
 }
 .graph-ai-nav select {
   border-radius: 8px;
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-100);
-  color: var(--text-main);
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
+  color: var(--text);
   padding: 6px 8px;
 }
 
 .graph-ai-perf {
   margin: 0;
-  color: color-mix(in srgb, var(--text-soft), var(--text-main) 18%);
+  color: color-mix(in oklch, var(--text-muted), var(--text) 18%);
   font-size: 12px;
 }
 
@@ -1704,9 +1781,9 @@ input[type=checkbox]:checked::before {
 }
 
 .graph-ai-pane {
-  border: 1px solid color-mix(in srgb, var(--border-100), transparent 24%);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-chip-200), transparent 24%);
+  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
   padding: 10px;
   min-height: 0;
   display: flex;
@@ -1715,30 +1792,30 @@ input[type=checkbox]:checked::before {
 .graph-ai-pane h4 {
   margin: 0 0 8px 0;
   font-size: 12px;
-  color: var(--text-main);
+  color: var(--text);
 }
 
 .graph-ai-list {
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid color-mix(in srgb, var(--border-100), transparent 30%);
+  border: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h/50%);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-chip-100), transparent 20%);
+  background: oklch(from var(--panel-bg) calc(l - 0.1) c h/50%);
   min-height: 190px;
   overflow: auto;
 }
 .graph-ai-list::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 .graph-ai-list::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-button {
@@ -1749,8 +1826,8 @@ input[type=checkbox]:checked::before {
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 52%);
-  color: var(--text-main);
+  border-bottom: 1px solid oklch(from var(--panel-bg) calc(l + 0.05) c h/50%);
+  color: var(--text);
   font-size: 12px;
 }
 
@@ -1759,23 +1836,23 @@ input[type=checkbox]:checked::before {
 }
 
 .graph-ai-preview-box {
-  border: 1px solid color-mix(in srgb, var(--border-100), transparent 24%);
+  border: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 24%);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-chip-100), transparent 20%);
+  background: color-mix(in oklch, var(--bg-chip-100), transparent 20%);
   min-height: 250px;
   overflow: auto;
 }
 .graph-ai-preview-box::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-button {
@@ -1786,7 +1863,7 @@ input[type=checkbox]:checked::before {
 .graph-ai-preview-box pre {
   margin: 0;
   padding: 10px;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
   line-height: 1.38;
   white-space: pre-wrap;
@@ -1797,15 +1874,15 @@ input[type=checkbox]:checked::before {
   border-collapse: collapse;
 }
 .graph-ai-field-table th, .graph-ai-field-table td {
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 48%);
+  border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 48%);
   padding: 6px 8px;
   font-size: 12px;
-  color: var(--text-main);
+  color: var(--text);
   text-align: left;
   vertical-align: top;
 }
 .graph-ai-field-table th {
-  color: var(--text-soft);
+  color: var(--text-muted);
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -1815,13 +1892,13 @@ input[type=checkbox]:checked::before {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-100), transparent 52%);
+  border-bottom: 1px solid color-mix(in oklch, oklch(from var(--border) calc(l + 0.05) c h), transparent 52%);
 }
 
 .graph-ai-template-canvas {
   min-height: 230px;
   padding: 10px;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -1833,14 +1910,14 @@ input[type=checkbox]:checked::before {
 
 .graph-ai-note {
   margin: 0;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 #editor-anki html,
 #editor-anki body {
-  background: var(--bg-panel) !important;
-  color: var(--text-main) !important;
+  background: var(--panel-bg) !important;
+  color: var(--text) !important;
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -1855,10 +1932,10 @@ input[type=checkbox]:checked::before {
   background: transparent !important;
 }
 #editor-anki button {
-  border-radius: var(--radius-small) !important;
-  border: 1px solid var(--border-100) !important;
-  background: var(--bg-btn) !important;
-  color: var(--text-main) !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid oklch(from var(--btn-bg) calc(l - 0.02) c h) !important;
+  background: var(--btn-bg) !important;
+  color: var(--text) !important;
   padding: 8px 10px;
   font-size: 13px;
   box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
@@ -1866,7 +1943,8 @@ input[type=checkbox]:checked::before {
   font-weight: 600;
 }
 #editor-anki button:hover, #editor-anki button:active, #editor-anki button:focus-visible {
-  background: var(--bg-btn-soft) !important;
+  border: 1px solid oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
 }
 #editor-anki .field-state .ajt-play-icon {
   padding-right: 22px;
@@ -1882,7 +1960,7 @@ input[type=checkbox]:checked::before {
   display: none !important;
 }
 #editor-anki .collapse-label .label-name {
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 11px !important;
   margin-left: 5px !important;
   grid-area: select;
@@ -1893,7 +1971,7 @@ input[type=checkbox]:checked::before {
   justify-self: end;
   width: 0.8em;
   height: 0.5em;
-  background: var(--accent-100);
+  background: 1px solid oklch(from var(--accent) l c h/75%);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
   transition: transform 0.16s ease;
 }
@@ -1904,7 +1982,7 @@ input[type=checkbox]:checked::before {
 #editor-anki .cloze,
 #editor-anki mark {
   background: rgba(246, 134, 59, 0.25) !important;
-  color: var(--text-main) !important;
+  color: var(--text) !important;
 }
 #editor-anki .hidden {
   display: none !important;
@@ -1923,15 +2001,15 @@ input[type=checkbox]:checked::before {
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload {
-  border-color: var(--accent-300) !important;
-  background: var(--accent-200) !important;
+  border-color: oklch(from var(--accent) l c h/50%) !important;
+  background: oklch(from var(--accent) l c h/75%) !important;
   box-shadow: 0px 2px 1px -1px rgba(20, 20, 20, 0.12), 0px 1px 1px 0px rgba(20, 20, 20, 0.06), 0px 1px 3px 0px rgba(20, 20, 20, 0.04) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:hover, #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:active,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:hover,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:active {
-  border-color: var(--accent-200) !important;
-  background: var(--accent-100) !important;
+  border-color: oklch(from var(--accent) l c h/50%) !important;
+  background: oklch(from var(--accent) l c h/75%) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools {
   margin-right: 0;
@@ -1948,14 +2026,17 @@ input[type=checkbox]:checked::before {
   height: calc(100% - 59px) !important;
 }
 #editor-anki .note-editor .editor-toolbar {
-  background: var(--bg-panel) !important;
-  border-color: var(--border-100) !important;
+  background: var(--panel-bg) !important;
+  border-color: oklch(from var(--border) calc(l + 0.05) c h) !important;
   margin: 0 !important;
   padding: 3px 10px 3px 20px !important;
 }
 #editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle_prio],
 #editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle_graph],
-#editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle] {
+#editor-anki .note-editor .editor-toolbar [data-command=_ajpc_browser_graph_toggle],
+#editor-anki .note-editor .editor-toolbar [data-command=ajpc_ai_enrich_all],
+#editor-anki .note-editor .editor-toolbar [data-command=ajpc_ai_enrich_mnemonic],
+#editor-anki .note-editor .editor-toolbar [data-command=ajpc_ai_enrich_sent] {
   display: none !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button {
@@ -1964,27 +2045,27 @@ input[type=checkbox]:checked::before {
   font-size: 12px !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button:hover, #editor-anki .note-editor .editor-toolbar .button-group button:active, #editor-anki .note-editor .editor-toolbar .button-group button:focus-visible {
-  background: var(--bg-btn-soft) !important;
+  background: oklch(from var(--accent) l c h/75%) !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-first {
-  border-top-left-radius: 5px !important;
-  border-bottom-left-radius: 5px !important;
+  border-top-left-radius: var(--radius-small) !important;
+  border-bottom-left-radius: var(--radius-small) !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-last {
-  border-top-right-radius: 5px !important;
-  border-bottom-right-radius: 5px !important;
+  border-top-right-radius: var(--radius-small) !important;
+  border-bottom-right-radius: var(--radius-small) !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-button {
@@ -2001,9 +2082,9 @@ input[type=checkbox]:checked::before {
   direction: ltr;
 }
 #editor-anki .note-editor .fields {
-  border: 1px solid var(--border-100) !important;
-  border-radius: var(--radius-small) !important;
-  background: var(--bg-panel-100) !important;
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
+  border-radius: var(--radius) !important;
+  background: color-mix(in oklch, var(--panel-bg), transparent 50%) !important;
   padding: 10px !important;
 }
 #editor-anki .note-editor .fields .collapsible {
@@ -2014,9 +2095,9 @@ input[type=checkbox]:checked::before {
   grid-template-columns: 1fr;
   gap: 0px;
   align-items: center;
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
-  background: var(--bg-panel);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.025) c h);
+  border-radius: var(--radius);
+  background: oklch(from var(--panel-bg) calc(l - 0.055) c h);
   padding: 5px 6px;
   font-size: 12px;
 }
@@ -2035,24 +2116,24 @@ input[type=checkbox]:checked::before {
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area {
-  background: var(--bg-chip);
-  border: 1px solid var(--border-100);
-  border-radius: var(--radius-small);
+  background: var(--chip-bg);
+  border: 1px solid oklch(from var(--chip-bg) calc(l + 0.025) c h);
+  border-radius: var(--radius);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:hover, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:active, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus-visible {
-  border: 1px solid var(--accent-200);
+  border: 1px solid oklch(from var(--accent) l c h/50%);
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area .CodeMirror-gutters {
   background-color: transparent;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
-  border-radius: var(--radius-small);
-  background: var(--bg-chip);
+  border-radius: var(--radius);
+  background: var(--chip-bg);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .rich-text-input {
-  border-radius: var(--radius-small);
-  background: var(--bg-chip-100);
+  border-radius: var(--radius);
+  background: oklch(from var(--chip-bg) calc(l + 0.02) c h);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-plain-rich > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
   border-bottom-left-radius: 0 !important;
@@ -2076,13 +2157,13 @@ input[type=checkbox]:checked::before {
 #editor-anki #ajpc-tag-wrapper .collapsible {
   background: transparent !important;
   border: none !important;
-  color: var(--text-soft);
+  color: var(--text-muted);
   font-size: 12px !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor {
-  background: var(--bg-chip) !important;
-  border-radius: var(--radius-small) !important;
-  border: 1px solid var(--border-100) !important;
+  background: var(--chip-bg) !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid oklch(from var(--border) calc(l + 0.05) c h) !important;
   padding: 5px 6px !important;
   margin: 0 0 10px 0 !important;
   color: var(--text) !important;
@@ -2090,39 +2171,39 @@ input[type=checkbox]:checked::before {
   font-weight: 400 !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag {
-  background: var(--bg-panel) !important;
-  color: var(--text-main) !important;
-  border: 1px solid var(--border-100) !important;
+  background: var(--panel-bg) !important;
+  color: var(--text) !important;
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.05) c h) !important;
   padding: 0px 3px 0px 3px;
   font-size: 12px !important;
-  border-radius: var(--radius-small) !important;
+  border-radius: var(--radius) !important;
   box-shadow: none !important;
   cursor: pointer;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:hover, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:active, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:focus-visible {
-  background: var(--bg-btn-soft) !important;
+  background: oklch(from var(--btn-bg) calc(l + 0.02) c h) !important;
 }
 #editor-anki .floating {
-  border-radius: var(--radius-small);
+  border-radius: var(--radius);
 }
 #editor-anki .floating .popover {
   padding: 0 !important;
-  border: 1px solid var(--border-100) !important;
-  background: var(--bg-popup) !important;
-  color: var(--text-main) !important;
-  border-radius: var(--radius-small);
+  border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+  background: var(--popup-bg) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius);
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar {
   width: 10px !important;
   background: transparent !important;
-  margin: var(--radius-small) 0 !important;
+  margin: var(--radius) 0 !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-track {
   background: transparent !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-thumb {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) calc(l + 0.05) c h/50%) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-button {
@@ -2131,29 +2212,29 @@ input[type=checkbox]:checked::before {
   height: 0 !important;
 }
 #editor-anki .floating .popover .autocomplete-menu {
-  border-radius: var(--radius-small);
+  border-radius: var(--radius);
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item {
   border: none !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
   padding: 7px 9px;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item:hover {
   background: var(--bg-chip-100) !important;
   border: none !important;
-  border-bottom: 1px solid var(--accent-200) !important;
+  border-bottom: 1px solid oklch(from var(--accent) l c h/75%) !important;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item.selected {
-  background: var(--accent-200) !important;
+  background: oklch(from var(--accent) l c h/75%) !important;
   border: none !important;
-  border-bottom: 1px solid var(--accent-200) !important;
+  border-bottom: 1px solid oklch(from var(--accent) l c h/75%) !important;
 }
 #editor-anki .floating .floating-arrow .arrow {
-  background: var(--bg-popup) !important;
+  background: var(--popup-bg) !important;
 }
 #editor-anki .tooltip .tooltip-arrow,
 #editor-anki .tooltip .tooltip-inner {
-  border: 1px solid var(--border-100) !important;
-  background: var(--bg-popup) !important;
-  color: var(--text-main) !important;
+  border: 1px solid oklch(from var(--popup-bg) calc(l - 0.05) c h) !important;
+  background: var(--popup-bg) !important;
+  color: var(--text) !important;
 }

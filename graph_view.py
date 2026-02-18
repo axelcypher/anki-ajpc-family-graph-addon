@@ -8,6 +8,7 @@ from aqt import gui_hooks, mw
 from aqt.qt import QEvent, QVBoxLayout, QWidget, Qt, QTimer
 from aqt.utils import restoreGeom, saveGeom, setWindowIcon
 from aqt.webview import AnkiWebView
+from PyQt6.QtWebEngineCore import QWebEngineScript
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from . import logger
@@ -53,6 +54,7 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
         self._init_embedded_editor_panel()
 
         self.web = AnkiWebView(self, title="ajpc_tools_graph")
+        self._install_graph_web_css_guard()
         try:
             from PyQt6.QtWebEngineCore import QWebEngineSettings
 
@@ -278,6 +280,79 @@ class FamilyGraphWindow(GraphBridgeHandlersMixin, GraphSyncMixin, EmbeddedEditor
 
     def _on_devtools_destroyed(self) -> None:
         self._devtools = None
+
+    def _install_graph_web_css_guard(self) -> None:
+        # Disable Anki's injected webview.css for this graph webview only.
+        js = r"""
+(function(){
+  try{
+    if(window.__ajpcWebviewCssGuardInstalled){ return; }
+    window.__ajpcWebviewCssGuardInstalled = 1;
+    var re = /(?:^|\/)webview\.css(?:[?#].*)?$/i;
+    var disableLink = function(node){
+      if(!node || node.tagName !== 'LINK'){ return; }
+      var rel = String(node.getAttribute('rel') || '').toLowerCase();
+      if(rel && rel !== 'stylesheet'){ return; }
+      var href = String(node.getAttribute('href') || '');
+      if(!re.test(href)){ return; }
+      try{ node.disabled = true; }catch(_e0){}
+      try{ node.setAttribute('data-ajpc-disabled', 'webview-css'); }catch(_e1){}
+      try{
+        if(node.parentNode){ node.parentNode.removeChild(node); }
+      }catch(_e2){}
+    };
+    var scan = function(){
+      try{
+        var links = document.querySelectorAll('link[rel=\"stylesheet\"], link[href*=\"webview.css\"]');
+        for(var i=0;i<links.length;i++){ disableLink(links[i]); }
+      }catch(_e3){}
+    };
+    scan();
+    try{
+      var obs = new MutationObserver(function(muts){
+        for(var i=0;i<muts.length;i++){
+          var added = muts[i].addedNodes || [];
+          for(var j=0;j<added.length;j++){
+            var n = added[j];
+            disableLink(n);
+            try{
+              if(n && n.querySelectorAll){
+                var nested = n.querySelectorAll('link[rel=\"stylesheet\"], link[href*=\"webview.css\"]');
+                for(var k=0;k<nested.length;k++){ disableLink(nested[k]); }
+              }
+            }catch(_e4){}
+          }
+        }
+      });
+      obs.observe(document.documentElement || document, {childList:true, subtree:true});
+    }catch(_e5){}
+  }catch(_e){}
+})();
+"""
+        try:
+            scripts = self.web.page().scripts()
+            try:
+                old = scripts.findScript("ajpc-graph-webview-css-guard")
+                if old and not old.isNull():
+                    scripts.remove(old)
+            except Exception:
+                pass
+            script = QWebEngineScript()
+            script.setName("ajpc-graph-webview-css-guard")
+            script.setSourceCode(js)
+            try:
+                script.setInjectionPoint(QWebEngineScript.InjectionPoint.DocumentCreation)
+            except Exception:
+                pass
+            try:
+                script.setWorldId(QWebEngineScript.ScriptWorldId.MainWorld)
+            except Exception:
+                pass
+            script.setRunsOnSubFrames(False)
+            scripts.insert(script)
+            logger.dbg("graph web css guard installed")
+        except Exception as exc:
+            logger.dbg("graph web css guard install failed", repr(exc))
 
     def _on_note_added(self, note) -> None:
         try:

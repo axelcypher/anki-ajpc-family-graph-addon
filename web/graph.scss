@@ -5,10 +5,8 @@
 
 @use "scss/graph.responsive" as graphResponsive;
 
-@use "scss/graph.toolbar" as graphToolbar;
-@use "scss/graph.layout" as graphLayout;
-@use "scss/graph.graphfx" as graphFx;
-@use "scss/graph.settings" as graphSettings;
-@use "scss/graph.status" as graphStatus;
+@use "scss/graph.frame" as graphFrame;
+@use "scss/graph.canvas" as graphCanvas;
+@use "scss/graph.overlays" as graphOverlays;
 @use "scss/graph.editor" as graphEditor;
 

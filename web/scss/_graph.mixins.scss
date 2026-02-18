@@ -1,110 +1,191 @@
-@mixin interactive-control(
-  $radius: var(--radius-small),
-  $border: var(--border-100),
-  $background: var(--bg-btn),
-  $padding: 8px 10px,
-  $font-size: 13px
-) {
-  border-radius: $radius;
-  border: 1px solid $border; 
-  background: $background;
-  color: var(--text-main);
-  padding: $padding;
-  font-size: $font-size;
-  box-shadow: 
-    0px 2px 1px -1px rgba(20,20,20,.12),
-    0px 1px 1px 0px rgba(20,20,20,.06),
-    0px 1px 3px 0px rgba(20,20,20,.04);
-}
-
 @mixin form-input(
   $radius: 7px,
-  $border: var(--border-100),
-  $background: var(--bg-panel),
+  $border: oklch(from var(--chip-bg) calc(l - 0.02) c h),
+  $background: var(--chip-bg),
   $padding: 5px 6px,
-  $font-size: 12px
-) {
+  $text-color: var(--text),
+  $text-size: var(--text-size-small)
+  ) {
   border-radius: $radius;
   border: 1px solid $border;
-  background-color: $background;
-  color: var(--text-main);
-  padding: $padding;
-  font-size: $font-size;
-} 
-
-@mixin surface-card(
-  $border: var(--border-100),
-  $background: var(--bg-panel),
-  $radius: var(--radius-small),
-  $padding: 8px
-) {
-  border: 1px solid $border;
-  border-radius: $radius;
   background: $background;
+  color: $text-color;
   padding: $padding;
+  color: $text-color;
+  font-size: $text-size;
+  outline: none;
+  cursor: pointer;
+
+  &:hover,
+  &.active,
+  &:focus {
+    border: 1px solid oklch(from var(--accent) l c h);
+    outline: none;
+  }
+  &.active,
+  &:focus{
+    background: oklch(from $background calc(l + 0.05) c h);
+  }
+}
+
+@mixin interactive-control(
+  $radius: var(--radius),
+  $border: oklch(from var(--btn-bg) calc(l - 0.02) c h),
+  $background: var(--btn-bg),
+  $padding: 8px 10px,
+  $text-color: var(--text),
+  $text-size: var(--text-size),
+  $shadow: var(--shadow)) {
+  border-radius: $radius;
+  border: 1px solid $border;
+  background: $background;
+  color: $text-color;
+  padding: $padding;
+  color: $text-color;
+  font-size: $text-size;
+  box-shadow: $shadow;
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  
+  &:hover,
+  &:focus {
+    border: 1px solid oklch(from $border calc(l + 0.02) c h);
+    background: oklch(from $background calc(l + 0.02) c h);
+  }
+  &.active{
+    border: 1px solid oklch(from $border calc(l + 0.02) c h);
+    background: oklch(from $background calc(l + 0.02) c h);
+  }
+}
+
+@mixin interactive-control-inverted(
+  $radius: var(--radius),
+  $border: oklch(from var(--bg-btn) calc(l - 0.05) c h),
+  $background: var(--bg-btn),
+  $padding: 8px 10px,
+  $text-color: var(--text),
+  $text-size: var(--text-size),
+) {
+  @include interactive-control(
+    $radius: $radius,
+    $border: $border,
+    $background: $background,
+    $padding: $padding,
+    $text-size: $text-size,
+  );
+
+  &:hover,
+  &:active {
+    border: 1px solid oklch(from $border calc(l - 0.05) c h);
+    background: oklch(from $background l c h / 75%);
+  }
 }
 
 @mixin row-chip(
-  $border: var(--border-100),
-  $background: var(--bg-chip),
+  $border: oklch(from var(--chip-bg) calc(l + 0.05) c h),
+  $background: oklch(from var(--chip-bg) calc(l + 0.05) c h),
   $radius: 8px,
-  $padding: 5px 6px
-) {
+  $padding: 5px 6px) {
   border: 1px solid $border;
   border-radius: $radius;
   background: $background;
   padding: $padding;
 }
 
-@mixin overlay-panel(
-  $position: relative,
+
+
+
+
+
+@mixin surface-card(
+  $border: oklch(from var(--panel-bg) calc(l - 0.025) c h),
+  $background: oklch(from var(--panel-bg) l c h),
+  $radius: var(--radius),
+  $padding: 8px) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
+
+@mixin overlay-panel($position: relative,
   $padding: 7px 12px,
 ) {
   position: $position;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-100);
-  background: var(--bg-chip-200);
+  border-radius: var(--radius);
+  border: 1px solid oklch(from var(--panel-bg) calc(l - 0.1) c h);
+  background: oklch(from var(--panel-bg) calc(l - 0.05) c h / 25%);
   backdrop-filter: blur(8px);
   padding: $padding;
-  color: var(--text-main);
+  color: var(--text);
   font-size: 12px;
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  box-shadow: var(--shadow);
   z-index: 500;
 }
 
 
+
+
+
+@mixin helper-focus(
+  $border: oklch(from var(--accent) calc(l + 0.05) c h / 50%),
+  ) {
+  border: 1px solid $border;
+  border-radius: inherit;
+}
+
 @mixin scrollbar() {
-    &::-webkit-scrollbar {
-      width: 10px !important;
-      background: transparent !important;
-      margin: var(--radius-small) 0 !important;
-    }
+  &::-webkit-scrollbar {
+    width: 10px !important;
+    background: transparent !important;
+    margin: var(--radius) 0 !important;
+  }
 
-    &::-webkit-scrollbar-track {
-      background: transparent !important;
-      border-radius: 999px !important;
-    }
+  &::-webkit-scrollbar-track {
+    background: transparent !important;
+    border-radius: 999px !important;
+  }
 
-    &::-webkit-scrollbar-thumb {
-      background: var(--accent-200) !important;
-      border-radius: 999px !important;
-    }
+  &::-webkit-scrollbar-thumb {
+    background: oklch(from var(--accent) calc(l + 0.05) c h / 50%) !important;
+    border-radius: 999px !important;
+  }
 
-    &::-webkit-scrollbar-button {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-    }
+  &::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 }
+@mixin button-group($radius: var(--radius)) {
+  display: inline-flex;
 
-@mixin hover-hint() {
-  &:hover::after {
-  content: attr(title);
-  position: absolute;
-  border-radius: var(--radius-small);
-  background-color: var(--bg-chip);
-  border: 1px solid var(--border);
-  top: -100%;
-  left: 0;
-}
+  >* {
+    border-radius: 0;
+    position: relative;
+  }
+
+  >*+* {
+    margin-left: -1px;
+  }
+
+  > :first-child {
+    border-top-left-radius: $radius ;
+    border-bottom-left-radius: $radius ;
+  }
+
+  > :last-child {
+    border-top-right-radius: $radius ;
+    border-bottom-right-radius: $radius ;
+  }
+
+  > :first-child:last-child {
+    border-radius: $radius ;
+  }
+
+  >*:hover,
+  >*:active {
+    z-index: 1;
+  }
 }
