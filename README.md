@@ -22,6 +22,7 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 - General UI tokens are defined in `web/scss/_graph.tokens.scss`.
 - The General UI namespace now uses semantic token names (for example `--ui-text-primary`, `--control-bg`, `--glass-surface-bg`) and these names are used consistently in SCSS, runtime CSS, JS, and Python lookups.
 - Naming-suggestion comments in `web/scss/_graph.tokens.scss` are the canonical names; token definitions and references are aligned to those names.
+- Legacy editor-only hover tokens `--button-bg-hover` and `--btn-border-hover` were consolidated to the shared interactive control tokens (`--control-bg-interactive`, `--control-border-interactive`).
 
 ## UI tour
 ### Top toolbar

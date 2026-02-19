@@ -5,6 +5,7 @@
   @include mixins.overlay-panel(
     $position: fixed,
     $padding: 8px 10px,
+    $shadow: var(--shadow-elevation-2), 
   );
   pointer-events: none;
   min-width: 180px;
@@ -156,6 +157,28 @@
     padding: 6px 2px;
   }
 
+  & .row--meta {
+    display: block;
+    opacity: 0.9;
+  }
+
+  & .ctx-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--control-border-accent-glass);
+    background: var(--glass-surface-card-input-bg);
+    color: var(--ui-text-primary);
+
+    &:hover,
+    &:focus,
+    &:active {
+      border-color: var(--control-border-accent-glass-interactive);
+      outline: none;
+    }
+  }
+
   & .btn-row {
     display: flex;
     gap: 8px;
@@ -178,7 +201,13 @@
   }
 
   & .btn.primary {
-    border-color: var(--border-dark);
+    border-color: var(--control-border-accent-glass);
+  }
+
+  & .btn.primary:hover,
+  & .btn.primary:focus-visible,
+  & .btn.primary:active {
+    border-color: var(--control-border-accent-glass-interactive);
   }
 }
 
@@ -247,7 +276,7 @@
 
   #status-active {
     @include mixins.overlay-panel(
-      $padding: 2px 12px 12px 12px
+      $padding: 2px 12px 12px 12px,
       );
     position: relative;
     width: 100%;
@@ -303,7 +332,7 @@
 
       .active-cards-head {
         padding: 6px 8px;
-        border-bottom: 1px solid var(--divider);
+        border-bottom: 1px solid var(--glass-surface-divider);
       }
 
       .active-card-col {
@@ -325,7 +354,7 @@
 
       .active-card-row {
         padding: 6px 8px;
-        border-bottom: 1px solid var(--divider);
+        border-bottom: 1px solid var(--glass-surface-divider);
         font-size: 11px;
         color: var(--ui-text-primary);
       }
@@ -355,8 +384,8 @@
 
       margin: 18px 0;
 
-      border-top: 1px solid var(--divider);
-      border-bottom: 1px solid var(--divider);
+      border-top: 1px solid var(--glass-surface-divider);
+      border-bottom: 1px solid var(--glass-surface-divider);
 
       white-space: normal;
       line-height: 1.35;
@@ -444,7 +473,7 @@
       .coord-key,
       .coord-val {
         padding: 2px 4px;
-        border-top: 1px solid var(--divider);
+        border-top: 1px solid var(--glass-surface-divider);
       }
 
       .coord-key {
@@ -615,7 +644,9 @@
 .graph-ai-btn {
   @include mixins.interactive-control-inverted(
     $border: var(--control-border-accent-inverted),
+    $hover-border: var(--control-border-accent-inverted-interactive),
     $background: var(--control-bg-accent-inverted),
+    $hover-background: var(--control-bg-accent-inverted-interactive),
     $padding: 6px 10px
   );
 }

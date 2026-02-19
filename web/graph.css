@@ -1,149 +1,161 @@
 :root,
-#app {
-  /* naming suggestion: --ui-text-transparent */
-  --ui-text-transparent: oklch(0% 0 0 / 0%);
-  /* naming suggestion: --ui-color-transparent */
-  --ui-color-transparent: oklch(0% 0 0 / 0%);
-  /* naming suggestion: --ui-mask-solid */
-  --ui-mask-solid: oklch(0% 0 0);
-  /* naming suggestion: --canvas-bg-deep */
-  --canvas-bg-deep: oklch(15% 0.010 268);
-  /* naming suggestion: --canvas-bg-base */
-  --canvas-bg-base: oklch(20% 0.010 268);
-  /* naming suggestion: --canvas-bg-soft */
-  --canvas-bg-soft: oklch(25% 0.010 268);
-  /* naming suggestion: --ui-surface-base */
-  --ui-surface-base: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --ui-surface-base-border */
-  --ui-surface-base-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --ui-surface-card */
-  --ui-surface-card: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --ui-surface-card-border */
-  --ui-surface-card-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --field-surface */
-  --field-surface: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --field-surface-alt */
-  --field-surface-alt: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --field-border-base */
-  --field-border-base: oklch(68.098% 0.20738 24.489);
-  /* naming suggestion: --field-border-interactive */
-  --field-border-interactive: oklch(68.098% 0.20738 24.489);
-  /* naming suggestion: --control-bg */
-  --control-bg: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --control-border */
-  --control-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --control-bg-interactive */
-  --control-bg-interactive: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --control-border-interactive */
-  --control-border-interactive: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --control-bg-accent-inverted */
-  --control-bg-accent-inverted: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --control-border-accent-inverted */
-  --control-border-accent-inverted: oklch(68.586% 0.20309 24.187);
-  --control-bg-accent-glass: oklch(68.586% 0.20309 24.187);
-  --control-border-accent-glass: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --accent-base */
-  --accent-base: oklch(35.558% 0.12502 322.71);
-  /* naming suggestion: --accent-border */
-  --accent-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --accent-active */
-  --accent-active: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-bg */
-  --glass-surface-bg: oklch(62.793% 0.25768 29.223 / 0.507);
-  /* naming suggestion: --glass-surface-border */
-  --glass-surface-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-divider */
-  --glass-surface-divider: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card */
-  --glass-surface-card: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card-border */
-  --glass-surface-card-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card-input-disabled-bg */
-  --glass-surface-card-input-disabled-bg: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card-select-bg */
-  --glass-surface-card-select-bg: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card-input-bg */
-  --glass-surface-card-input-bg: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --glass-surface-card-input-border */
-  --glass-surface-card-input-border: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --modal-backdrop-bg */
-  --modal-backdrop-bg: oklch(12.8802% 0.040603 264.70 / 45%);
-  /* naming suggestion: --menu-surface-bg */
-  --menu-surface-bg: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --menu-surface-bg-hover */
-  --menu-surface-bg-hover: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --menu-divider */
-  --menu-divider: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --ui-text-primary */
+:root[data-theme=dark] {
+  --canvas-bg-deep: oklch(15.0% 0.010 268);
+  --canvas-bg-base: oklch(20.0% 0.010 268);
+  --canvas-bg-soft: oklch(25.0% 0.010 268);
+  --ui-surface-base: oklch(25.0% 0.020 280);
+  --ui-surface-base-border: oklch(27.0% 0.020 280);
+  --ui-surface-card: linear-gradient(60deg, oklch(19.0% 0.020 280) 0%, oklch(21.0% 0.020 280) 100%);
+  --ui-surface-card-border: oklch(22.0% 0.020 280);
+  --field-surface: oklch(20.0% 0.020 280);
+  --field-surface-alt: oklch(22.0% 0.020 280);
+  --field-border-base: oklch(23.5% 0.020 280);
+  --field-border-interactive: oklch(35.5% 0.125 322.70 / 50%);
+  --control-bg: linear-gradient(0deg, oklch(20.0% 0.020 280.00 / 99%) 0%,oklch(22.5% 0.020 280.00 / 99%) 100%);
+  --control-bg-interactive: linear-gradient(0deg, oklch(22.5% 0.025 280.00 / 99%) 0%,oklch(25.0% 0.025 280.00 / 99%) 100%);
+  --control-border: oklch(17.5% 0.020 280);
+  --control-border-interactive: oklch(20.0% 0.020 280);
+  --control-bg-accent-inverted: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 30%) 0%,oklch(35.5% 0.125 322.70 / 40%) 100%);
+  --control-bg-accent-inverted-interactive: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 80%) 0%,oklch(35.5% 0.125 322.70 / 99%) 100%);
+  --control-border-accent-inverted: oklch(45.0% 0.125 322.70);
+  --control-border-accent-inverted-interactive: oklch(35.5% 0.125 322.70);
+  --control-bg-accent-glass: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 30%) 0%,oklch(35.5% 0.125 322.70 / 40%) 100%);
+  --control-bg-accent-glass-interactive: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 80%) 0%,oklch(35.5% 0.125 322.70 / 99%) 100%);
+  --control-border-accent-glass: oklch(45.0% 0.125 322.70);
+  --control-border-accent-glass-interactive: oklch(35.5% 0.125 322.70);
+  --accent-base: oklch(35.5% 0.125 322.70 / 99%);
+  --accent-active: oklch(35.5% 0.125 322.70 / 75%);
+  --accent-border: oklch(35.5% 0.125 322.70 / 50%);
+  --glass-surface-bg: oklch(20.0% 0.020 280.00 / 10%);
+  --glass-surface-border: oklch(23.0% 0.020 280.00 / 80%);
+  --glass-surface-divider: oklch(25.0% 0.000 280.00 / 80%);
+  --glass-surface-card: oklch(25.0% 0.020 280.00 / 50%);
+  --glass-surface-card-border: oklch(25.0% 0.000 280.00 / 80%);
+  --glass-surface-card-input-disabled-bg: oklch(20.0% 0.010 280.00 / 50%);
+  --glass-surface-card-select-bg: oklch(25.0% 0.020 280.00 / 50%);
+  --glass-surface-card-input-bg: oklch(25.0% 0.020 280.00 / 50%);
+  --glass-surface-card-input-border: oklch(22.5% 0.020 280.00 / 80%);
+  --modal-backdrop-bg: oklch(12.0% 0.020 280.00 / 45%);
+  --menu-surface-bg: linear-gradient(30deg, oklch(19.0% 0.020 280) 0%, oklch(21.0% 0.020 280) 100%);
+  --menu-surface-bg-hover: oklch(37.5% 0.020 280.00 / 30%);
+  --menu-divider: oklch(25.0% 0.000 280.00 / 80%);
   --ui-text-primary: oklch(90% 0 0);
-  /* naming suggestion: --ui-text-secondary */
   --ui-text-secondary: oklch(75% 0 0);
-  /* naming suggestion: --ui-link-hover */
-  --ui-link-hover: oklch(68.586% 0.20309 24.187);
-  /* naming suggestion: --font-size-sm */
+  --ui-link-hover: oklch(45.0% 0.125 322.70);
+  --shadow-elevation-1:
+  oklch(0 0 0 / 12%) 0 26px 58px 0,
+  oklch(0 0 0 / 06%) 0 5px 14px 0;
+  --shadow-elevation-2:
+  oklch(0 0 0 / 16%) 0 5px 6px -3px,
+  oklch(0 0 0 / 12%) 3px 3px 4px 0,
+  oklch(0 0 0 / 08%) 6px 8px 12px 8px;
+  --shadow-depth-1:
+  oklch(0 0 0 / 12%) inset 0 2px 1px -1px,
+  oklch(0 0 0 / 06%) inset 0 1px 1px 0;
+  --shadow-depth-2:
+  oklch(0 0 0 / 24%) inset 3px 6px 3px -3px,
+  oklch(0 0 0 / 12%) inset 2px 2px 2px 0,
+  oklch(0 0 0 / 08%) inset 2px 6px 9px 0;
+}
+
+:root[data-theme=light] {
+  /*--canvas-bg-deep:                             oklch(75.0% 0.010 268);
+  --canvas-bg-base:                             oklch(80.0% 0.010 268);
+  --canvas-bg-soft:                             oklch(95.0% 0.010 268);*/
+  --ui-surface-base: oklch(95.0% 0.020 280);
+  --ui-surface-base-border: oklch(73.0% 0.020 280);
+  --ui-surface-card: linear-gradient(60deg, oklch(91.0% 0.020 280) 0%, oklch(89.0% 0.020 280) 100%);
+  --ui-surface-card-border: oklch(78.0% 0.020 280);
+  --field-surface: oklch(80.0% 0.020 280);
+  --field-surface-alt: oklch(78.0% 0.020 280);
+  --field-border-base: oklch(76.5% 0.020 280);
+  --field-border-interactive: oklch(64.5% 0.125 322.70 / 50%);
+  --control-bg: linear-gradient(0deg, oklch(80.0% 0.020 280.00 / 99%) 0%,oklch(77.5% 0.020 280.00 / 99%) 100%);
+  --control-bg-interactive: linear-gradient(0deg, oklch(77.5% 0.025 280.00 / 99%) 0%,oklch(75.0% 0.025 280.00 / 99%) 100%);
+  --control-border: var(--ui-surface-base);
+  --control-border-interactive: var(--ui-surface-base);
+  --control-bg-accent-inverted: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 30%) 0%,oklch(35.5% 0.125 322.70 / 40%) 100%);
+  --control-bg-accent-inverted-interactive: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 80%) 0%,oklch(35.5% 0.125 322.70 / 99%) 100%);
+  --control-border-accent-inverted: oklch(45.0% 0.125 322.70);
+  --control-border-accent-inverted-interactive: oklch(35.5% 0.125 322.70);
+  --control-bg-accent-glass: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 30%) 0%,oklch(35.5% 0.125 322.70 / 40%) 100%);
+  --control-bg-accent-glass-interactive: linear-gradient(0deg, oklch(35.5% 0.125 322.70 / 80%) 0%,oklch(35.5% 0.125 322.70 / 99%) 100%);
+  --control-border-accent-glass: oklch(45.0% 0.125 322.70);
+  --control-border-accent-glass-interactive: oklch(35.5% 0.125 322.70);
+  --accent-base: oklch(35.5% 0.125 322.70 / 99%);
+  --accent-active: oklch(35.5% 0.125 322.70 / 75%);
+  --accent-border: oklch(35.5% 0.125 322.70 / 50%);
+  --glass-surface-bg: oklch(99.0% 0.020 280.00 / 50%);
+  --glass-surface-border: oklch(73.0% 0.020 280.00 / 80%);
+  --glass-surface-divider: oklch(75.0% 0.000 280.00 / 80%);
+  --glass-surface-card: oklch(75.0% 0.020 280.00 / 50%);
+  --glass-surface-card-border: oklch(75.0% 0.000 280.00 / 80%);
+  --glass-surface-card-input-disabled-bg: oklch(80.0% 0.010 280.00 / 50%);
+  --glass-surface-card-select-bg: oklch(75.0% 0.020 280.00 / 50%);
+  --glass-surface-card-input-bg: oklch(75.0% 0.020 280.00 / 50%);
+  --glass-surface-card-input-border: oklch(77.5% 0.020 280.00 / 80%);
+  --modal-backdrop-bg: oklch(12.0% 0.020 280.00 / 45%);
+  --menu-surface-bg: linear-gradient(30deg, oklch(80.0% 0.020 280) 0%, oklch(81.0% 0.020 280) 100%);
+  --menu-surface-bg-hover: oklch(70.5% 0.020 280.00 / 30%);
+  --menu-divider: oklch(65.0% 0.000 280.00 / 80%);
+  --ui-text-primary: oklch(5% 0 0);
+  --ui-text-secondary: oklch(50% 0 0);
+  --ui-link-hover: oklch(45.0% 0.125 322.70);
+  --shadow-elevation-1:
+  oklch(0 0 0 / 12%)0px 2px 1px -1px,
+  oklch(0 0 0 / 06%) 0px 1px 1px 0px,
+  oklch(0 0 0 / 04%) 0px 1px 3px 0px;
+  --shadow-elevation-2:
+  oklch(0 0 0 / 09%) 0px 2px 1px,
+  oklch(0 0 0 / 09%) 0px 4px 2px,
+  oklch(0 0 0 / 09%) 0px 8px 4px;
+  --shadow-depth-1:
+  oklch(0 0 0 / 12%) inset 0px 2px 1px -1px ,
+  oklch(0 0 0 / 06%) inset 0px 1px 1px 0px ,
+  oklch(0 0 0 / 04%) inset 0px 1px 3px 0px ;
+  --shadow-depth-2:
+  oklch(0 0 0 / 24%) inset 3px 6px 3px -3px ,
+  oklch(0 0 0 / 12%) inset 2px 2px 2px 0px ,
+  oklch(0 0 0 / 08%) inset 2px 6px 9px 0px ;
+}
+
+:root {
   --font-size-sm: 11px;
-  /* naming suggestion: --font-size-md */
   --font-size-md: 13px;
-  /* naming suggestion: --font-size-lg */
   --font-size-lg: 15px;
-  /* naming suggestion: --status-danger */
   --status-danger: oklch(85% 0.150 015);
-  /* naming suggestion: --status-warning */
   --status-warning: oklch(85% 0.150 080);
-  /* naming suggestion: --status-success */
   --status-success: oklch(85% 0.150 165);
-  /* naming suggestion: --status-info */
   --status-info: oklch(85% 0.150 230);
-  /* naming suggestion: --radius-sm */
   --radius-sm: 5px;
-  /* naming suggestion: --radius-md */
   --radius-md: 10px;
-  /* naming suggestion: --radius-lg */
   --radius-lg: 20px;
-  /* naming suggestion: --shadow-elevation-1 */
-  --shadow-elevation-1: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
-  --dev-control-bg: oklch(68.586% 0.20309 24.187);
-  --dev-control-border: oklch(68.586% 0.20309 24.187);
-  --dev-control-bg-hover: oklch(68.586% 0.20309 24.187);
-  --dev-control-border-hover: oklch(68.586% 0.20309 24.187);
+  --ui-text-transparent: oklch(0% 0 0 / 0%);
+  --ui-color-transparent: oklch(0% 0 0 / 0%);
+  --ui-mask-solid: oklch(0% 0 0);
+  --dev-control-bg: linear-gradient(0deg, oklch(75.0% 0.168 95 / 30%) 0%,oklch(77.5% 0.168 95 / 35%) 100%);
+  --dev-control-border: oklch(60.0% 0.168 95);
+  --dev-control-bg-hover: linear-gradient(0deg, oklch(75.0% 0.168 95 / 80%) 0%,oklch(77.5% 0.168 95 / 85%) 100%);
+  --dev-control-border-hover: oklch(70.0% 0.168 95);
   /* refs:
-   * classes: .autocomplete-item, .autocomplete-menu, .floating, .popover, .tooltip, .tooltip-inner
-   * ids: #editor-anki
-   * status: used
-   */
-  --popup-border: oklch(86.675% 0.29224 142.785);
-  /* refs:
-   * classes: .collapsible, .tag, .tag-editor
-   * ids: #ajpc-tag-wrapper, #editor-anki
-   * elements: button
-   * status: used
-   */
-  --button-bg-hover: oklch(86.675% 0.29224 142.785);
-  /* refs:
-   * ids: #editor-anki
-   * elements: button
-   * status: used
-   */
-  --btn-border-hover: oklch(86.675% 0.29224 142.785);
-  /* refs:
-   * classes: .btn, .primary
-   * ids: #ctx-picker, #graph-empty
-   * status: used
-   */
-  --border-dark: oklch(86.675% 0.29224 142.785);
+     * classes: .btn, .primary
+     * ids: #ctx-picker, #graph-empty
+     * status: used
+     */
+  --border-dark: oklch(68.29% 0.30219 336.091);
   /* refs:
    * ids: #editor-anki
    * elements: mark
    * status: used
    */
-  --cloze-bg: oklch(86.675% 0.29224 142.785);
+  --cloze-bg: oklch(87.101% 0.20239 119.476);
   /* refs:
    * js: graph.city.ui.ctx.js
    * py: graph_editor_embedded.py
    * status: used
    */
-  --bg-chip-100: oklch(86.675% 0.29224 142.785);
-  --bg-chip-200: oklch(86.675% 0.29224 142.785);
+  --bg-chip-100: oklch(77.139% 0.12935 203.779);
+  --bg-chip-200: oklch(66.851% 0.22121 142.869);
 }
 
 *,
@@ -200,7 +212,7 @@ a:hover {
   color: var(--ui-text-primary);
   padding: 4px 10px;
   font-size: 11px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -208,10 +220,22 @@ a:hover {
 .layer-pill:hover, .layer-pill:focus {
   border: 1px solid var(--control-border-interactive);
   background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-.layer-pill.active {
+.layer-pill:active {
   border: 1px solid var(--control-border-interactive);
   background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+.layer-pill.active, .layer-pill.active:focus {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-depth-2);
+}
+.layer-pill.active:hover {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-elevation-2);
 }
 .layer-pill {
   display: inline-flex;
@@ -227,7 +251,7 @@ button {
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -235,10 +259,22 @@ button {
 button:hover, button:focus {
   border: 1px solid var(--control-border-interactive);
   background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-button.active {
+button:active {
   border: 1px solid var(--control-border-interactive);
   background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+button.active, button.active:focus {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-depth-2);
+}
+button.active:hover {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
+  box-shadow: var(--shadow-elevation-2);
 }
 button {
   font-weight: 600;
@@ -254,6 +290,7 @@ input[type=text] {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 input[type=number]:hover, input[type=number].active, input[type=number]:focus,
 input[type=text]:hover,
@@ -261,6 +298,7 @@ input[type=text].active,
 input[type=text]:focus {
   border: 1px solid var(--field-border-interactive);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 input[type=number].active, input[type=number]:focus,
 input[type=text].active,
@@ -282,10 +320,12 @@ input[type=checkbox] {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 input[type=checkbox]:hover, input[type=checkbox].active, input[type=checkbox]:focus {
   border: 1px solid var(--field-border-interactive);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 input[type=checkbox].active, input[type=checkbox]:focus {
   background: var(--input-bg-focus);
@@ -329,10 +369,12 @@ input[type=color] {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 input[type=color]:hover, input[type=color].active, input[type=color]:focus {
-  border: 2px solid var(--accent-base);
+  border: 2px solid var(--field-border-interactive);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 input[type=color].active, input[type=color]:focus {
   background: var(--ui-color-transparent);
@@ -363,10 +405,12 @@ input[type=color]::-webkit-color-swatch {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 .select:hover, .select.active, .select:focus {
   border: 1px solid var(--ui-color-transparent);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 .select.active, .select:focus {
   background: var(--input-bg-focus);
@@ -400,10 +444,12 @@ input[type=color]::-webkit-color-swatch {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 .select:not(.select--multiple) option:hover, .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
   border: 1px solid var(--field-border-interactive);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
   background: var(--input-bg-focus);
@@ -424,7 +470,7 @@ select::-webkit-scrollbar-track {
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-button {
@@ -452,7 +498,7 @@ select::-ms-expand {
   display: none;
 }
 select:hover + .focus, select:focus + .focus {
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--field-border-interactive);
   border-radius: inherit;
   position: absolute;
   top: -1px;
@@ -481,7 +527,7 @@ select[multiple]::-webkit-scrollbar-track {
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-button {
@@ -498,10 +544,12 @@ select[multiple] {
   font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
+  box-shadow: var(--shadow-depth-1);
 }
 select[multiple]:hover, select[multiple].active, select[multiple]:focus {
   border: 1px solid var(--ui-color-transparent);
   outline: none;
+  box-shadow: var(--shadow-depth-2);
 }
 select[multiple].active, select[multiple]:focus {
   background: var(--ui-color-transparent);
@@ -550,6 +598,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 8px;
   background: var(--ui-surface-base);
   padding: 5px 6px;
+  box-shadow: var(--shadow-elevation-2);
   font-size: 12px;
 }
 
@@ -562,6 +611,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 8px;
   background: var(--ui-surface-base);
   padding: 5px 6px;
+  box-shadow: var(--shadow-elevation-2);
   font-size: 12px;
 }
 .control-row label {
@@ -612,8 +662,9 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: minmax(200px, 1.1fr) minmax(300px, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 25px;
+  padding: 12px 12px 20px 20px;
   background: var(--ui-surface-base);
+  z-index: 125;
 }
 
 #toolbar-left,
@@ -636,7 +687,7 @@ select[multiple]:not(:disabled) option:checked {
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -644,13 +695,28 @@ select[multiple]:not(:disabled) option:checked {
 #btn-refresh:hover, #btn-refresh:focus,
 #btn-ai-create:hover,
 #btn-ai-create:focus {
-  border: 1px solid var(--control-border-accent-inverted);
-  background: var(--control-bg-accent-inverted);
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-#btn-refresh.active,
-#btn-ai-create.active {
-  border: 1px solid var(--control-border-accent-inverted);
-  background: var(--control-bg-accent-inverted);
+#btn-refresh:active,
+#btn-ai-create:active {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+#btn-refresh.active, #btn-refresh.active:focus,
+#btn-ai-create.active,
+#btn-ai-create.active:focus {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-depth-2);
+}
+#btn-refresh.active:hover,
+#btn-ai-create.active:hover {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 #toolbar-debug {
@@ -682,7 +748,7 @@ select[multiple]:not(:disabled) option:checked {
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -690,13 +756,27 @@ select[multiple]:not(:disabled) option:checked {
 #toolbar-debug button:hover, #toolbar-debug button:focus {
   border: 1px solid var(--dev-control-border);
   background: var(--dev-control-bg);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-#toolbar-debug button.active {
+#toolbar-debug button:active {
   border: 1px solid var(--dev-control-border);
   background: var(--dev-control-bg);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+#toolbar-debug button.active, #toolbar-debug button.active:focus {
+  border: 1px solid var(--dev-control-border);
+  background: var(--dev-control-bg);
+  box-shadow: var(--shadow-depth-2);
+}
+#toolbar-debug button.active:hover {
+  border: 1px solid var(--dev-control-border);
+  background: var(--dev-control-bg);
+  box-shadow: var(--shadow-elevation-2);
 }
 #toolbar-debug #btn-dev-tools:hover,
-#toolbar-debug #btn-reload-css:hover {
+#toolbar-debug #btn-reload-css:hover,
+#toolbar-debug #btn-dev-tools:active,
+#toolbar-debug #btn-reload-css:active {
   border-color: var(--dev-control-border-hover);
   background: var(--dev-control-bg-hover);
 }
@@ -713,27 +793,39 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-input-wrap #search-input {
   border-radius: var(--radius-md);
-  border: 1px solid var(--ui-surface-card);
+  border: 1px solid var(--control-border);
   background: var(--field-surface);
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 #search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input:focus {
   border: 1px solid var(--accent-border);
-  background: var(--field-surface);
+  background: var(--field-surface-alt);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-#search-wrap #search-input-wrap #search-input.active {
+#search-wrap #search-input-wrap #search-input:active {
   border: 1px solid var(--accent-border);
-  background: var(--field-surface);
+  background: var(--field-surface-alt);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+#search-wrap #search-input-wrap #search-input.active, #search-wrap #search-input-wrap #search-input.active:focus {
+  border: 1px solid var(--accent-border);
+  background: var(--field-surface-alt);
+  box-shadow: var(--shadow-depth-2);
+}
+#search-wrap #search-input-wrap #search-input.active:hover {
+  border: 1px solid var(--accent-border);
+  background: var(--field-surface-alt);
+  box-shadow: var(--shadow-elevation-2);
 }
 #search-wrap #search-input-wrap #search-input {
   position: absolute;
-  inset: 1px;
+  inset: 0px;
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
 }
@@ -753,7 +845,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-button {
@@ -776,6 +868,7 @@ select[multiple]:not(:disabled) option:checked {
 #search-wrap #search-suggest.is-visible {
   display: block;
   border: 1px solid var(--glass-surface-divider);
+  box-shadow: var(--shadow-elevation-1);
 }
 #search-wrap #search-suggest .suggest-item {
   padding: 7px 9px;
@@ -824,11 +917,11 @@ select[multiple]:not(:disabled) option:checked {
 }
 #settings-panel #settings-head {
   height: 12%;
-  overflow: auto;
+  overflow: visible;
   padding: 12px 12px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--ui-surface-base-border);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
 }
 #settings-panel #settings-head .panel-head {
   display: flex;
@@ -875,25 +968,33 @@ select[multiple]:not(:disabled) option:checked {
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 #settings-panel #settings-head #settings-tabs .settings-tab:hover, #settings-panel #settings-head #settings-tabs .settings-tab:focus {
   border: 1px solid var(--control-border-interactive);
-  background: var(--control-bg-interactive);
+  background: var(--control-bg-accent-inverted);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-#settings-panel #settings-head #settings-tabs .settings-tab.active {
+#settings-panel #settings-head #settings-tabs .settings-tab:active {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-accent-inverted);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+#settings-panel #settings-head #settings-tabs .settings-tab.active, #settings-panel #settings-head #settings-tabs .settings-tab.active:focus {
   border: 1px solid var(--control-border);
-  background: var(--accent-active);
+  background: var(--control-bg-accent-inverted);
+  box-shadow: var(--shadow-depth-2);
+}
+#settings-panel #settings-head #settings-tabs .settings-tab.active:hover {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-accent-inverted);
+  box-shadow: var(--shadow-elevation-2);
 }
 #settings-panel #settings-head #settings-tabs .settings-tab {
   font-weight: 600;
-}
-#settings-panel #settings-head #settings-tabs .settings-tab.active:hover {
-  border: 1px solid var(--accent-border);
-  background: var(--accent-base);
 }
 #settings-panel .settings-scroll::-webkit-scrollbar {
   width: 10px !important;
@@ -905,7 +1006,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-button {
@@ -926,6 +1027,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   background: var(--ui-surface-card);
   padding: 10px;
+  box-shadow: var(--shadow-depth-2);
   margin-bottom: 10px;
 }
 #settings-panel .settings-scroll .settings-block h3 {
@@ -943,6 +1045,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   background: var(--ui-surface-base);
   padding: 8px;
+  box-shadow: var(--shadow-elevation-2);
   transition: border-color 180ms ease, background-color 180ms ease;
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-head,
@@ -979,6 +1082,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 8px;
   background: var(--ui-surface-card);
   padding: 5px 6px;
+  box-shadow: var(--shadow-elevation-2);
 }
 #settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-name {
   font-size: 13px;
@@ -1051,7 +1155,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
@@ -1095,6 +1199,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 8px;
   background: var(--ui-surface-base);
   padding: 5px 6px;
+  box-shadow: var(--shadow-elevation-2);
 }
 #settings-panel .settings-scroll .settings-block #engine-list .control-row,
 #settings-panel .settings-scroll .settings-block #solver-list .control-row,
@@ -1188,7 +1293,7 @@ select[multiple]:not(:disabled) option:checked {
   font-size: 14px;
   padding: 8px 14px;
   background: var(--canvas-bg-base);
-  border: 1px solid var(--border-dark);
+  border: 1px solid var(--control-border-accent-glass);
   border-radius: 999px;
   z-index: 4;
 }
@@ -1199,11 +1304,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 8px 10px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   pointer-events: none;
   min-width: 180px;
@@ -1228,11 +1333,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 6px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   display: none;
   min-width: 220px;
@@ -1334,6 +1439,23 @@ select[multiple]:not(:disabled) option:checked {
   gap: 8px;
   padding: 6px 2px;
 }
+#ctx-picker .row--meta {
+  display: block;
+  opacity: 0.9;
+}
+#ctx-picker .ctx-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--control-border-accent-glass);
+  background: var(--glass-surface-card-input-bg);
+  color: var(--ui-text-primary);
+}
+#ctx-picker .ctx-input:hover, #ctx-picker .ctx-input:focus, #ctx-picker .ctx-input:active {
+  border-color: var(--control-border-accent-glass-interactive);
+  outline: none;
+}
 #ctx-picker .btn-row {
   display: flex;
   gap: 8px;
@@ -1353,7 +1475,10 @@ select[multiple]:not(:disabled) option:checked {
   background: var(--menu-surface-bg-hover);
 }
 #ctx-picker .btn.primary {
-  border-color: var(--border-dark);
+  border-color: var(--control-border-accent-glass);
+}
+#ctx-picker .btn.primary:hover, #ctx-picker .btn.primary:focus-visible, #ctx-picker .btn.primary:active {
+  border-color: var(--control-border-accent-glass-interactive);
 }
 
 /* Overlays */
@@ -1406,11 +1531,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 2px 12px 12px 12px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   position: relative;
   width: 100%;
@@ -1453,7 +1578,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-head {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-col {
   font-size: 10px;
@@ -1473,7 +1598,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
@@ -1488,7 +1613,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
   font-size: 11px;
   color: var(--ui-text-primary);
 }
@@ -1511,8 +1636,8 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-top-left #status-active #status-active-deptree {
   display: block;
   margin: 18px 0;
-  border-top: 1px solid var(--divider);
-  border-bottom: 1px solid var(--divider);
+  border-top: 1px solid var(--glass-surface-divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
   white-space: normal;
   line-height: 1.35;
   color: var(--ui-text-secondary);
@@ -1555,11 +1680,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 7px 12px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   width: fit-content;
   align-self: flex-end;
@@ -1570,11 +1695,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 7px 12px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   z-index: 500;
   width: 250px;
@@ -1600,7 +1725,7 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key,
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   padding: 2px 4px;
-  border-top: 1px solid var(--divider);
+  border-top: 1px solid var(--glass-surface-divider);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key {
   text-align: left;
@@ -1641,11 +1766,11 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-surface-border);
   background: var(--glass-surface-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(5px);
   padding: 2px 12px 12px 12px;
   color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   z-index: 500;
   position: relative;
   width: min(1240px, 94vw);
@@ -1694,7 +1819,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-button {
@@ -1772,18 +1897,30 @@ select[multiple]:not(:disabled) option:checked {
   color: var(--ui-text-primary);
   padding: 6px 10px;
   font-size: var(--font-size-md);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: var(--shadow-elevation-2);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 .graph-ai-btn:hover, .graph-ai-btn:focus {
-  border: 1px solid var(--control-border-accent-inverted);
-  background: var(--control-bg-accent-inverted);
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-elevation-2), var(--shadow-depth-2);
 }
-.graph-ai-btn.active {
-  border: 1px solid var(--control-border-accent-inverted);
-  background: var(--control-bg-accent-inverted);
+.graph-ai-btn:active {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-depth-2), var(--shadow-depth-2);
+}
+.graph-ai-btn.active, .graph-ai-btn.active:focus {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-depth-2);
+}
+.graph-ai-btn.active:hover {
+  border: 1px solid var(--control-border-accent-inverted-interactive);
+  background: var(--control-bg-accent-inverted-interactive);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .graph-ai-btn--ghost {
@@ -1867,7 +2004,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-button {
@@ -1905,7 +2042,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-button {
@@ -1996,8 +2133,8 @@ select[multiple]:not(:disabled) option:checked {
   font-weight: 600;
 }
 #editor-anki button:hover, #editor-anki button:active, #editor-anki button:focus-visible {
-  border: 1px solid var(--btn-border-hover) !important;
-  background: var(--button-bg-hover) !important;
+  border: 1px solid var(--control-border-interactive) !important;
+  background: var(--control-bg-interactive) !important;
 }
 #editor-anki .field-state .ajt-play-icon {
   padding-right: 22px;
@@ -2120,7 +2257,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-button {
@@ -2176,7 +2313,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: var(--radius-md);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:hover, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:active, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus-visible {
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--field-border-interactive);
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area .CodeMirror-gutters {
@@ -2236,14 +2373,14 @@ select[multiple]:not(:disabled) option:checked {
   cursor: pointer;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:hover, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:active, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:focus-visible {
-  background: var(--button-bg-hover) !important;
+  background: var(--control-bg-interactive) !important;
 }
 #editor-anki .floating {
   border-radius: var(--radius-md);
 }
 #editor-anki .floating .popover {
   padding: 0 !important;
-  border: 1px solid var(--popup-border) !important;
+  border: 1px solid var(--glass-surface-divider) !important;
   background: var(--menu-surface-bg) !important;
   color: var(--ui-text-primary) !important;
   border-radius: var(--radius-md);
@@ -2258,7 +2395,7 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-thumb {
-  background: var(--accent-border) !important;
+  background: var(--accent-active) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-button {
@@ -2271,7 +2408,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item {
   border: none !important;
-  border-bottom: 1px solid var(--popup-border) !important;
+  border-bottom: 1px solid var(--glass-surface-divider) !important;
   padding: 7px 9px;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item:hover {
@@ -2289,7 +2426,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .tooltip .tooltip-arrow,
 #editor-anki .tooltip .tooltip-inner {
-  border: 1px solid var(--popup-border) !important;
+  border: 1px solid var(--glass-surface-divider) !important;
   background: var(--menu-surface-bg) !important;
   color: var(--ui-text-primary) !important;
 }

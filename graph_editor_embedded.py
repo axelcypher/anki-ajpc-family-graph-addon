@@ -890,7 +890,7 @@ setTimeout(bindChromeObserver,120);
         return "#00000000"
 
     def _embedded_editor_qmenu_qss(self) -> str:
-        popup_bg = self._resolve_embedded_css_value("var(--menu-surface-bg)") or self._resolve_embedded_css_value("var(--bg-chip-200)") or "#111827"
+        popup_bg = self._resolve_embedded_css_value("var(--menu-surface-bg)") or self._resolve_embedded_css_value("var(--glass-surface-card-input-bg)") or "#111827"
         popup_fg = self._resolve_embedded_css_value("var(--ui-text-primary)") or "#e2e8f0"
         popup_border = self._resolve_embedded_css_value("var(--glass-surface-divider)") or "#334155"
         popup_hover = self._resolve_embedded_css_value("var(--bg-chip-100)") or "#1f2937"

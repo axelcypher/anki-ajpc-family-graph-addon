@@ -38,8 +38,8 @@
     &:hover,
     &:active,
     &:focus-visible {
-      border: 1px solid var(--btn-border-hover) !important;
-      background: var(--button-bg-hover) !important;
+      border: 1px solid var(--control-border-interactive) !important;
+      background: var(--control-bg-interactive) !important;
     }
   }
 
@@ -239,7 +239,7 @@
               &:focus,
               &:focus-visible {
 
-                border: 1px solid var(--accent-border);
+                border: 1px solid var(--field-border-interactive);
                 outline: none;
               }
 
@@ -320,7 +320,7 @@
           &:hover,
           &:active,
           &:focus-visible {
-            background: var(--button-bg-hover) !important;
+            background: var(--control-bg-interactive) !important;
           }
 
         }
@@ -333,7 +333,7 @@
 
     .popover {
       padding: 0 !important;
-      border: 1px solid var(--popup-border) !important;
+      border: 1px solid var(--glass-surface-divider) !important;
       background: var(--menu-surface-bg) !important;
       color: var(--ui-text-primary) !important;
       border-radius: var(--radius-md);
@@ -344,7 +344,7 @@
 
         .autocomplete-item {
           border: none !important;
-          border-bottom: 1px solid var(--popup-border) !important;
+          border-bottom: 1px solid var(--glass-surface-divider) !important;
           padding: 7px 9px;
 
           &:hover {
@@ -373,7 +373,7 @@
 
     .tooltip-arrow,
     .tooltip-inner {
-      border: 1px solid var(--popup-border) !important;
+      border: 1px solid var(--glass-surface-divider) !important;
       background: var(--menu-surface-bg) !important;
       color: var(--ui-text-primary) !important;
     }

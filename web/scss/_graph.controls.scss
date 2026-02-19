@@ -74,7 +74,7 @@ input[type="color"] {
     $background: var(--ui-color-transparent),
     $padding: 0px,
     $radius: 9999px,
-    $focus-border: var(--accent-base),
+    $focus-border: var(--field-border-interactive),
     $focus-border-width: 2px,
     $focus-background: var(--ui-color-transparent)
   );

@@ -423,33 +423,23 @@ function showFamilyIdEditDialogForCtx(oldFid, pycmd, showToast) {
   oldRow.textContent = "Old Family ID: " + oldNorm;
 
   var newRow = document.createElement("label");
-  newRow.className = "row";
+  newRow.className = "row row--input";
   var newLabel = document.createElement("span");
   newLabel.textContent = "New Family ID:";
   var newInput = document.createElement("input");
+  newInput.className = "ctx-input";
   newInput.type = "text";
   newInput.value = "";
   newInput.placeholder = "Enter new family id";
-  newInput.style.flex = "1 1 auto";
-  newInput.style.minWidth = "0";
-  newInput.style.padding = "6px 8px";
-  newInput.style.borderRadius = "8px";
-  newInput.style.border = "1px solid var(--glass-surface-divider)";
-  newInput.style.background = "var(--bg-chip-200)";
-  newInput.style.color = "var(--ui-text-primary)";
   newRow.appendChild(newLabel);
   newRow.appendChild(newInput);
 
   var statusRow = document.createElement("div");
-  statusRow.className = "row";
-  statusRow.style.display = "block";
-  statusRow.style.opacity = "0.9";
+  statusRow.className = "row row--meta";
   statusRow.textContent = "Step 1: Enter new ID and run Preview.";
 
   var summaryRow = document.createElement("div");
-  summaryRow.className = "row";
-  summaryRow.style.display = "block";
-  summaryRow.style.opacity = "0.9";
+  summaryRow.className = "row row--meta";
   summaryRow.textContent = "";
 
   list.appendChild(oldRow);

@@ -5,8 +5,9 @@
   grid-template-columns: minmax(200px, 1.1fr) minmax(300px, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 25px;
+  padding: 12px 12px 20px 20px;
   background: var(--ui-surface-base);
+  z-index: 125
 }
 
 #toolbar-left,
@@ -28,11 +29,13 @@
 #btn-ai-create {
   @include mixins.interactive-control-inverted(
     $border: var(--control-border-accent-inverted),
-    $background: var(--control-bg-accent-inverted)
+    $hover-border: var(--control-border-accent-inverted-interactive),
+    $background: var(--control-bg-accent-inverted),
+    $hover-background: var(--control-bg-accent-inverted-interactive)
   );
 }
 
-#toolbar-debug {
+  #toolbar-debug {
   @include mixins.button-group();
   button {
     @include mixins.interactive-control-inverted(
@@ -43,7 +46,9 @@
   }
 
   #btn-dev-tools:hover,
-  #btn-reload-css:hover {
+  #btn-reload-css:hover,
+  #btn-dev-tools:active,
+  #btn-reload-css:active {
     border-color: var(--dev-control-border-hover);
     background: var(--dev-control-bg-hover);
   }
@@ -60,13 +65,13 @@
     margin-right: 0;
     #search-input {
       @include mixins.interactive-control(
-        $border: var(--ui-surface-card),
+        $border: var(--control-border),
         $background: var(--field-surface),
         $hover-border: var(--accent-border),
-        $hover-background: var(--field-surface),
+        $hover-background: var(--field-surface-alt),
       );
       position: absolute;
-      inset: 1px;
+      inset: 0px;
       border-bottom-right-radius: 0;
       border-top-right-radius: 0;
     }
@@ -93,6 +98,7 @@
     &.is-visible {
       display: block;
       border: 1px solid var(--glass-surface-divider);
+      box-shadow: var(--shadow-elevation-1);
 
     }
     .suggest-item {
@@ -133,11 +139,11 @@
 
   #settings-head {
     height: 12%;
-    overflow: auto;
+    overflow: visible;
     padding: 12px 12px;
     box-sizing: border-box;
     border-bottom: 1px solid var(--ui-surface-base-border);
-    box-shadow: var(--shadow-elevation-1);
+    box-shadow: var(--shadow-elevation-2);
     
     .panel-head {
       display: flex;
@@ -161,14 +167,12 @@
       .settings-tab {
         @include mixins.interactive-control(
           $radius: 0,
+          $hover-border: var(--control-border-interactive),
+          $hover-background: var(--control-bg-accent-inverted),
           $active-border: var(--control-border),
-          $active-background: var(--accent-active)
+          $active-background: var(--control-bg-accent-inverted)
         );
         font-weight: 600;
-      }
-      .settings-tab.active:hover{
-          border: 1px solid var(--accent-border);
-          background: var(--accent-base);
       }
     }
   }
@@ -205,7 +209,8 @@
       #note-type-list .note-type-card,
       #link-layer-list .link-type-card {
         @include mixins.surface-card(
-          $border: var(--ui-surface-card-border)
+          $border: var(--ui-surface-card-border),
+          $shadow: var(--shadow-elevation-2)
         );
         transition: border-color 180ms ease, background-color 180ms ease;
       }
@@ -387,5 +392,3 @@
     )
   );
 }
-
-
