@@ -2,7 +2,7 @@
 
 // Context-menu UI module (extracted from graph.city.ui.js).
 var CTX_ICON_DEFAULT_MODE = "fixed";
-var CTX_ICON_DEFAULT_COLOR = "var(--text-main)";
+var CTX_ICON_DEFAULT_COLOR = "var(--ui-text-primary)";
 var CTX_ICON_ENABLE_ENTRY_PREFIX = true; // keep only in-label token icons by default
 var CTX_ICON_ALLOWED_MODES = Object.freeze({
   active: true,
@@ -434,9 +434,9 @@ function showFamilyIdEditDialogForCtx(oldFid, pycmd, showToast) {
   newInput.style.minWidth = "0";
   newInput.style.padding = "6px 8px";
   newInput.style.borderRadius = "8px";
-  newInput.style.border = "1px solid var(--border-100)";
+  newInput.style.border = "1px solid var(--glass-divider)";
   newInput.style.background = "var(--bg-chip-200)";
-  newInput.style.color = "var(--text-main)";
+  newInput.style.color = "var(--ui-text-primary)";
   newRow.appendChild(newLabel);
   newRow.appendChild(newInput);
 

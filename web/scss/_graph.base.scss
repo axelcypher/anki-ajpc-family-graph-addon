@@ -13,8 +13,8 @@ body {
 
 body {
   font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
-  color: var(--text);
-  background: var(--bg-dark);
+  color: var(--ui-text-primary);
+  background: var(--canvas-bg-deep);
 }
 
 #app {
@@ -28,10 +28,10 @@ body {
 
 a {
   text-decoration: none;
-  color: var(--text);
+  color: var(--ui-text-primary);
 
   &:hover {
-    color: var(--accent-link-hover);
+    color: var(--ui-link-hover);
   }
 }
 

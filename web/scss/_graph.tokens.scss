@@ -1,97 +1,184 @@
 :root,
 #app {
-  --color-transparent: oklch(0% 0 0 / 0%);
-  --mask-solid: oklch(0% 0 0);
+  //--------------------------------------------------------------------------------------------------------
+  //general UI
+  //--------------------------------------------------------------------------------------------------------
+  
+  //helpers
+  /* naming suggestion: --ui-text-transparent */
+  --ui-text-transparent: oklch(0% 0 0 / 0%);
+  /* naming suggestion: --ui-color-transparent */
+  --ui-color-transparent: oklch(0% 0 0 / 0%);
+  /* naming suggestion: --ui-mask-solid */
+  --ui-mask-solid: oklch(0% 0 0);
 
-  --bg-dark: oklch(15% 0.010 268);
-  --bg: oklch(20% 0.010 268);
-  --bg-light: oklch(25% 0.010 268);
+  //canvas
+  /* naming suggestion: --canvas-bg-deep */
+  --canvas-bg-deep: oklch(15% 0.010 268);
+  /* naming suggestion: --canvas-bg-base */
+  --canvas-bg-base: oklch(20% 0.010 268);
+  /* naming suggestion: --canvas-bg-soft */
+  --canvas-bg-soft: oklch(25% 0.010 268);
 
-  --panel-bg: oklch(30% 0.015 273);
-  --panel-bg-raised: oklch(32.5% 0.015 273);
-  --panel-bg-border: oklch(25% 0.015 273);
-  --panel-bg-soft: oklch(24.5% 0.015 273);
-  --panel-bg-deep: oklch(20% 0.015 273);
-  --panel-bg-glass: oklch(25% 0.015 273 / 25%);
-  --panel-bg-overlay: oklch(20% 0.015 273 / 50%);
-  --panel-bg-fade: oklch(30% 0.015 273 / 50%);
+  //base ui
+  /* naming suggestion: --ui-surface-base */
+  --ui-surface-base: oklch(68.586% 0.20309 24.187); //UI bg
+  /* naming suggestion: --ui-surface-base-border */
+  --ui-surface-base-border: oklch(68.586% 0.20309 24.187); //UI border
+  /* naming suggestion: --ui-surface-card */
+  --ui-surface-card: oklch(68.586% 0.20309 24.187); //UI card bg 
+  /* naming suggestion: --ui-surface-card-border */
+  --ui-surface-card-border: oklch(68.586% 0.20309 24.187); //UI card border
 
-  --chip-bg: oklch(27.5% 0.015 273);
-  --chip-bg-border: oklch(25.5% 0.015 273);
-  --chip-bg-border-soft: oklch(30% 0.015 273);
-  --chip-bg-raised: oklch(29.5% 0.015 273);
-  --chip-bg-raised-strong: oklch(32.5% 0.015 273);
-  --chip-bg-raised-soft-alpha: oklch(32.5% 0.015 273 / 50%);
-  --chip-bg-fade: oklch(32.5% 0.015 273 / 40%);
+  //form fields
+  /* naming suggestion: --field-surface */
+  --field-surface: oklch(68.586% 0.20309 24.187); //input field bg
+  /* naming suggestion: --field-surface-alt */
+  --field-surface-alt: oklch(68.586% 0.20309 24.187); //input field alt bg
+  /* naming suggestion: --field-border-base */
+  --field-border-base: oklch(68.098% 0.20738 24.489); //input field border
+  /* naming suggestion: --field-border-interactive */
+  --field-border-interactive: oklch(68.098% 0.20738 24.489); //input field border: focus + active + hover
 
-  --popup-bg: oklch(32.5% 0.015 273);
-  --popup-bg-hover: oklch(37.5% 0.015 273 / 50%);
-  --popup-border: oklch(27.5% 0.015 273);
+  //buttons + interactive elements
+  /* naming suggestion: --control-bg */
+  --control-bg: oklch(68.586% 0.20309 24.187); //button maindesign bg
+  /* naming suggestion: --control-border */
+  --control-border: oklch(68.586% 0.20309 24.187); //button maindesign border 
+  /* naming suggestion: --control-bg-interactive */
+  --control-bg-interactive: oklch(68.586% 0.20309 24.187); //button maindesign bg: focus + active + hover
+  /* naming suggestion: --control-border-interactive */
+  --control-border-interactive: oklch(68.586% 0.20309 24.187); //button maindesign border: focus + active + hover
+  /* naming suggestion: --control-bg-accent-inverted */
+  --brand-control-bg-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons bg
+  /* naming suggestion: --control-border-accent-inverted */
+  --brand-control-border-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons border
+  --control-bg-accent-glass: oklch(68.586% 0.20309 24.187);
+  --control-border-accent-glass: oklch(68.586% 0.20309 24.187);
+  
+  //accent colors
+  /* naming suggestion: --accent-base */
+  --accent-base: oklch(35.558% 0.12502 322.71);  //accent 
+  /* naming suggestion: --accent-border */
+  --accent-border: oklch(68.586% 0.20309 24.187); //accent: hover + focus 
+  /* naming suggestion: --accent-active */
+  --accent-surface-active: oklch(68.586% 0.20309 24.187); //accent: active  
 
-  --btn-bg: oklch(24.5% 0.015 273);
-  --btn-border: oklch(22.5% 0.015 273);
-  --btn-bg-hover: oklch(26.5% 0.015 273);
-  --btn-border-hover: oklch(26.5% 0.015 273);
+  //Glass overlays + ctx + modal dialog
+  /* naming suggestion: --glass-surface-bg */
+  --glass-surface-bg: oklch(62.793% 0.25768 29.223 / 0.507); //glass panel bg
+  /* naming suggestion: --glass-surface-border */
+  --glass-surface-border: oklch(68.586% 0.20309 24.187); //glass panel border
+  /* naming suggestion: --glass-surface-divider */
+  --glass-divider: oklch(68.586% 0.20309 24.187); //glass panel divider
+  /* naming suggestion: --glass-surface-card */
+  --glass-card-surface: oklch(68.586% 0.20309 24.187); //glass card bg
+  /* naming suggestion: --glass-surface-card-border */
+  --glass-card-surface-border: oklch(68.586% 0.20309 24.187); //glass card border
+  /* naming suggestion: --glass-surface-card-input-disabled-bg */
+  --glass-input-disabled-bg: oklch(68.586% 0.20309 24.187); //glass card disabled input bg
+  /* naming suggestion: --glass-surface-card-select-bg */
+  --glass-select-bg: oklch(68.586% 0.20309 24.187); //glass card selection bg
+  /* naming suggestion: --glass-surface-card-input-bg */
+  --glass-input-bg: oklch(68.586% 0.20309 24.187); //glass card input bg
+  /* naming suggestion: --glass-surface-card-input-border */
+  --glass-input-border: oklch(68.586% 0.20309 24.187); //glass card selection + input border
+  /* naming suggestion: --modal-backdrop-bg */
+  --modal-backdrop-bg: oklch(12.8802% 0.040603 264.70 / 45%); //modal backdrop
 
-  --accent: oklch(35.558% 0.12502 322.71);
-  --accent-border: oklch(35.558% 0.12502 322.71 / 50%);
-  --accent-border-soft: oklch(40.558% 0.12502 322.71 / 50%);
-  --accent-border-subtle: oklch(40.558% 0.12502 322.71 / 25%);
-  --accent-border-strong: oklch(10.558% 0.07502 322.71);
-  --accent-bg-soft: oklch(35.558% 0.12502 322.71 / 75%);
-  --accent-bg-base: oklch(35.558% 0.12502 322.71 / 50%);
-  --accent-bg-muted: oklch(40.558% 0.12502 322.71 / 30%);
-  --accent-bg-strong: oklch(40.558% 0.12502 322.71 / 50%);
-  --accent-link-hover: oklch(60.558% 0.12502 322.71);
+  //search suggest + selection popups
+  /* naming suggestion: --menu-surface-bg */
+  --menu-surface-bg: oklch(68.586% 0.20309 24.187); // flyout bg (search suggest + selection popups)
+  /* naming suggestion: --menu-surface-bg-hover */
+  --menu-surface-bg-hover: oklch(68.586% 0.20309 24.187); //menu selection bg: focus + active + hover (search suggest + selection popups)
+  /* naming suggestion: --menu-divider */
+  --menu-divider: oklch(68.586% 0.20309 24.187); //menu selection divider (search suggest + selection popups)
 
-  --border: oklch(27.5% 0.015 273);
-  --border-soft: oklch(32.5% 0.015 273);
-  --border-dark: oklch(22.5% 0.015 273);
-  --border-panel-deep: oklch(20% 0.015 273);
-  --border-panel-raised-alpha: oklch(35% 0.015 273 / 50%);
-  --border-mix-24: oklch(32.5% 0.015 273 / 76%);
-  --border-mix-48: oklch(32.5% 0.015 273 / 52%);
-  --border-mix-52: oklch(32.5% 0.015 273 / 48%);
+  //text
+  /* naming suggestion: --ui-text-primary */
+  --ui-text-primary: oklch(90% 0 0);
+  /* naming suggestion: --ui-text-secondary */
+  --ui-text-secondary: oklch(75% 0 0);
+  /* naming suggestion: --ui-link-hover */
+  --ui-link-hover: oklch(68.586% 0.20309 24.187); //link hover
 
-  --text: oklch(90% 0 0);
-  --text-muted: oklch(75% 0 0);
-  --text-blend-muted: oklch(77.7% 0 0);
-  --text-transparent: oklch(0% 0 0 / 0%);
-  --link: oklch(80.9069% 0.095598 251.81);
+  /* naming suggestion: --font-size-sm */
+  --font-size-sm: 11px;
+  /* naming suggestion: --font-size-md */
+  --font-size-md: 13px;
+  /* naming suggestion: --font-size-lg */
+  --font-size-lg: 15px;
 
-  --text-size-small: 11px;
-  --text-size: 13px;
-  --text-size-large: 15px;
+  //semantic colors
+  /* naming suggestion: --status-danger */
+  --status-danger: oklch(85% 0.150 015);
+  /* naming suggestion: --status-warning */
+  --status-warning: oklch(85% 0.150 080);
+  /* naming suggestion: --status-success */
+  --status-success: oklch(85% 0.150 165);
+  /* naming suggestion: --status-info */
+  --status-info: oklch(85% 0.150 230);
 
-  --radius-small: 5px;
-  --radius: 10px;
-  --radius-large: 20px;
+  //border radius
+  /* naming suggestion: --radius-sm */
+  --radius-sm: 5px;
+  /* naming suggestion: --radius-md */
+  --radius-md: 10px;
+  /* naming suggestion: --radius-lg */
+  --radius-lg: 20px;
 
-  --shadow: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
-  --shadow-elevated: 0 12px 28px oklch(12.8802% 0.040603 264.70 / 50%);
+  //element shadows
+  /* naming suggestion: --shadow-elevation-1 */
+  --shadow-elevation-1: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
+ 
+  //--------------------------------------------------------------------------------------------------------
+  //development specific
+  //--------------------------------------------------------------------------------------------------------
+  --dev-control-bg: oklch(68.586% 0.20309 24.187); //button dev bg 
+  --dev-control-border: oklch(68.586% 0.20309 24.187); //button dev border
+  --dev-control-bg-hover: oklch(68.586% 0.20309 24.187); //button dev bg: focus + active + hover
+  --dev-control-border-hover: oklch(68.586% 0.20309 24.187); //button dev border: focus + active + hover
+  //--------------------------------------------------------------------------------------------------------
 
-  --overlay-backdrop: oklch(12.8802% 0.040603 264.70 / 45%);
-  --overlay-backdrop-soft: oklch(12.8802% 0.040603 264.70 / 20%);
-
-  --cloze-bg: oklch(73.1604% 0.161452 50.98 / 25%);
-
-  --input-bg: oklch(27.5% 0.015 273);
-  --input-border: oklch(25.5% 0.015 273);
-  --input-bg-focus: oklch(32.5% 0.015 273);
-  --input-border-focus: oklch(35.558% 0.12502 322.71 / 50%);
-
-  --control-bg: oklch(24.5% 0.015 273);
-  --control-border: oklch(22.5% 0.015 273);
-  --control-bg-hover: oklch(26.5% 0.015 273);
-  --control-border-hover: oklch(26.5% 0.015 273);
-
-  --danger: oklch(85% 0.150 015);
-  --warn: oklch(85% 0.150 080);
-  --ok: oklch(85% 0.150 165);
-  --info: oklch(85% 0.150 230);
-
-  /* Backward-compat aliases */
-  --bg-btn: oklch(24.5% 0.015 273);
-  --bg-chip-100: oklch(32.5% 0.015 273 / 50%);
-  --bg-chip-200: oklch(20% 0.015 273 / 50%);
+  //--------------------------------------------------------------------------------------------------------
+  //I Dont know what this shit does, but I'm afraid to break stuff so I keep it until i can identifiy it.
+  //--------------------------------------------------------------------------------------------------------
+  /* refs:
+   * classes: .autocomplete-item, .autocomplete-menu, .floating, .popover, .tooltip, .tooltip-inner
+   * ids: #editor-anki
+   * status: used
+   */
+  --popup-border: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * classes: .collapsible, .tag, .tag-editor
+   * ids: #ajpc-tag-wrapper, #editor-anki
+   * elements: button
+   * status: used
+   */
+  --button-bg-hover: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * ids: #editor-anki
+   * elements: button
+   * status: used
+   */
+  --btn-border-hover: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * classes: .btn, .primary
+   * ids: #ctx-picker, #graph-empty
+   * status: used
+   */
+  --border-dark: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * ids: #editor-anki
+   * elements: mark
+   * status: used
+   */
+  --cloze-bg: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * js: graph.city.ui.ctx.js
+   * py: graph_editor_embedded.py
+   * status: used
+   */
+  --bg-chip-100: oklch(86.675% 0.29224 142.785);
+  --bg-chip-200: oklch(86.675% 0.29224 142.785);
 }

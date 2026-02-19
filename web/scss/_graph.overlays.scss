@@ -23,7 +23,7 @@
   }
 
   & .tip-muted {
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
   }
 }
 
@@ -47,19 +47,19 @@
     padding: 7px 9px;
     border-radius: 8px;
     cursor: pointer;
-    color: var(--text);
-    border-bottom: 1px solid var(--color-transparent);
+    color: var(--ui-text-primary);
+    border-bottom: 1px solid var(--ui-color-transparent);
   }
 
   & .item:hover {
-    background: var(--popup-bg-hover);
-    border-bottom: 1px solid var(--accent);
+    background: var(--menu-surface-bg-hover);
+    border-bottom: 1px solid var(--accent-base);
   }
 
   & .divider {
     height: 1px;
     margin: 5px 4px;
-    background: var(--panel-bg-deep);
+    background: var(--ui-surface-card);
   }
 
   & .ctx-icon-placeholder,
@@ -74,8 +74,8 @@
   }
 
   & .ctx-icon-base {
-    --ctx-icon-primary: var(--text);
-    --ctx-icon-secondary: var(--text);
+    --ctx-icon-primary: var(--ui-text-primary);
+    --ctx-icon-secondary: var(--ui-text-primary);
     --ctx-icon-family: var(--ctx-icon-primary);
     overflow: visible;
     color: var(--ctx-icon-primary);
@@ -121,7 +121,7 @@
   position: fixed;
   inset: 0;
   z-index: 130;
-  background: var(--overlay-backdrop);
+  background: var(--modal-backdrop-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,10 +130,10 @@
     width: min(360px, 92vw);
     max-height: min(72vh, 520px);
     border-radius: 14px;
-    border: 1px solid var(--border-soft);
-    background: var(--panel-bg-glass);
-    box-shadow: var(--shadow-elevated);
-    color: var(--text);
+    border: 1px solid var(--glass-divider);
+    background: var(--glass-surface-bg);
+    box-shadow: var(--shadow-elevation-1);
+    color: var(--ui-text-primary);
     display: grid;
     grid-template-rows: auto 1fr auto;
   }
@@ -160,21 +160,21 @@
     display: flex;
     gap: 8px;
     padding: 10px 12px 12px 12px;
-    border-top: 1px solid var(--border-soft);
+    border-top: 1px solid var(--glass-divider);
   }
 
   & .btn {
     flex: 1 1 auto;
     border-radius: 9px;
-    border: 1px solid var(--border-soft);
-    background: var(--panel-bg-glass);
-    color: var(--text);
+    border: 1px solid var(--glass-divider);
+    background: var(--glass-surface-bg);
+    color: var(--ui-text-primary);
     padding: 7px 10px;
     cursor: pointer;
   }
 
   & .btn:hover {
-    background: var(--popup-bg-hover);
+    background: var(--menu-surface-bg-hover);
   }
 
   & .btn.primary {
@@ -219,26 +219,26 @@
     overflow: visible;
     padding: 0px 20px 10px 25px;
 
-    background: var(--panel-bg);
+    background: var(--ui-surface-base);
     border-bottom-right-radius: 10px;
 
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
     font-size: 12px;
 
     &::after {
       content: "";
       position: absolute;
-      right: calc(var(--radius) * -1);
+      right: calc(var(--radius-md) * -1);
 
       box-sizing: border-box;
-      width: var(--radius);
-      height: var(--radius);
+      width: var(--radius-md);
+      height: var(--radius-md);
 
-      background: var(--panel-bg);
+      background: var(--ui-surface-base);
       pointer-events: none;
       mask: radial-gradient(circle at 100% 100%,
-          var(--color-transparent) calc(var(--radius) - 0px),
-          var(--mask-solid) var(--radius));
+          var(--ui-color-transparent) calc(var(--radius-md) - 0px),
+          var(--ui-mask-solid) var(--radius-md));
     }
 
   }
@@ -277,7 +277,7 @@
       display: block;
       white-space: normal;
       line-height: 1.35;
-      color: var(--text);
+      color: var(--ui-text-primary);
       font-size: 12px;
       z-index: 100;
 
@@ -303,7 +303,7 @@
 
       .active-cards-head {
         padding: 6px 8px;
-        border-bottom: 1px solid var(--border-panel-deep);
+        border-bottom: 1px solid var(--divider);
       }
 
       .active-card-col {
@@ -311,7 +311,7 @@
         line-height: 1.2;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: var(--text-muted);
+        color: var(--ui-text-secondary);
         font-weight: 700;
       }
 
@@ -325,9 +325,9 @@
 
       .active-card-row {
         padding: 6px 8px;
-        border-bottom: 1px solid var(--border-panel-deep);
+        border-bottom: 1px solid var(--divider);
         font-size: 11px;
-        color: var(--text);
+        color: var(--ui-text-primary);
       }
 
       .active-card-row:last-child {
@@ -355,24 +355,24 @@
 
       margin: 18px 0;
 
-      border-top: 1px solid var(--border-panel-deep);
-      border-bottom: 1px solid var(--border-panel-deep);
+      border-top: 1px solid var(--divider);
+      border-bottom: 1px solid var(--divider);
 
       white-space: normal;
       line-height: 1.35;
-      color: var(--text-muted);
+      color: var(--ui-text-secondary);
       font-size: 11px;
 
       .dep-tree-canvas {
         width: 100%;
         display: block;
-        background: var(--color-transparent);
+        background: var(--ui-color-transparent);
         cursor: pointer;
       }
     }
 
     .btn-row {
-      position: flex;
+      display: flex;
       align-items: end;
       #btn-editor {
         margin: 5px;
@@ -444,22 +444,22 @@
       .coord-key,
       .coord-val {
         padding: 2px 4px;
-        border-top: 1px solid var(--border-soft);
+        border-top: 1px solid var(--divider);
       }
 
       .coord-key {
         text-align: left;
         font-weight: 600;
-        color: var(--text-muted);
+        color: var(--ui-text-secondary);
       }
 
       .coord-val {
         text-align: right;
-        color: var(--text);
+        color: var(--ui-text-primary);
       }
 
       .coord-empty {
-        color: var(--text-transparent);
+        color: var(--ui-text-transparent);
       }
     }
   }
@@ -485,7 +485,7 @@
   & .graph-ai-dialog__backdrop {
     position: absolute;
     inset: 0;
-    background: var(--overlay-backdrop-soft);
+    background: var(--modal-backdrop-bg);
   }
 
   & .graph-ai-dialog__window {
@@ -520,15 +520,15 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-soft);
-    //background: var(--panel-bg-overlay);
+    border-bottom: 1px solid var(--glass-divider);
+    //background: var(--glass-select-bg);
   }
 
   & .graph-ai-dialog__head h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--ui-text-primary);
   }
 
   & .graph-ai-dialog__content {
@@ -542,15 +542,17 @@
 }
 
 .graph-ai-block {
-  border: 1px solid var(--border-panel-deep);
-  border-radius: 12px;
-  background: var(--panel-bg-deep);
-  padding: 10px 12px;
+  @include mixins.ai-surface(
+    $border: var(--glass-card-surface-border),
+    $background: var(--glass-card-surface),
+    $radius: 12px,
+    $padding: 10px 12px
+  );
 
   & h3 {
     margin: 0 0 8px 0;
     font-size: 13px;
-    color: var(--text);
+    color: var(--ui-text-primary);
   }
 }
 
@@ -562,7 +564,7 @@
   margin-bottom: 8px;
 
   & label {
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
     font-size: 12px;
     font-weight: 600;
   }
@@ -572,14 +574,20 @@
   & textarea {
     width: 100%;
     border-radius: 8px;
-    border: 1px solid var(--border-soft);
-    background: var(--chip-bg-raised-soft-alpha);
-    color: var(--text);
+    border: 1px solid var(--glass-divider);
+    background: var(--field-surface);
+    color: var(--ui-text-primary);
     padding: 7px 9px;
     font: inherit;
   }
 
+  & select {
+    border: 1px solid var(--glass-input-border);
+  }
+
   & textarea {
+    border: 1px solid var(--glass-input-border);
+    background: var(--glass-input-bg);
     resize: vertical;
     min-height: 70px;
   }
@@ -606,14 +614,14 @@
 
 .graph-ai-btn {
   @include mixins.interactive-control-inverted(
-    $border: var(--accent),
-    $background: var(--accent-bg-muted),
+    $border: var(--brand-control-border-inverted),
+    $background: var(--brand-control-bg-inverted),
     $padding: 6px 10px
   );
 }
 
 .graph-ai-btn--ghost {
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
 }
 
 .graph-ai-nav {
@@ -632,15 +640,15 @@
 
   & label,
   & span {
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
     font-size: 12px;
   }
 
   & select {
     border-radius: 8px;
-    border: 1px solid var(--border-soft);
-    background: var(--panel-bg-overlay);
-    color: var(--text);
+    border: 1px solid var(--glass-input-border);
+    background: var(--glass-select-bg);
+    color: var(--ui-text-primary);
     padding: 6px 8px;
   }
 }
@@ -663,10 +671,12 @@
 }
 
 .graph-ai-pane {
-  border: 1px solid var(--border-panel-deep);
-  border-radius: 12px;
-  background: var(--panel-bg-overlay);
-  padding: 10px;
+  @include mixins.ai-surface(
+    $border: var(--glass-card-surface-border),
+    $background: var(--glass-card-surface),
+    $radius: 12px,
+    $padding: 10px
+  );
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -674,17 +684,20 @@
   & h4 {
     margin: 0 0 8px 0;
     font-size: 12px;
-    color: var(--text);
+    color: var(--ui-text-primary);
   }
 }
 
 .graph-ai-list {
+  @include mixins.ai-surface(
+    $border: var(--glass-input-border),
+    $background: var(--glass-select-bg),
+    $radius: 8px,
+    $padding: 0
+  );
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--border-panel-raised-alpha);
-  border-radius: 8px;
-  background: var(--panel-bg-overlay);
   min-height: 190px;
   overflow: auto;
   @include mixins.scrollbar();
@@ -692,8 +705,8 @@
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-panel-raised-alpha);
-  color: var(--text);
+  border-bottom: 1px solid var(--glass-input-border);
+  color: var(--ui-text-primary);
   font-size: 12px;
 }
 
@@ -702,9 +715,12 @@
 }
 
 .graph-ai-preview-box {
-  border: 1px solid var(--border-mix-24);
-  border-radius: 8px;
-  background: var(--chip-bg-fade);
+  @include mixins.ai-surface(
+    $border: var(--glass-input-border),
+    $background: var(--glass-input-disabled-bg),
+    $radius: 8px,
+    $padding: 0
+  );
   min-height: 250px;
   overflow: auto;
   @include mixins.scrollbar();
@@ -712,7 +728,7 @@
   & pre {
     margin: 0;
     padding: 10px;
-    color: var(--text);
+    color: var(--ui-text-primary);
     font-size: 12px;
     line-height: 1.38;
     white-space: pre-wrap;
@@ -725,16 +741,16 @@
 
   & th,
   & td {
-    border-bottom: 1px solid var(--border-mix-48);
+    border-bottom: 1px solid var(--glass-divider);
     padding: 6px 8px;
     font-size: 12px;
-    color: var(--text);
+    color: var(--ui-text-primary);
     text-align: left;
     vertical-align: top;
   }
 
   & th {
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
     text-transform: uppercase;
     font-size: 10px;
     letter-spacing: 0.04em;
@@ -745,13 +761,13 @@
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid var(--border-mix-52);
+  border-bottom: 1px solid var(--glass-divider);
 }
 
 .graph-ai-template-canvas {
   min-height: 230px;
   padding: 10px;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
 
@@ -763,8 +779,9 @@
 
 .graph-ai-note {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
+
 
 

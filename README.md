@@ -18,6 +18,10 @@ AJpC Tools Graph is a visual companion for the AJpC Tools add-on. It reads your 
 ## Open the graph
 - `AJpC -> Show Graph`
 
+## Styling Tokens
+- General UI tokens are defined in `web/scss/_graph.tokens.scss`.
+- The General UI namespace now uses semantic token names (for example `--ui-text-primary`, `--control-bg`, `--glass-surface-bg`) and these names are used consistently in SCSS, runtime CSS, JS, and Python lookups.
+
 ## UI tour
 ### Top toolbar
 - **Layer toggles** (click the label):

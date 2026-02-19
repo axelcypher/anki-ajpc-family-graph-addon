@@ -6,6 +6,7 @@
 - None.
 
 ### Minor Updates
+- Renamed General-UI CSS token namespace to semantic names across SCSS/CSS/JS/PY (matching `naming suggestion` comments in `web/scss/_graph.tokens.scss`), including runtime lookups in `graph_editor_embedded.py` and UI inline token usage in `web/adapters/city/ui/graph.city.ui.ctx.js`.
 - Wired graph-side AI popup flows to AJpC Tools AI API bridge (`ai:*`):
   - create preview/apply/mnemonic-retry
   - enrich preview/apply/mnemonic-retry

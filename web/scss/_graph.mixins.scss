@@ -1,29 +1,31 @@
 @mixin form-input(
-  $radius: var(--radius-small),
-  $border: var(--input-border),
-  $background: var(--input-bg),
+  $radius: var(--radius-sm),
+  $border: var(--field-border-base),
+  $border-width: 1px,
+  $background: var(--field-surface),
   $padding: 5px 6px,
-  $text-color: var(--text),
-  $text-size: var(--text-size-small),
-  $focus-border: var(--input-border-focus),
+  $text-color: var(--ui-text-primary),
+  $text-size: var(--font-size-sm),
+  $focus-border: var(--field-border-interactive),
+  $focus-border-width: $border-width,
   $focus-background: var(--input-bg-focus)
 ) {
   border-radius: $radius;
-  border: 1px solid $border;
+  border: $border-width solid $border;
   background: $background;
   color: $text-color;
   padding: $padding;
-  color: $text-color;
   font-size: $text-size;
   outline: none;
   cursor: pointer;
 
-  &:hover, 
+  &:hover,
   &.active,
   &:focus {
-    border: 1px solid $focus-border;
+    border: $focus-border-width solid $focus-border;
     outline: none;
   }
+
   &.active,
   &:focus {
     background: $focus-background;
@@ -31,110 +33,254 @@
 }
 
 @mixin interactive-control(
-  $radius: var(--radius),
+  $radius: var(--radius-md),
   $border: var(--control-border),
+  $border-width: 1px,
   $background: var(--control-bg),
   $padding: 8px 10px,
-  $text-color: var(--text),
-  $text-size: var(--text-size),
-  $shadow: var(--shadow),
-  $hover-border: var(--control-border-hover),
-  $hover-background: var(--control-bg-hover)
+  $text-color: var(--ui-text-primary),
+  $text-size: var(--font-size-md),
+  $shadow: var(--shadow-elevation-1),
+  $hover-border: var(--control-border-interactive),
+  $hover-border-width: $border-width,
+  $hover-background: var(--control-bg-interactive),
+  $active-border: $hover-border,
+  $active-border-width: $hover-border-width,
+  $active-background: $hover-background
 ) {
   border-radius: $radius;
-  border: 1px solid $border;
+  border: $border-width solid $border;
   background: $background;
   color: $text-color;
   padding: $padding;
-  color: $text-color;
   font-size: $text-size;
   box-shadow: $shadow;
   outline: none;
   cursor: pointer;
   user-select: none;
-  
+
   &:hover,
   &:focus {
-    border: 1px solid $hover-border;
+    border: $hover-border-width solid $hover-border;
     background: $hover-background;
   }
+
   &.active {
-    border: 1px solid $hover-border;
-    background: $hover-background;
+    border: $active-border-width solid $active-border;
+    background: $active-background;
   }
 }
 
 @mixin interactive-control-inverted(
-  $radius: var(--radius),
+  $radius: var(--radius-md),
   $border: var(--control-border),
+  $border-width: 1px,
   $background: var(--control-bg),
   $padding: 8px 10px,
-  $text-color: var(--text),
-  $text-size: var(--text-size),
+  $text-color: var(--ui-text-primary),
+  $text-size: var(--font-size-md),
   $hover-border: $border,
-  $hover-background: $background
+  $hover-border-width: $border-width,
+  $hover-background: $background,
+  $active-border: $hover-border,
+  $active-border-width: $hover-border-width,
+  $active-background: $hover-background
 ) {
   @include interactive-control(
     $radius: $radius,
     $border: $border,
+    $border-width: $border-width,
     $background: $background,
     $padding: $padding,
     $text-color: $text-color,
     $text-size: $text-size,
     $hover-border: $hover-border,
-    $hover-background: $hover-background
+    $hover-border-width: $hover-border-width,
+    $hover-background: $hover-background,
+    $active-border: $active-border,
+    $active-border-width: $active-border-width,
+    $active-background: $active-background
   );
 }
 
 @mixin row-chip(
-  $border: var(--chip-bg-raised-strong),
-  $background: var(--chip-bg-raised-strong),
+  $border: var(--ui-surface-base),
+  $background: var(--ui-surface-base),
   $radius: 8px,
-  $padding: 5px 6px) {
+  $padding: 5px 6px
+) {
   border: 1px solid $border;
   border-radius: $radius;
   background: $background;
   padding: $padding;
 }
 
+@mixin side-panel-shell(
+  $side: right,
+  $width: min(390px, 42vw),
+  $closed-offset: 16px
+) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-height: 0;
+  width: $width;
+  background: var(--ui-surface-base);
+  transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
+  z-index: 120;
+  overflow: visible;
 
+  @if $side == left {
+    left: 0;
+  } @else {
+    right: 0;
+  }
 
+  &.closed {
+    @if $side == left {
+      transform: translateX(calc((100% + #{$closed-offset}) * -1));
+    } @else {
+      transform: translateX(calc(100% + #{$closed-offset}));
+    }
 
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+}
 
+@mixin side-panel-notch(
+  $side-prop,
+  $side-value,
+  $top: 0,
+  $width: var(--radius-lg),
+  $height: var(--radius-lg),
+  $mask: none
+) {
+  &::before {
+    content: "";
+    position: absolute;
+    #{$side-prop}: $side-value;
+    top: $top;
+    width: $width;
+    height: $height;
+    background: var(--ui-surface-base);
+    pointer-events: none;
+    z-index: 121;
+    mask: $mask;
+  }
+}
+
+@mixin collapsible-head(
+  $gap: 8px,
+  $margin-bottom: 6px
+) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $gap;
+  margin-bottom: $margin-bottom;
+  transition: margin-bottom 180ms ease;
+}
+
+@mixin collapsible-body() {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 220ms ease, opacity 220ms ease;
+}
+
+@mixin collapsible-body-inner() {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@mixin collapsible-collapsed(
+  $head-selector,
+  $body-selector
+) {
+  &.is-collapsed {
+    #{$head-selector} {
+      margin-bottom: 0;
+    }
+
+    #{$body-selector} {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+}
+
+@mixin caret-indicator(
+  $rotation: 0deg,
+  $color: var(--accent-base),
+  $width: 0.8em,
+  $height: 0.5em,
+  $grid-area: null,
+  $justify-self: null
+) {
+  content: "";
+  width: $width;
+  height: $height;
+  background: $color;
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transform: rotate($rotation);
+  transform-origin: 50% 50%;
+  transition: transform .16s ease;
+
+  @if $grid-area != null {
+    grid-area: $grid-area;
+  }
+
+  @if $justify-self != null {
+    justify-self: $justify-self;
+  }
+}
+
+@mixin ai-surface(
+  $border,
+  $background,
+  $radius: 12px,
+  $padding: 10px
+) {
+  border: 1px solid $border;
+  border-radius: $radius;
+  background: $background;
+  padding: $padding;
+}
 
 @mixin surface-card(
-  $border: var(--border),
-  $background: var(--panel-bg),
-  $radius: var(--radius),
-  $padding: 8px) {
+  $border: var(--menu-divider),
+  $background: var(--ui-surface-base),
+  $radius: var(--radius-md),
+  $padding: 8px
+) {
   border: 1px solid $border;
   border-radius: $radius;
   background: $background;
   padding: $padding;
 }
 
-@mixin overlay-panel($position: relative,
+@mixin overlay-panel(
+  $position: relative,
   $padding: 7px 12px,
 ) {
   position: $position;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: $padding;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
 }
 
-
-
-
-
 @mixin helper-focus(
-  $border: var(--accent-border-soft),
-  ) {
+  $border: var(--accent-border),
+) {
   border: 1px solid $border;
   border-radius: inherit;
 }
@@ -142,17 +288,17 @@
 @mixin scrollbar() {
   &::-webkit-scrollbar {
     width: 10px !important;
-    background: var(--color-transparent) !important;
-    margin: var(--radius) 0 !important;
+    background: var(--ui-color-transparent) !important;
+    margin: var(--radius-md) 0 !important;
   }
 
   &::-webkit-scrollbar-track {
-    background: var(--color-transparent) !important;
+    background: var(--ui-color-transparent) !important;
     border-radius: 999px !important;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--accent-border-soft) !important;
+    background: var(--accent-border) !important;
     border-radius: 999px !important;
   }
 
@@ -162,34 +308,38 @@
     height: 0 !important;
   }
 }
-@mixin button-group($radius: var(--radius)) {
+
+@mixin button-group(
+  $radius: var(--radius-md),
+  $item-selector: "> *"
+) {
   display: inline-flex;
 
-  >* {
+  #{$item-selector} {
     border-radius: 0;
     position: relative;
   }
 
-  >*+* {
+  #{$item-selector} + #{$item-selector} {
     margin-left: -1px;
   }
 
-  > :first-child {
-    border-top-left-radius: $radius ;
-    border-bottom-left-radius: $radius ;
+  #{$item-selector}:first-child {
+    border-top-left-radius: $radius;
+    border-bottom-left-radius: $radius;
   }
 
-  > :last-child {
-    border-top-right-radius: $radius ;
-    border-bottom-right-radius: $radius ;
+  #{$item-selector}:last-child {
+    border-top-right-radius: $radius;
+    border-bottom-right-radius: $radius;
   }
 
-  > :first-child:last-child {
-    border-radius: $radius ;
+  #{$item-selector}:first-child:last-child {
+    border-radius: $radius;
   }
 
-  >*:hover,
-  >*:active {
+  #{$item-selector}:hover,
+  #{$item-selector}:active {
     z-index: 1;
   }
 }

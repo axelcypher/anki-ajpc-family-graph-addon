@@ -1,4 +1,4 @@
-﻿@media (max-width: 1180px) {
+@media (max-width: 1180px) {
   #toolbar {
     grid-template-columns: 1fr;
   }
@@ -14,7 +14,7 @@
     bottom: 0;
     width: min(92vw, 420px);
     z-index: 120;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--menu-divider);
   }
 
   #search-suggest {

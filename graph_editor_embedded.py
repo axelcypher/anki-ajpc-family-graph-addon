@@ -884,15 +884,15 @@ setTimeout(bindChromeObserver,120);
 
     def _get_embedded_editor_panel_bg_color(self) -> str:
         # Match Qt panel background to the editor body theme variable when available.
-        color = self._resolve_embedded_css_value("var(--surface-panel)")
+        color = self._resolve_embedded_css_value("var(--ui-surface-base)")
         if color:
             return color
         return "#00000000"
 
     def _embedded_editor_qmenu_qss(self) -> str:
-        popup_bg = self._resolve_embedded_css_value("var(--popup-bg)") or self._resolve_embedded_css_value("var(--bg-chip-200)") or "#111827"
-        popup_fg = self._resolve_embedded_css_value("var(--text)") or "#e2e8f0"
-        popup_border = self._resolve_embedded_css_value("var(--border-soft)") or "#334155"
+        popup_bg = self._resolve_embedded_css_value("var(--menu-surface-bg)") or self._resolve_embedded_css_value("var(--bg-chip-200)") or "#111827"
+        popup_fg = self._resolve_embedded_css_value("var(--ui-text-primary)") or "#e2e8f0"
+        popup_border = self._resolve_embedded_css_value("var(--glass-divider)") or "#334155"
         popup_hover = self._resolve_embedded_css_value("var(--bg-chip-100)") or "#1f2937"
         return (
             "QMenu{"
@@ -1330,7 +1330,7 @@ setTimeout(bindChromeObserver,120);
                 return self._rgba_to_qt_color(rgba)
             if "color-mix(" in s:
                 # Last fallback when a mix expression cannot be parsed.
-                return vars_map.get("--bg-chip-100", vars_map.get("--surface-card", "#3e4350"))
+                return vars_map.get("--bg-chip-100", vars_map.get("--ui-surface-card", "#3e4350"))
             return s
 
         return _resolve(str(value or "").strip())

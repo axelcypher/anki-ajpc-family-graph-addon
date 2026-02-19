@@ -6,7 +6,7 @@
   gap: 12px;
   align-items: center;
   padding: 10px 25px;
-  background: var(--panel-bg);
+  background: var(--ui-surface-base);
 }
 
 #toolbar-left,
@@ -27,8 +27,8 @@
 #btn-refresh,
 #btn-ai-create {
   @include mixins.interactive-control-inverted(
-    $border: var(--accent),
-    $background: var(--accent-bg-muted)
+    $border: var(--brand-control-border-inverted),
+    $background: var(--brand-control-bg-inverted)
   );
 }
 
@@ -36,10 +36,16 @@
   @include mixins.button-group();
   button {
     @include mixins.interactive-control-inverted(
-      $border: var(--accent-border-strong),
-      $background: var(--accent-bg-strong),
+      $border: var(--dev-control-border),
+      $background: var(--dev-control-bg),
       $radius: 0
     );
+  }
+
+  #btn-dev-tools:hover,
+  #btn-reload-css:hover {
+    border-color: var(--dev-control-border-hover);
+    background: var(--dev-control-bg-hover);
   }
 }
 
@@ -54,20 +60,15 @@
     margin-right: 0;
     #search-input {
       @include mixins.interactive-control(
-        $border: var(--chip-bg-raised-soft-alpha),
-        $background: var(--chip-bg-raised-soft-alpha),
+        $border: var(--ui-surface-card),
+        $background: var(--field-surface),
+        $hover-border: var(--accent-border),
+        $hover-background: var(--field-surface),
       );
       position: absolute;
       inset: 1px;
       border-bottom-right-radius: 0;
       border-top-right-radius: 0;
-
-      &:hover,
-      &.active,
-      &:focus {
-        border: 1px solid var(--accent-border-soft);
-        background: var(--chip-bg-raised-soft-alpha);
-      }
     }
   }
   #search-go {
@@ -85,28 +86,28 @@
     right: 85px;
     max-height: 260px;
     overflow: auto;
-    background: var(--popup-bg);
-    border-radius: var(--radius);
+    background: var(--menu-surface-bg);
+    border-radius: var(--radius-md);
     z-index: 500;
 
     &.is-visible {
       display: block;
-      border: 1px solid var(--border-soft);
+      border: 1px solid var(--glass-divider);
 
     }
     .suggest-item {
       padding: 7px 9px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--menu-divider);
       cursor: pointer;
 
       &:hover,
       &:active {
-        background: var(--popup-bg-hover);
-        border-bottom: 1px solid var(--accent);
+        background: var(--menu-surface-bg-hover);
+        border-bottom: 1px solid var(--accent-base);
       }
       .suggest-meta {
         display: block;
-        color: var(--text-muted);
+        color: var(--ui-text-secondary);
         font-size: 11px;
       }
     }
@@ -116,48 +117,27 @@
 
 
 #settings-panel {
-  $cut-border-width: 2px;
-
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(390px, 42vw);
-  min-height: 0;
-  background: var(--panel-bg);
-  transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
-  z-index: 120;
-  overflow: visible;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: calc(var(--radius-large) * -2);
-    top: 0;
-    width: calc(var(--radius-large) * 2);
-    height: calc(var(--radius-large) * 2);
-    background: var(--panel-bg);
-    pointer-events: none;
-    z-index: 121;
-    mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%,
-        var(--color-transparent) calc((var(--radius-large) * 2) - 0px),
-        var(--mask-solid) calc(var(--radius-large) * 2));
-  }
-
-  &.closed {
-    transform: translateX(calc(100% + 16px));
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-  }
+  @include mixins.side-panel-shell($side: right);
+  @include mixins.side-panel-notch(
+    $side-prop: left,
+    $side-value: calc(var(--radius-lg) * -2),
+    $top: 0,
+    $width: calc(var(--radius-lg) * 2),
+    $height: calc(var(--radius-lg) * 2),
+    $mask: radial-gradient(
+      circle calc(var(--radius-lg) * 2) at 0 100%,
+      var(--ui-color-transparent) calc((var(--radius-lg) * 2) - 0px),
+      var(--ui-mask-solid) calc(var(--radius-lg) * 2)
+    )
+  );
 
   #settings-head {
     height: 12%;
     overflow: auto;
     padding: 12px 12px;
     box-sizing: border-box;
-    border-bottom: 1px solid var(--panel-bg-border);
-    box-shadow: var(--shadow);
+    border-bottom: 1px solid var(--ui-surface-base-border);
+    box-shadow: var(--shadow-elevation-1);
     
     .panel-head {
       display: flex;
@@ -173,24 +153,22 @@
     }
 
     #settings-tabs {
-      @include mixins.button-group();
+      @include mixins.button-group($item-selector: "> .settings-tab");
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0px;
       
-      &button {
+      .settings-tab {
         @include mixins.interactive-control(
-          $radius: 0
+          $radius: 0,
+          $active-border: var(--control-border),
+          $active-background: var(--accent-surface-active)
         );
         font-weight: 600;
       }
-      .settings-tab.active{
-          border: 1px solid var(--accent-border-subtle);
-          background: var(--accent-bg-base);
-      }
       .settings-tab.active:hover{
-          border: 1px solid var(--accent-border-soft);
-          background: var(--accent-bg-soft);
+          border: 1px solid var(--accent-border);
+          background: var(--accent-base);
       }
     }
   }
@@ -207,9 +185,9 @@
 
     .settings-block {
       @include mixins.surface-card(
-        $border: var(--border),
-        $background: var(--panel-bg-soft),
-        $radius: var(--radius),
+        $border: var(--ui-surface-base-border),
+        $background: var(--ui-surface-card),
+        $radius: var(--radius-md),
         $padding: 10px);
       margin-bottom: 10px;
 
@@ -218,214 +196,158 @@
         font-size: 14px;
       }
 
-      #note-type-list {
-        .note-type-card {
-          @include mixins.surface-card();
-          transition: border-color 180ms ease, background-color 180ms ease;
-
-          .note-type-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 6px;
-            transition: margin-bottom 180ms ease;
-
-            .line-item {
-              @include mixins.row-chip(
-                $border: var(--border),
-                $background: var(--border),
-              );
-            } 
-            .note-type-name {
-              font-size: 13px;
-              font-weight: 700;
-            }
-          }
-          .note-type-body {
-            display: grid;
-            grid-template-rows: 1fr;
-            opacity: 1;
-            transition: grid-template-rows 220ms ease, opacity 220ms ease;
-
-            .note-type-body-inner {
-              min-height: 0;
-              overflow: hidden;
-              
-            }
-          }
-          &.is-collapsed {
-            .note-type-head {
-              margin-bottom: 0;
-            }
-
-            .note-type-body {
-              grid-template-rows: 0fr;
-              opacity: 0;
-              pointer-events: none;
-            }
-          }
-          .note-field-grid {
-            display: flex;
-            flex-wrap:wrap;
-            gap: 1%;
-            .note-fields-left {
-              flex: 0 0 29%;
-            }
-            .note-fields-right {
-              flex: 0 0 69%;
-            }
-            .note-fields-bottom {
-              flex: 0 0 100%;
-
-              select[multiple] {
-                @include mixins.scrollbar();
-                              
-              }
-            }
-          }
-        }
-      }
-      #link-runtime-settings {
+      #link-runtime-settings,
+      #link-runtime-settings #link-settings {
         display: grid;
         gap: 8px;
+      }
 
-        #link-settings {
-          display: grid;
-          gap: 8px;
+      #note-type-list .note-type-card,
+      #link-layer-list .link-type-card {
+        @include mixins.surface-card(
+          $border: var(--ui-surface-card-border)
+        );
+        transition: border-color 180ms ease, background-color 180ms ease;
+      }
+
+      #note-type-list .note-type-head,
+      #link-layer-list .link-type-head {
+        @include mixins.collapsible-head();
+      }
+
+      #note-type-list .note-type-body,
+      #link-layer-list .link-type-body {
+        @include mixins.collapsible-body();
+      }
+
+      #note-type-list .note-type-body-inner,
+      #link-layer-list .link-type-body-inner {
+        @include mixins.collapsible-body-inner();
+      }
+
+      #note-type-list .note-type-card {
+        @include mixins.collapsible-collapsed(
+          $head-selector: ".note-type-head",
+          $body-selector: ".note-type-body"
+        );
+
+        .line-item {
+          @include mixins.row-chip(
+            $border: var(--ui-surface-base-border),
+            $background: var(--ui-surface-card),
+          );
+        }
+
+        .note-type-name {
+          font-size: 13px;
+          font-weight: 700;
         }
       }
-      #link-layer-list {
-        .link-type-card {
-          @include mixins.surface-card();
-          transition: border-color 180ms ease, background-color 180ms ease;
 
-          .link-type-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 6px;
-            transition: margin-bottom 180ms ease;
+      #link-layer-list .link-type-card {
+        @include mixins.collapsible-collapsed(
+          $head-selector: ".link-type-head",
+          $body-selector: ".link-type-body"
+        );
 
-            .link-type-name {
-              font-size: 13px;
-              font-weight: 700;
-              cursor: pointer;
-            }
-            .link-type-head-right {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-            }
-            .ln-collapse-indicator {
-              width: 14px;
-              height: 14px;
-              cursor: pointer;
-              display: inline-grid;
-              place-items: center;
-              flex: 0 0 14px;
+        .link-type-name {
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
 
-              &::before {
-                content: "";
-                width: 0.8em;
-                height: 0.5em;
-                background: var(--accent-bg-soft);
-                clip-path: polygon(100% 0%, 0 0%, 50% 100%);
-                transform: rotate(90deg);
-                transform-origin: 50% 50%;
-                transition: transform .16s ease;
-              }
-            }
+        .link-type-head-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .ln-collapse-indicator {
+          width: 14px;
+          height: 14px;
+          cursor: pointer;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 14px;
+
+          &::before {
+            @include mixins.caret-indicator($rotation: 90deg);
+          }
+        }
+
+        &:not(.is-collapsed) {
+          .link-type-head .ln-collapse-indicator::before {
+            transform: rotate(0deg);
+          }
+        }
+      }
+
+      .note-field-grid,
+      .link-field-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1%;
+      }
+
+      .note-fields-left,
+      .link-fields-left {
+        flex: 0 0 29%;
+      }
+
+      .note-fields-right,
+      .link-fields-right {
+        flex: 0 0 69%;
+      }
+
+      .note-fields-bottom,
+      .link-fields-bottom {
+        flex: 0 0 100%;
+      }
+
+      .note-fields-bottom select[multiple] {
+        @include mixins.scrollbar();
+      }
+
+      .link-fields-left {
+        display: grid;
+        gap: 6px;
+
+        .color-picker {
+          border-radius: 0;
+          width: 100%;
+          height: 10px;
+          aspect-ratio: none;
+          border: 0;
+
+          input[type="color"] {
+            border-radius: 0;
+            margin-top: 0;
           }
 
-          .link-type-body {
-            display: grid;
-            grid-template-rows: 1fr;
-            opacity: 1;
-            transition: grid-template-rows 220ms ease, opacity 220ms ease;
-
-            .link-type-body-inner {
-              min-height: 0;
-              overflow: hidden;
-            }
+          input[type="color"]::-webkit-color-swatch-wrapper,
+          input[type="color"]::-webkit-color-swatch {
+            border-radius: 0;
           }
+        }
+      }
 
-          &.is-collapsed {
-            .link-type-head {
-              margin-bottom: 0;
-            }
+      .link-fields-right {
+        display: grid;
+        gap: 6px;
+      }
 
-            .link-type-body {
-              grid-template-rows: 0fr;
-              opacity: 0;
-              pointer-events: none;
-            }
-          }
+      .ln-ml-group-hubs {
+        display: grid;
+        gap: 6px;
 
-          &:not(.is-collapsed) {
-            .link-type-head {
-              .ln-collapse-indicator::before {
-                transform: rotate(0deg);
-              }
-            }
-          }
+        .ln-ml-group-list {
+          display: grid;
+          gap: 4px;
 
-          .link-field-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1%;
-
-            .link-fields-left {
-              flex: 0 0 29%;
-              display: grid;
-              gap: 6px;
-
-              .color-picker {
-                border-radius: 0;
-                width: 100%;
-                height: 10px;
-                aspect-ratio: none;
-                border: 0;
-
-                input[type="color"] {
-                  border-radius: 0;
-                  margin-top: 0;
-                } 
-                input[type="color"]::-webkit-color-swatch-wrapper,
-                input[type="color"]::-webkit-color-swatch {
-                  border-radius: 0;
-                }
-              }
-
-
-            }
-
-            .link-fields-right {
-              flex: 0 0 69%;
-              display: grid;
-              gap: 6px;
-            }
-
-            .link-fields-bottom {
-              flex: 0 0 100%;
-            }
-
-            .ln-ml-group-hubs {
-              display: grid;
-              gap: 6px;
-
-              .ln-ml-group-list {
-                display: grid;
-                gap: 4px;
-
-                .ln-ml-group-row {
-                  @include mixins.row-chip(
-                    $background: var(--panel-bg),
-                  );
-                }
-              }
-            }
+          .ln-ml-group-row {
+            @include mixins.row-chip(
+              $background: var(--ui-surface-base),
+            );
           }
         }
       }
@@ -451,39 +373,19 @@
 
 
 #editor-panel {
-  $cut-border-width: 2px;
-
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(390px, 42vw);
-  min-height: 0;
-  background: var(--panel-bg);
-  transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
-  z-index: 120;
-  overflow: visible;
-
-  &::before {
-    content: "";
-    position: absolute;
-    right: calc(var(--radius-large) * -1);
-    top: 24px;
-    width: var(--radius-large);
-    height: var(--radius-large);
-    background: var(--panel-bg);
-    pointer-events: none;
-    z-index: 121;
-    mask: radial-gradient(circle var(--radius-large) at 100% 100%,
-        var(--color-transparent) calc(var(--radius-large) - 0px),
-        var(--mask-solid) var(--radius-large));
-  }
-
-  &.closed {
-    transform: translateX(calc((100% + 16px) * -1));
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-  }  
+  @include mixins.side-panel-shell($side: left);
+  @include mixins.side-panel-notch(
+    $side-prop: right,
+    $side-value: calc(var(--radius-lg) * -1),
+    $top: 24px,
+    $width: var(--radius-lg),
+    $height: var(--radius-lg),
+    $mask: radial-gradient(
+      circle var(--radius-lg) at 100% 100%,
+      var(--ui-color-transparent) calc(var(--radius-lg) - 0px),
+      var(--ui-mask-solid) var(--radius-lg)
+    )
+  );
 }
+
 

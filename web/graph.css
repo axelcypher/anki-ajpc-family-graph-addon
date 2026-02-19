@@ -1,82 +1,149 @@
 :root,
 #app {
-  --color-transparent: oklch(0% 0 0 / 0%);
-  --mask-solid: oklch(0% 0 0);
-  --bg-dark: oklch(15% 0.010 268);
-  --bg: oklch(20% 0.010 268);
-  --bg-light: oklch(25% 0.010 268);
-  --panel-bg: oklch(30% 0.015 273);
-  --panel-bg-raised: oklch(32.5% 0.015 273);
-  --panel-bg-border: oklch(25% 0.015 273);
-  --panel-bg-soft: oklch(24.5% 0.015 273);
-  --panel-bg-deep: oklch(20% 0.015 273);
-  --panel-bg-glass: oklch(25% 0.015 273 / 25%);
-  --panel-bg-overlay: oklch(20% 0.015 273 / 50%);
-  --panel-bg-fade: oklch(30% 0.015 273 / 50%);
-  --chip-bg: oklch(27.5% 0.015 273);
-  --chip-bg-border: oklch(25.5% 0.015 273);
-  --chip-bg-border-soft: oklch(30% 0.015 273);
-  --chip-bg-raised: oklch(29.5% 0.015 273);
-  --chip-bg-raised-strong: oklch(32.5% 0.015 273);
-  --chip-bg-raised-soft-alpha: oklch(32.5% 0.015 273 / 50%);
-  --chip-bg-fade: oklch(32.5% 0.015 273 / 40%);
-  --popup-bg: oklch(32.5% 0.015 273);
-  --popup-bg-hover: oklch(37.5% 0.015 273 / 50%);
-  --popup-border: oklch(27.5% 0.015 273);
-  --btn-bg: oklch(24.5% 0.015 273);
-  --btn-border: oklch(22.5% 0.015 273);
-  --btn-bg-hover: oklch(26.5% 0.015 273);
-  --btn-border-hover: oklch(26.5% 0.015 273);
-  --accent: oklch(35.558% 0.12502 322.71);
-  --accent-border: oklch(35.558% 0.12502 322.71 / 50%);
-  --accent-border-soft: oklch(40.558% 0.12502 322.71 / 50%);
-  --accent-border-subtle: oklch(40.558% 0.12502 322.71 / 25%);
-  --accent-border-strong: oklch(10.558% 0.07502 322.71);
-  --accent-bg-soft: oklch(35.558% 0.12502 322.71 / 75%);
-  --accent-bg-base: oklch(35.558% 0.12502 322.71 / 50%);
-  --accent-bg-muted: oklch(40.558% 0.12502 322.71 / 30%);
-  --accent-bg-strong: oklch(40.558% 0.12502 322.71 / 50%);
-  --accent-link-hover: oklch(60.558% 0.12502 322.71);
-  --border: oklch(27.5% 0.015 273);
-  --border-soft: oklch(32.5% 0.015 273);
-  --border-dark: oklch(22.5% 0.015 273);
-  --border-panel-deep: oklch(20% 0.015 273);
-  --border-panel-raised-alpha: oklch(35% 0.015 273 / 50%);
-  --border-mix-24: oklch(32.5% 0.015 273 / 76%);
-  --border-mix-48: oklch(32.5% 0.015 273 / 52%);
-  --border-mix-52: oklch(32.5% 0.015 273 / 48%);
-  --text: oklch(90% 0 0);
-  --text-muted: oklch(75% 0 0);
-  --text-blend-muted: oklch(77.7% 0 0);
-  --text-transparent: oklch(0% 0 0 / 0%);
-  --link: oklch(80.9069% 0.095598 251.81);
-  --text-size-small: 11px;
-  --text-size: 13px;
-  --text-size-large: 15px;
-  --radius-small: 5px;
-  --radius: 10px;
-  --radius-large: 20px;
-  --shadow: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
-  --shadow-elevated: 0 12px 28px oklch(12.8802% 0.040603 264.70 / 50%);
-  --overlay-backdrop: oklch(12.8802% 0.040603 264.70 / 45%);
-  --overlay-backdrop-soft: oklch(12.8802% 0.040603 264.70 / 20%);
-  --cloze-bg: oklch(73.1604% 0.161452 50.98 / 25%);
-  --input-bg: oklch(27.5% 0.015 273);
-  --input-border: oklch(25.5% 0.015 273);
-  --input-bg-focus: oklch(32.5% 0.015 273);
-  --input-border-focus: oklch(35.558% 0.12502 322.71 / 50%);
-  --control-bg: oklch(24.5% 0.015 273);
-  --control-border: oklch(22.5% 0.015 273);
-  --control-bg-hover: oklch(26.5% 0.015 273);
-  --control-border-hover: oklch(26.5% 0.015 273);
-  --danger: oklch(85% 0.150 015);
-  --warn: oklch(85% 0.150 080);
-  --ok: oklch(85% 0.150 165);
-  --info: oklch(85% 0.150 230);
-  /* Backward-compat aliases */
-  --bg-btn: oklch(24.5% 0.015 273);
-  --bg-chip-100: oklch(32.5% 0.015 273 / 50%);
-  --bg-chip-200: oklch(20% 0.015 273 / 50%);
+  /* naming suggestion: --ui-text-transparent */
+  --ui-text-transparent: oklch(0% 0 0 / 0%);
+  /* naming suggestion: --ui-color-transparent */
+  --ui-color-transparent: oklch(0% 0 0 / 0%);
+  /* naming suggestion: --ui-mask-solid */
+  --ui-mask-solid: oklch(0% 0 0);
+  /* naming suggestion: --canvas-bg-deep */
+  --canvas-bg-deep: oklch(15% 0.010 268);
+  /* naming suggestion: --canvas-bg-base */
+  --canvas-bg-base: oklch(20% 0.010 268);
+  /* naming suggestion: --canvas-bg-soft */
+  --canvas-bg-soft: oklch(25% 0.010 268);
+  /* naming suggestion: --ui-surface-base */
+  --ui-surface-base: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --ui-surface-base-border */
+  --ui-surface-base-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --ui-surface-card */
+  --ui-surface-card: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --ui-surface-card-border */
+  --ui-surface-card-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --field-surface */
+  --field-surface: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --field-surface-alt */
+  --field-surface-alt: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --field-border-base */
+  --field-border-base: oklch(68.098% 0.20738 24.489);
+  /* naming suggestion: --field-border-interactive */
+  --field-border-interactive: oklch(68.098% 0.20738 24.489);
+  /* naming suggestion: --control-bg */
+  --control-bg: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --control-border */
+  --control-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --control-bg-interactive */
+  --control-bg-interactive: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --control-border-interactive */
+  --control-border-interactive: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --control-bg-accent-inverted */
+  --brand-control-bg-inverted: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --control-border-accent-inverted */
+  --brand-control-border-inverted: oklch(68.586% 0.20309 24.187);
+  --control-bg-accent-glass: oklch(68.586% 0.20309 24.187);
+  --control-border-accent-glass: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --accent-base */
+  --accent-base: oklch(35.558% 0.12502 322.71);
+  /* naming suggestion: --accent-border */
+  --accent-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --accent-active */
+  --accent-surface-active: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-bg */
+  --glass-surface-bg: oklch(62.793% 0.25768 29.223 / 0.507);
+  /* naming suggestion: --glass-surface-border */
+  --glass-surface-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-divider */
+  --glass-divider: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card */
+  --glass-card-surface: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card-border */
+  --glass-card-surface-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card-input-disabled-bg */
+  --glass-input-disabled-bg: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card-select-bg */
+  --glass-select-bg: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card-input-bg */
+  --glass-input-bg: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --glass-surface-card-input-border */
+  --glass-input-border: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --modal-backdrop-bg */
+  --modal-backdrop-bg: oklch(12.8802% 0.040603 264.70 / 45%);
+  /* naming suggestion: --menu-surface-bg */
+  --menu-surface-bg: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --menu-surface-bg-hover */
+  --menu-surface-bg-hover: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --menu-divider */
+  --menu-divider: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --ui-text-primary */
+  --ui-text-primary: oklch(90% 0 0);
+  /* naming suggestion: --ui-text-secondary */
+  --ui-text-secondary: oklch(75% 0 0);
+  /* naming suggestion: --ui-link-hover */
+  --ui-link-hover: oklch(68.586% 0.20309 24.187);
+  /* naming suggestion: --font-size-sm */
+  --font-size-sm: 11px;
+  /* naming suggestion: --font-size-md */
+  --font-size-md: 13px;
+  /* naming suggestion: --font-size-lg */
+  --font-size-lg: 15px;
+  /* naming suggestion: --status-danger */
+  --status-danger: oklch(85% 0.150 015);
+  /* naming suggestion: --status-warning */
+  --status-warning: oklch(85% 0.150 080);
+  /* naming suggestion: --status-success */
+  --status-success: oklch(85% 0.150 165);
+  /* naming suggestion: --status-info */
+  --status-info: oklch(85% 0.150 230);
+  /* naming suggestion: --radius-sm */
+  --radius-sm: 5px;
+  /* naming suggestion: --radius-md */
+  --radius-md: 10px;
+  /* naming suggestion: --radius-lg */
+  --radius-lg: 20px;
+  /* naming suggestion: --shadow-elevation-1 */
+  --shadow-elevation-1: 0px 2px 1px -1px oklch(19.1251% 0 0 / 12%), 0px 1px 1px 0px oklch(19.1251% 0 0 / 6%), 0px 1px 3px 0px oklch(19.1251% 0 0 / 4%);
+  --dev-control-bg: oklch(68.586% 0.20309 24.187);
+  --dev-control-border: oklch(68.586% 0.20309 24.187);
+  --dev-control-bg-hover: oklch(68.586% 0.20309 24.187);
+  --dev-control-border-hover: oklch(68.586% 0.20309 24.187);
+  /* refs:
+   * classes: .autocomplete-item, .autocomplete-menu, .floating, .popover, .tooltip, .tooltip-inner
+   * ids: #editor-anki
+   * status: used
+   */
+  --popup-border: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * classes: .collapsible, .tag, .tag-editor
+   * ids: #ajpc-tag-wrapper, #editor-anki
+   * elements: button
+   * status: used
+   */
+  --button-bg-hover: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * ids: #editor-anki
+   * elements: button
+   * status: used
+   */
+  --btn-border-hover: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * classes: .btn, .primary
+   * ids: #ctx-picker, #graph-empty
+   * status: used
+   */
+  --border-dark: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * ids: #editor-anki
+   * elements: mark
+   * status: used
+   */
+  --cloze-bg: oklch(86.675% 0.29224 142.785);
+  /* refs:
+   * js: graph.city.ui.ctx.js
+   * py: graph_editor_embedded.py
+   * status: used
+   */
+  --bg-chip-100: oklch(86.675% 0.29224 142.785);
+  --bg-chip-200: oklch(86.675% 0.29224 142.785);
 }
 
 *,
@@ -94,8 +161,8 @@ body {
 
 body {
   font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
-  color: var(--text);
-  background: var(--bg-dark);
+  color: var(--ui-text-primary);
+  background: var(--canvas-bg-deep);
 }
 
 #app {
@@ -109,10 +176,10 @@ body {
 
 a {
   text-decoration: none;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 a:hover {
-  color: var(--accent-link-hover);
+  color: var(--ui-link-hover);
 }
 
 .hidden {
@@ -122,30 +189,29 @@ a:hover {
 .swatch {
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-divider);
 }
 
 .layer-pill {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   border: 1px solid var(--control-border);
   background: var(--control-bg);
-  color: var(--text);
+  color: var(--ui-text-primary);
   padding: 4px 10px;
-  color: var(--text);
   font-size: 11px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 .layer-pill:hover, .layer-pill:focus {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
 }
 .layer-pill.active {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
 }
 .layer-pill {
   display: inline-flex;
@@ -155,25 +221,24 @@ a:hover {
 }
 
 button {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   border: 1px solid var(--control-border);
   background: var(--control-bg);
-  color: var(--text);
+  color: var(--ui-text-primary);
   padding: 8px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 button:hover, button:focus {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
 }
 button.active {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
 }
 button {
   font-weight: 600;
@@ -181,13 +246,12 @@ button {
 
 input[type=number],
 input[type=text] {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-border-base);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 5px 6px;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
@@ -195,7 +259,7 @@ input[type=number]:hover, input[type=number].active, input[type=number]:focus,
 input[type=text]:hover,
 input[type=text].active,
 input[type=text]:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 1px solid var(--field-border-interactive);
   outline: none;
 }
 input[type=number].active, input[type=number]:focus,
@@ -210,18 +274,17 @@ input[type=text] {
 
 input[type=checkbox] {
   appearance: none;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-border-base);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 0;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
 input[type=checkbox]:hover, input[type=checkbox].active, input[type=checkbox]:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 1px solid var(--field-border-interactive);
   outline: none;
 }
 input[type=checkbox].active, input[type=checkbox]:focus {
@@ -230,20 +293,20 @@ input[type=checkbox].active, input[type=checkbox]:focus {
 input[type=checkbox] {
   margin: 0;
   font: inherit;
-  width: var(--text-size);
-  height: var(--text-size);
+  width: var(--font-size-md);
+  height: var(--font-size-md);
   border-radius: 2px;
   display: grid;
   place-content: center;
 }
 input[type=checkbox]::before {
   content: "";
-  width: calc(var(--text-size) * 0.6);
-  height: calc(var(--text-size) * 0.6);
+  width: calc(var(--font-size-md) * 0.6);
+  height: calc(var(--font-size-md) * 0.6);
   border-radius: 1px;
   transform: scale(0);
   transition: 120ms transform ease-in-out;
-  box-shadow: inset var(--text-size) var(--text-size) var(--accent);
+  box-shadow: inset var(--font-size-md) var(--font-size-md) var(--accent-base);
 }
 input[type=checkbox]:checked::before {
   transform: scale(1);
@@ -259,21 +322,20 @@ input[type=checkbox]:checked::before {
 
 input[type=color] {
   border-radius: 9999px;
-  border: 1px solid var(--input-border);
-  background: var(--color-transparent);
-  color: var(--text);
+  border: 1px solid var(--field-border-base);
+  background: var(--ui-color-transparent);
+  color: var(--ui-text-primary);
   padding: 0px;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
 input[type=color]:hover, input[type=color].active, input[type=color]:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 2px solid var(--accent-base);
   outline: none;
 }
 input[type=color].active, input[type=color]:focus {
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
 }
 input[type=color] {
   width: 100%;
@@ -282,13 +344,10 @@ input[type=color] {
   cursor: pointer;
   overflow: hidden;
 }
-input[type=color]:hover, input[type=color]:focus {
-  border: 2px solid var(--accent);
-}
 input[type=color]::-webkit-color-swatch-wrapper {
   padding: 0;
   border-radius: 9999px;
-  border: var(--color-transparent);
+  border: var(--ui-color-transparent);
 }
 input[type=color]::-webkit-color-swatch {
   border: 0;
@@ -296,18 +355,17 @@ input[type=color]::-webkit-color-swatch {
 }
 
 .select {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-border-base);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 5px 6px;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
 .select:hover, .select.active, .select:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 1px solid var(--ui-color-transparent);
   outline: none;
 }
 .select.active, .select:focus {
@@ -321,34 +379,30 @@ input[type=color]::-webkit-color-swatch {
   cursor: pointer;
   line-height: 1.1;
 }
-.select::after {
-  grid-area: select;
-}
-.select:hover, .select.active, .select:focus {
-  border: 1px solid var(--color-transparent);
-}
 .select:not(.select--multiple)::after {
   content: "";
-  grid-area: select;
-  justify-self: end;
   width: 0.8em;
   height: 0.5em;
-  background: var(--accent);
+  background: var(--accent-base);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transform: rotate(0deg);
+  transform-origin: 50% 50%;
+  transition: transform 0.16s ease;
+  grid-area: select;
+  justify-self: end;
 }
 .select:not(.select--multiple) option {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-border-base);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 5px 6px;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
 .select:not(.select--multiple) option:hover, .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 1px solid var(--field-border-interactive);
   outline: none;
 }
 .select:not(.select--multiple) option.active, .select:not(.select--multiple) option:focus {
@@ -362,15 +416,15 @@ input[type=color]::-webkit-color-swatch {
 
 select::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 select::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 select::-webkit-scrollbar-button {
@@ -380,7 +434,7 @@ select::-webkit-scrollbar-button {
 }
 select {
   appearance: none;
-  background-color: var(--color-transparent);
+  background-color: var(--ui-color-transparent);
   border: none;
   padding: 0 1em 0 0;
   margin: 0;
@@ -391,14 +445,14 @@ select {
   line-height: inherit;
   outline: none;
   z-index: 1;
-  color: var(--text);
+  color: var(--ui-text-primary);
   grid-area: select;
 }
 select::-ms-expand {
   display: none;
 }
 select:hover + .focus, select:focus + .focus {
-  border: 1px solid var(--accent-border-soft);
+  border: 1px solid var(--accent-border);
   border-radius: inherit;
   position: absolute;
   top: -1px;
@@ -410,24 +464,24 @@ select:hover + .focus, select:focus + .focus {
 .select--multiple {
   padding: 0;
   outline: none;
-  border: 1px solid var(--color-transparent);
+  border: 1px solid var(--field-border-base);
 }
 .select--multiple:hover, .select--multiple:focus {
-  border: 1px solid var(--color-transparent);
+  border: 1px solid var(--field-border-base);
   outline: none;
 }
 
 select[multiple]::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 select[multiple]::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 select[multiple]::-webkit-scrollbar-button {
@@ -436,34 +490,29 @@ select[multiple]::-webkit-scrollbar-button {
   height: 0 !important;
 }
 select[multiple] {
-  border-radius: var(--radius-small);
-  border: 1px solid var(--input-border);
-  background: var(--color-transparent);
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ui-color-transparent);
+  background: var(--ui-color-transparent);
+  color: var(--ui-text-primary);
   padding: 5px 6px;
-  color: var(--text);
-  font-size: var(--text-size-small);
+  font-size: var(--font-size-sm);
   outline: none;
   cursor: pointer;
 }
 select[multiple]:hover, select[multiple].active, select[multiple]:focus {
-  border: 1px solid var(--input-border-focus);
+  border: 1px solid var(--ui-color-transparent);
   outline: none;
 }
 select[multiple].active, select[multiple]:focus {
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
 }
 select[multiple] {
   height: 5rem;
 }
-select[multiple]:hover, select[multiple]:focus {
-  border: 1px solid var(--color-transparent);
-  outline: none;
-}
 select[multiple] option {
   white-space: normal;
   padding-left: 0.5em;
-  color: var(--text-muted) !important;
+  color: var(--ui-text-secondary) !important;
 }
 select[multiple]:not(:disabled) option {
   border-radius: 2px;
@@ -471,9 +520,9 @@ select[multiple]:not(:disabled) option {
   transition: 120ms all ease-in;
 }
 select[multiple]:not(:disabled) option:checked {
-  background: var(--accent-bg-strong);
+  background: var(--accent-surface-active);
   padding-left: 0.5em;
-  color: var(--text) !important;
+  color: var(--ui-text-primary) !important;
 }
 
 .stack {
@@ -490,16 +539,16 @@ select[multiple]:not(:disabled) option:checked {
   display: grid;
   gap: 4px;
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
 }
 
 .line-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--panel-bg-raised);
+  border: 1px solid var(--ui-surface-base);
   border-radius: 8px;
-  background: var(--panel-bg-raised);
+  background: var(--ui-surface-base);
   padding: 5px 6px;
   font-size: 12px;
 }
@@ -509,14 +558,14 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: 1fr minmax(66px, auto);
   gap: 8px;
   align-items: center;
-  border: 1px solid var(--panel-bg-raised);
+  border: 1px solid var(--ui-surface-base);
   border-radius: 8px;
-  background: var(--panel-bg-raised);
+  background: var(--ui-surface-base);
   padding: 5px 6px;
   font-size: 12px;
 }
 .control-row label {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 }
 
@@ -534,7 +583,7 @@ select[multiple]:not(:disabled) option:checked {
 
 .hint {
   margin: 0 0 8px 0;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 }
 
@@ -552,7 +601,7 @@ select[multiple]:not(:disabled) option:checked {
     bottom: 0;
     width: min(92vw, 420px);
     z-index: 120;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--menu-divider);
   }
   #search-suggest {
     right: 0;
@@ -564,7 +613,7 @@ select[multiple]:not(:disabled) option:checked {
   gap: 12px;
   align-items: center;
   padding: 10px 25px;
-  background: var(--panel-bg);
+  background: var(--ui-surface-base);
 }
 
 #toolbar-left,
@@ -581,14 +630,13 @@ select[multiple]:not(:disabled) option:checked {
 
 #btn-refresh,
 #btn-ai-create {
-  border-radius: var(--radius);
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
-  color: var(--text);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
+  color: var(--ui-text-primary);
   padding: 8px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
@@ -596,13 +644,13 @@ select[multiple]:not(:disabled) option:checked {
 #btn-refresh:hover, #btn-refresh:focus,
 #btn-ai-create:hover,
 #btn-ai-create:focus {
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
 }
 #btn-refresh.active,
 #btn-ai-create.active {
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
 }
 
 #toolbar-debug {
@@ -612,19 +660,16 @@ select[multiple]:not(:disabled) option:checked {
   border-radius: 0;
   position: relative;
 }
-#toolbar-debug > * + * {
-  margin-left: -1px;
+#toolbar-debug > *:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
 }
-#toolbar-debug > :first-child {
-  border-top-left-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
+#toolbar-debug > *:last-child {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
 }
-#toolbar-debug > :last-child {
-  border-top-right-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
-}
-#toolbar-debug > :first-child:last-child {
-  border-radius: var(--radius);
+#toolbar-debug > *:first-child:last-child {
+  border-radius: var(--radius-md);
 }
 #toolbar-debug > *:hover,
 #toolbar-debug > *:active {
@@ -632,24 +677,28 @@ select[multiple]:not(:disabled) option:checked {
 }
 #toolbar-debug button {
   border-radius: 0;
-  border: 1px solid var(--accent-border-strong);
-  background: var(--accent-bg-strong);
-  color: var(--text);
+  border: 1px solid var(--dev-control-border);
+  background: var(--dev-control-bg);
+  color: var(--ui-text-primary);
   padding: 8px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 #toolbar-debug button:hover, #toolbar-debug button:focus {
-  border: 1px solid var(--accent-border-strong);
-  background: var(--accent-bg-strong);
+  border: 1px solid var(--dev-control-border);
+  background: var(--dev-control-bg);
 }
 #toolbar-debug button.active {
-  border: 1px solid var(--accent-border-strong);
-  background: var(--accent-bg-strong);
+  border: 1px solid var(--dev-control-border);
+  background: var(--dev-control-bg);
+}
+#toolbar-debug #btn-dev-tools:hover,
+#toolbar-debug #btn-reload-css:hover {
+  border-color: var(--dev-control-border-hover);
+  background: var(--dev-control-bg-hover);
 }
 
 #search-wrap {
@@ -663,35 +712,30 @@ select[multiple]:not(:disabled) option:checked {
   margin-right: 0;
 }
 #search-wrap #search-input-wrap #search-input {
-  border-radius: var(--radius);
-  border: 1px solid var(--chip-bg-raised-soft-alpha);
-  background: var(--chip-bg-raised-soft-alpha);
-  color: var(--text);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--ui-surface-card);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 8px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 #search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input:focus {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--accent-border);
+  background: var(--field-surface);
 }
 #search-wrap #search-input-wrap #search-input.active {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
+  border: 1px solid var(--accent-border);
+  background: var(--field-surface);
 }
 #search-wrap #search-input-wrap #search-input {
   position: absolute;
   inset: 1px;
   border-bottom-right-radius: 0;
   border-top-right-radius: 0;
-}
-#search-wrap #search-input-wrap #search-input:hover, #search-wrap #search-input-wrap #search-input.active, #search-wrap #search-input-wrap #search-input:focus {
-  border: 1px solid var(--accent-border-soft);
-  background: var(--chip-bg-raised-soft-alpha);
 }
 #search-wrap #search-go {
   width: 50px;
@@ -701,15 +745,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-suggest::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 #search-wrap #search-suggest::-webkit-scrollbar-button {
@@ -725,52 +769,40 @@ select[multiple]:not(:disabled) option:checked {
   right: 85px;
   max-height: 260px;
   overflow: auto;
-  background: var(--popup-bg);
-  border-radius: var(--radius);
+  background: var(--menu-surface-bg);
+  border-radius: var(--radius-md);
   z-index: 500;
 }
 #search-wrap #search-suggest.is-visible {
   display: block;
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--glass-divider);
 }
 #search-wrap #search-suggest .suggest-item {
   padding: 7px 9px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--menu-divider);
   cursor: pointer;
 }
 #search-wrap #search-suggest .suggest-item:hover, #search-wrap #search-suggest .suggest-item:active {
-  background: var(--popup-bg-hover);
-  border-bottom: 1px solid var(--accent);
+  background: var(--menu-surface-bg-hover);
+  border-bottom: 1px solid var(--accent-base);
 }
 #search-wrap #search-suggest .suggest-item .suggest-meta {
   display: block;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 }
 
 #settings-panel {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
-  width: min(390px, 42vw);
   min-height: 0;
-  background: var(--panel-bg);
+  width: min(390px, 42vw);
+  background: var(--ui-surface-base);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
-}
-#settings-panel::before {
-  content: "";
-  position: absolute;
-  left: calc(var(--radius-large) * -2);
-  top: 0;
-  width: calc(var(--radius-large) * 2);
-  height: calc(var(--radius-large) * 2);
-  background: var(--panel-bg);
-  pointer-events: none;
-  z-index: 121;
-  mask: radial-gradient(circle calc(var(--radius-large) * 2) at 0 100%, var(--color-transparent) calc(var(--radius-large) * 2 - 0px), var(--mask-solid) calc(var(--radius-large) * 2));
+  right: 0;
 }
 #settings-panel.closed {
   transform: translateX(calc(100% + 16px));
@@ -778,13 +810,25 @@ select[multiple]:not(:disabled) option:checked {
   pointer-events: none;
   visibility: hidden;
 }
+#settings-panel::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--radius-lg) * -2);
+  top: 0;
+  width: calc(var(--radius-lg) * 2);
+  height: calc(var(--radius-lg) * 2);
+  background: var(--ui-surface-base);
+  pointer-events: none;
+  z-index: 121;
+  mask: radial-gradient(circle calc(var(--radius-lg) * 2) at 0 100%, var(--ui-color-transparent) calc(var(--radius-lg) * 2 - 0px), var(--ui-mask-solid) calc(var(--radius-lg) * 2));
+}
 #settings-panel #settings-head {
   height: 12%;
   overflow: auto;
   padding: 12px 12px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--panel-bg-border);
-  box-shadow: var(--shadow);
+  border-bottom: 1px solid var(--ui-surface-base-border);
+  box-shadow: var(--shadow-elevation-1);
 }
 #settings-panel #settings-head .panel-head {
   display: flex;
@@ -800,26 +844,23 @@ select[multiple]:not(:disabled) option:checked {
 #settings-panel #settings-head #settings-tabs {
   display: inline-flex;
 }
-#settings-panel #settings-head #settings-tabs > * {
+#settings-panel #settings-head #settings-tabs > .settings-tab {
   border-radius: 0;
   position: relative;
 }
-#settings-panel #settings-head #settings-tabs > * + * {
-  margin-left: -1px;
+#settings-panel #settings-head #settings-tabs > .settings-tab:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
 }
-#settings-panel #settings-head #settings-tabs > :first-child {
-  border-top-left-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
+#settings-panel #settings-head #settings-tabs > .settings-tab:last-child {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
 }
-#settings-panel #settings-head #settings-tabs > :last-child {
-  border-top-right-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
+#settings-panel #settings-head #settings-tabs > .settings-tab:first-child:last-child {
+  border-radius: var(--radius-md);
 }
-#settings-panel #settings-head #settings-tabs > :first-child:last-child {
-  border-radius: var(--radius);
-}
-#settings-panel #settings-head #settings-tabs > *:hover,
-#settings-panel #settings-head #settings-tabs > *:active {
+#settings-panel #settings-head #settings-tabs > .settings-tab:hover,
+#settings-panel #settings-head #settings-tabs > .settings-tab:active {
   z-index: 1;
 }
 #settings-panel #settings-head #settings-tabs {
@@ -827,49 +868,44 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: repeat(4, 1fr);
   gap: 0px;
 }
-#settings-panel #settings-head #settings-tabsbutton {
+#settings-panel #settings-head #settings-tabs .settings-tab {
   border-radius: 0;
   border: 1px solid var(--control-border);
   background: var(--control-bg);
-  color: var(--text);
+  color: var(--ui-text-primary);
   padding: 8px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
-#settings-panel #settings-head #settings-tabsbutton:hover, #settings-panel #settings-head #settings-tabsbutton:focus {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
-}
-#settings-panel #settings-head #settings-tabsbutton.active {
-  border: 1px solid var(--control-border-hover);
-  background: var(--control-bg-hover);
-}
-#settings-panel #settings-head #settings-tabsbutton {
-  font-weight: 600;
+#settings-panel #settings-head #settings-tabs .settings-tab:hover, #settings-panel #settings-head #settings-tabs .settings-tab:focus {
+  border: 1px solid var(--control-border-interactive);
+  background: var(--control-bg-interactive);
 }
 #settings-panel #settings-head #settings-tabs .settings-tab.active {
-  border: 1px solid var(--accent-border-subtle);
-  background: var(--accent-bg-base);
+  border: 1px solid var(--control-border);
+  background: var(--accent-surface-active);
+}
+#settings-panel #settings-head #settings-tabs .settings-tab {
+  font-weight: 600;
 }
 #settings-panel #settings-head #settings-tabs .settings-tab.active:hover {
-  border: 1px solid var(--accent-border-soft);
-  background: var(--accent-bg-soft);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-base);
 }
 #settings-panel .settings-scroll::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 #settings-panel .settings-scroll::-webkit-scrollbar-button {
@@ -886,9 +922,9 @@ select[multiple]:not(:disabled) option:checked {
   border: none;
 }
 #settings-panel .settings-scroll .settings-block {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel-bg-soft);
+  border: 1px solid var(--ui-surface-base-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface-card);
   padding: 10px;
   margin-bottom: 10px;
 }
@@ -896,14 +932,21 @@ select[multiple]:not(:disabled) option:checked {
   margin: 0 0 8px 0;
   font-size: 14px;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel-bg);
+#settings-panel .settings-scroll .settings-block #link-runtime-settings,
+#settings-panel .settings-scroll .settings-block #link-runtime-settings #link-settings {
+  display: grid;
+  gap: 8px;
+}
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card,
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card {
+  border: 1px solid var(--ui-surface-card-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface-base);
   padding: 8px;
   transition: border-color 180ms ease, background-color 180ms ease;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head {
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-head,
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -911,23 +954,15 @@ select[multiple]:not(:disabled) option:checked {
   margin-bottom: 6px;
   transition: margin-bottom 180ms ease;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .line-item {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--border);
-  padding: 5px 6px;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-head .note-type-name {
-  font-size: 13px;
-  font-weight: 700;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-body {
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-body,
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-body {
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
   transition: grid-template-rows 220ms ease, opacity 220ms ease;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-body .note-type-body-inner {
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-body-inner,
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-body-inner {
   min-height: 0;
   overflow: hidden;
 }
@@ -939,98 +974,15 @@ select[multiple]:not(:disabled) option:checked {
   opacity: 0;
   pointer-events: none;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1%;
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .line-item {
+  border: 1px solid var(--ui-surface-base-border);
+  border-radius: 8px;
+  background: var(--ui-surface-card);
+  padding: 5px 6px;
 }
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-left {
-  flex: 0 0 29%;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-right {
-  flex: 0 0 69%;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom {
-  flex: 0 0 100%;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar {
-  width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
-  border-radius: 999px !important;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
-  border-radius: 999px !important;
-}
-#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-field-grid .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-#settings-panel .settings-scroll .settings-block #link-runtime-settings {
-  display: grid;
-  gap: 8px;
-}
-#settings-panel .settings-scroll .settings-block #link-runtime-settings #link-settings {
-  display: grid;
-  gap: 8px;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel-bg);
-  padding: 8px;
-  transition: border-color 180ms ease, background-color 180ms ease;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-  transition: margin-bottom 180ms ease;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .link-type-name {
+#settings-panel .settings-scroll .settings-block #note-type-list .note-type-card .note-type-name {
   font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .link-type-head-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .ln-collapse-indicator {
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 14px;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head .ln-collapse-indicator::before {
-  content: "";
-  width: 0.8em;
-  height: 0.5em;
-  background: var(--accent-bg-soft);
-  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
-  transform: rotate(90deg);
-  transform-origin: 50% 50%;
-  transition: transform 0.16s ease;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-body {
-  display: grid;
-  grid-template-rows: 1fr;
-  opacity: 1;
-  transition: grid-template-rows 220ms ease, opacity 220ms ease;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-body .link-type-body-inner {
-  min-height: 0;
-  overflow: hidden;
 }
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card.is-collapsed .link-type-head {
   margin-bottom: 0;
@@ -1040,54 +992,108 @@ select[multiple]:not(:disabled) option:checked {
   opacity: 0;
   pointer-events: none;
 }
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-name {
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-type-head-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .ln-collapse-indicator {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 14px;
+}
+#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .ln-collapse-indicator::before {
+  content: "";
+  width: 0.8em;
+  height: 0.5em;
+  background: var(--accent-base);
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transform: rotate(90deg);
+  transform-origin: 50% 50%;
+  transition: transform 0.16s ease;
+}
 #settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card:not(.is-collapsed) .link-type-head .ln-collapse-indicator::before {
   transform: rotate(0deg);
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid {
+#settings-panel .settings-scroll .settings-block .note-field-grid,
+#settings-panel .settings-scroll .settings-block .link-field-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 1%;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-left {
+#settings-panel .settings-scroll .settings-block .note-fields-left,
+#settings-panel .settings-scroll .settings-block .link-fields-left {
   flex: 0 0 29%;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-right,
+#settings-panel .settings-scroll .settings-block .link-fields-right {
+  flex: 0 0 69%;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-bottom,
+#settings-panel .settings-scroll .settings-block .link-fields-bottom {
+  flex: 0 0 100%;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar {
+  width: 10px !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar-track {
+  background: var(--ui-color-transparent) !important;
+  border-radius: 999px !important;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar-thumb {
+  background: var(--accent-border) !important;
+  border-radius: 999px !important;
+}
+#settings-panel .settings-scroll .settings-block .note-fields-bottom select[multiple]::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+#settings-panel .settings-scroll .settings-block .link-fields-left {
   display: grid;
   gap: 6px;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-left .color-picker {
+#settings-panel .settings-scroll .settings-block .link-fields-left .color-picker {
   border-radius: 0;
   width: 100%;
   height: 10px;
   aspect-ratio: none;
   border: 0;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-left .color-picker input[type=color] {
+#settings-panel .settings-scroll .settings-block .link-fields-left .color-picker input[type=color] {
   border-radius: 0;
   margin-top: 0;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-left .color-picker input[type=color]::-webkit-color-swatch-wrapper,
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-left .color-picker input[type=color]::-webkit-color-swatch {
+#settings-panel .settings-scroll .settings-block .link-fields-left .color-picker input[type=color]::-webkit-color-swatch-wrapper,
+#settings-panel .settings-scroll .settings-block .link-fields-left .color-picker input[type=color]::-webkit-color-swatch {
   border-radius: 0;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-right {
-  flex: 0 0 69%;
+#settings-panel .settings-scroll .settings-block .link-fields-right {
   display: grid;
   gap: 6px;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .link-fields-bottom {
-  flex: 0 0 100%;
-}
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs {
+#settings-panel .settings-scroll .settings-block .ln-ml-group-hubs {
   display: grid;
   gap: 6px;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list {
+#settings-panel .settings-scroll .settings-block .ln-ml-group-hubs .ln-ml-group-list {
   display: grid;
   gap: 4px;
 }
-#settings-panel .settings-scroll .settings-block #link-layer-list .link-type-card .link-field-grid .ln-ml-group-hubs .ln-ml-group-list .ln-ml-group-row {
-  border: 1px solid var(--chip-bg-raised-strong);
+#settings-panel .settings-scroll .settings-block .ln-ml-group-hubs .ln-ml-group-list .ln-ml-group-row {
+  border: 1px solid var(--ui-surface-base);
   border-radius: 8px;
-  background: var(--panel-bg);
+  background: var(--ui-surface-base);
   padding: 5px 6px;
 }
 #settings-panel .settings-scroll .settings-block #engine-list .control-row,
@@ -1105,32 +1111,32 @@ select[multiple]:not(:disabled) option:checked {
 #editor-panel {
   position: absolute;
   top: 0;
-  left: 0;
   bottom: 0;
-  width: min(390px, 42vw);
   min-height: 0;
-  background: var(--panel-bg);
+  width: min(390px, 42vw);
+  background: var(--ui-surface-base);
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms ease;
   z-index: 120;
   overflow: visible;
-}
-#editor-panel::before {
-  content: "";
-  position: absolute;
-  right: calc(var(--radius-large) * -1);
-  top: 24px;
-  width: var(--radius-large);
-  height: var(--radius-large);
-  background: var(--panel-bg);
-  pointer-events: none;
-  z-index: 121;
-  mask: radial-gradient(circle var(--radius-large) at 100% 100%, var(--color-transparent) calc(var(--radius-large) - 0px), var(--mask-solid) var(--radius-large));
+  left: 0;
 }
 #editor-panel.closed {
   transform: translateX(calc((100% + 16px) * -1));
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
+}
+#editor-panel::before {
+  content: "";
+  position: absolute;
+  right: calc(var(--radius-lg) * -1);
+  top: 24px;
+  width: var(--radius-lg);
+  height: var(--radius-lg);
+  background: var(--ui-surface-base);
+  pointer-events: none;
+  z-index: 121;
+  mask: radial-gradient(circle var(--radius-lg) at 100% 100%, var(--ui-color-transparent) calc(var(--radius-lg) - 0px), var(--ui-mask-solid) var(--radius-lg));
 }
 
 #main-layout {
@@ -1146,7 +1152,7 @@ select[multiple]:not(:disabled) option:checked {
   min-width: 0;
   min-height: 0;
   position: relative;
-  background: var(--bg-dark);
+  background: var(--canvas-bg-deep);
   overflow: hidden;
   isolation: isolate;
 }
@@ -1178,10 +1184,10 @@ select[multiple]:not(:disabled) option:checked {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 14px;
   padding: 8px 14px;
-  background: var(--bg);
+  background: var(--canvas-bg-base);
   border: 1px solid var(--border-dark);
   border-radius: 999px;
   z-index: 4;
@@ -1190,14 +1196,14 @@ select[multiple]:not(:disabled) option:checked {
 /* Hover Tooltip */
 #hover-tip {
   position: fixed;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 8px 10px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   pointer-events: none;
   min-width: 180px;
@@ -1213,20 +1219,20 @@ select[multiple]:not(:disabled) option:checked {
   margin-bottom: 4px;
 }
 #hover-tip .tip-muted {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
 }
 
 /* Conteext Menu */
 #ctx-menu {
   position: fixed;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 6px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   display: none;
   min-width: 220px;
@@ -1242,17 +1248,17 @@ select[multiple]:not(:disabled) option:checked {
   padding: 7px 9px;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--text);
-  border-bottom: 1px solid var(--color-transparent);
+  color: var(--ui-text-primary);
+  border-bottom: 1px solid var(--ui-color-transparent);
 }
 #ctx-menu .item:hover {
-  background: var(--popup-bg-hover);
-  border-bottom: 1px solid var(--accent);
+  background: var(--menu-surface-bg-hover);
+  border-bottom: 1px solid var(--accent-base);
 }
 #ctx-menu .divider {
   height: 1px;
   margin: 5px 4px;
-  background: var(--panel-bg-deep);
+  background: var(--ui-surface-card);
 }
 #ctx-menu .ctx-icon-placeholder, #ctx-menu .ctx-icon-base {
   display: inline-block;
@@ -1264,8 +1270,8 @@ select[multiple]:not(:disabled) option:checked {
   vertical-align: middle;
 }
 #ctx-menu .ctx-icon-base {
-  --ctx-icon-primary: var(--text);
-  --ctx-icon-secondary: var(--text);
+  --ctx-icon-primary: var(--ui-text-primary);
+  --ctx-icon-secondary: var(--ui-text-primary);
   --ctx-icon-family: var(--ctx-icon-primary);
   overflow: visible;
   color: var(--ctx-icon-primary);
@@ -1297,7 +1303,7 @@ select[multiple]:not(:disabled) option:checked {
   position: fixed;
   inset: 0;
   z-index: 130;
-  background: var(--overlay-backdrop);
+  background: var(--modal-backdrop-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1306,10 +1312,10 @@ select[multiple]:not(:disabled) option:checked {
   width: min(360px, 92vw);
   max-height: min(72vh, 520px);
   border-radius: 14px;
-  border: 1px solid var(--border-soft);
-  background: var(--panel-bg-glass);
-  box-shadow: var(--shadow-elevated);
-  color: var(--text);
+  border: 1px solid var(--glass-divider);
+  background: var(--glass-surface-bg);
+  box-shadow: var(--shadow-elevation-1);
+  color: var(--ui-text-primary);
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
@@ -1332,19 +1338,19 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px 12px 12px 12px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--glass-divider);
 }
 #ctx-picker .btn {
   flex: 1 1 auto;
   border-radius: 9px;
-  border: 1px solid var(--border-soft);
-  background: var(--panel-bg-glass);
-  color: var(--text);
+  border: 1px solid var(--glass-divider);
+  background: var(--glass-surface-bg);
+  color: var(--ui-text-primary);
   padding: 7px 10px;
   cursor: pointer;
 }
 #ctx-picker .btn:hover {
-  background: var(--popup-bg-hover);
+  background: var(--menu-surface-bg-hover);
 }
 #ctx-picker .btn.primary {
   border-color: var(--border-dark);
@@ -1379,32 +1385,32 @@ select[multiple]:not(:disabled) option:checked {
   gap: 10px;
   overflow: visible;
   padding: 0px 20px 10px 25px;
-  background: var(--panel-bg);
+  background: var(--ui-surface-base);
   border-bottom-right-radius: 10px;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
 #status-overlay-top-left #statusbar::after {
   content: "";
   position: absolute;
-  right: calc(var(--radius) * -1);
+  right: calc(var(--radius-md) * -1);
   box-sizing: border-box;
-  width: var(--radius);
-  height: var(--radius);
-  background: var(--panel-bg);
+  width: var(--radius-md);
+  height: var(--radius-md);
+  background: var(--ui-surface-base);
   pointer-events: none;
-  mask: radial-gradient(circle at 100% 100%, var(--color-transparent) calc(var(--radius) - 0px), var(--mask-solid) var(--radius));
+  mask: radial-gradient(circle at 100% 100%, var(--ui-color-transparent) calc(var(--radius-md) - 0px), var(--ui-mask-solid) var(--radius-md));
 }
 #status-overlay-top-left #status-active {
   position: relative;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 2px 12px 12px 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   position: relative;
   width: 100%;
@@ -1427,7 +1433,7 @@ select[multiple]:not(:disabled) option:checked {
   display: block;
   white-space: normal;
   line-height: 1.35;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
   z-index: 100;
 }
@@ -1447,27 +1453,27 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-head {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-panel-deep);
+  border-bottom: 1px solid var(--divider);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-col {
   font-size: 10px;
   line-height: 1.2;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-weight: 700;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 #status-overlay-top-left #status-active #status-active-cards .active-cards-list::-webkit-scrollbar-button {
@@ -1482,9 +1488,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-panel-deep);
+  border-bottom: 1px solid var(--divider);
   font-size: 11px;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 #status-overlay-top-left #status-active #status-active-cards .active-card-row:last-child {
   border-bottom: none;
@@ -1505,21 +1511,21 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-top-left #status-active #status-active-deptree {
   display: block;
   margin: 18px 0;
-  border-top: 1px solid var(--border-panel-deep);
-  border-bottom: 1px solid var(--border-panel-deep);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
   white-space: normal;
   line-height: 1.35;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 }
 #status-overlay-top-left #status-active #status-active-deptree .dep-tree-canvas {
   width: 100%;
   display: block;
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
   cursor: pointer;
 }
 #status-overlay-top-left #status-active .btn-row {
-  position: flex;
+  display: flex;
   align-items: end;
 }
 #status-overlay-top-left #status-active .btn-row #btn-editor {
@@ -1546,14 +1552,14 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-bottom-right #status-zoom-pill {
   position: relative;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   width: fit-content;
   align-self: flex-end;
@@ -1561,14 +1567,14 @@ select[multiple]:not(:disabled) option:checked {
 }
 #status-overlay-bottom-right #status-debug-panel {
   position: relative;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 7px 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   z-index: 500;
   width: 250px;
@@ -1594,19 +1600,19 @@ select[multiple]:not(:disabled) option:checked {
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key,
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   padding: 2px 4px;
-  border-top: 1px solid var(--border-soft);
+  border-top: 1px solid var(--divider);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-key {
   text-align: left;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-val {
   text-align: right;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 #status-overlay-bottom-right #status-debug-panel .coord-table .coord-empty {
-  color: var(--text-transparent);
+  color: var(--ui-text-transparent);
 }
 
 /* AI create/enrich dialog shells (markup only, no runtime wiring yet) */
@@ -1628,18 +1634,18 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-dialog .graph-ai-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: var(--overlay-backdrop-soft);
+  background: var(--modal-backdrop-bg);
 }
 .graph-ai-dialog .graph-ai-dialog__window {
   position: relative;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-panel-deep);
-  background: var(--panel-bg-glass);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-surface-border);
+  background: var(--glass-surface-bg);
   backdrop-filter: blur(8px);
   padding: 2px 12px 12px 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-elevation-1);
   z-index: 500;
   position: relative;
   width: min(1240px, 94vw);
@@ -1663,13 +1669,13 @@ select[multiple]:not(:disabled) option:checked {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--glass-divider);
 }
 .graph-ai-dialog .graph-ai-dialog__head h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 .graph-ai-dialog .graph-ai-dialog__content {
   display: grid;
@@ -1680,15 +1686,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 .graph-ai-dialog .graph-ai-dialog__content::-webkit-scrollbar-button {
@@ -1698,15 +1704,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-block {
-  border: 1px solid var(--border-panel-deep);
+  border: 1px solid var(--glass-card-surface-border);
   border-radius: 12px;
-  background: var(--panel-bg-deep);
+  background: var(--glass-card-surface);
   padding: 10px 12px;
 }
 .graph-ai-block h3 {
   margin: 0 0 8px 0;
   font-size: 13px;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 
 .graph-ai-form-row {
@@ -1717,20 +1723,25 @@ select[multiple]:not(:disabled) option:checked {
   margin-bottom: 8px;
 }
 .graph-ai-form-row label {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 .graph-ai-form-row select, .graph-ai-form-row input, .graph-ai-form-row textarea {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--border-soft);
-  background: var(--chip-bg-raised-soft-alpha);
-  color: var(--text);
+  border: 1px solid var(--glass-divider);
+  background: var(--field-surface);
+  color: var(--ui-text-primary);
   padding: 7px 9px;
   font: inherit;
 }
+.graph-ai-form-row select {
+  border: 1px solid var(--glass-input-border);
+}
 .graph-ai-form-row textarea {
+  border: 1px solid var(--glass-input-border);
+  background: var(--glass-input-bg);
   resize: vertical;
   min-height: 70px;
 }
@@ -1755,29 +1766,28 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-btn {
-  border-radius: var(--radius);
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
-  color: var(--text);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
+  color: var(--ui-text-primary);
   padding: 6px 10px;
-  color: var(--text);
-  font-size: var(--text-size);
-  box-shadow: var(--shadow);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-elevation-1);
   outline: none;
   cursor: pointer;
   user-select: none;
 }
 .graph-ai-btn:hover, .graph-ai-btn:focus {
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
 }
 .graph-ai-btn.active {
-  border: 1px solid var(--accent);
-  background: var(--accent-bg-muted);
+  border: 1px solid var(--brand-control-border-inverted);
+  background: var(--brand-control-bg-inverted);
 }
 
 .graph-ai-btn--ghost {
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
 }
 
 .graph-ai-nav {
@@ -1793,14 +1803,14 @@ select[multiple]:not(:disabled) option:checked {
   gap: 8px;
 }
 .graph-ai-nav label, .graph-ai-nav span {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
 .graph-ai-nav select {
   border-radius: 8px;
-  border: 1px solid var(--border-soft);
-  background: var(--panel-bg-overlay);
-  color: var(--text);
+  border: 1px solid var(--glass-input-border);
+  background: var(--glass-select-bg);
+  color: var(--ui-text-primary);
   padding: 6px 8px;
 }
 
@@ -1822,9 +1832,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-pane {
-  border: 1px solid var(--border-panel-deep);
+  border: 1px solid var(--glass-card-surface-border);
   border-radius: 12px;
-  background: var(--panel-bg-overlay);
+  background: var(--glass-card-surface);
   padding: 10px;
   min-height: 0;
   display: flex;
@@ -1833,30 +1843,31 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-pane h4 {
   margin: 0 0 8px 0;
   font-size: 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
 }
 
 .graph-ai-list {
+  border: 1px solid var(--glass-input-border);
+  border-radius: 8px;
+  background: var(--glass-select-bg);
+  padding: 0;
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--border-panel-raised-alpha);
-  border-radius: 8px;
-  background: var(--panel-bg-overlay);
   min-height: 190px;
   overflow: auto;
 }
 .graph-ai-list::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 .graph-ai-list::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 .graph-ai-list::-webkit-scrollbar-button {
@@ -1867,8 +1878,8 @@ select[multiple]:not(:disabled) option:checked {
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-panel-raised-alpha);
-  color: var(--text);
+  border-bottom: 1px solid var(--glass-input-border);
+  color: var(--ui-text-primary);
   font-size: 12px;
 }
 
@@ -1877,23 +1888,24 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-preview-box {
-  border: 1px solid var(--border-mix-24);
+  border: 1px solid var(--glass-input-border);
   border-radius: 8px;
-  background: var(--chip-bg-fade);
+  background: var(--glass-input-disabled-bg);
+  padding: 0;
   min-height: 250px;
   overflow: auto;
 }
 .graph-ai-preview-box::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 .graph-ai-preview-box::-webkit-scrollbar-button {
@@ -1904,7 +1916,7 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-preview-box pre {
   margin: 0;
   padding: 10px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   font-size: 12px;
   line-height: 1.38;
   white-space: pre-wrap;
@@ -1915,15 +1927,15 @@ select[multiple]:not(:disabled) option:checked {
   border-collapse: collapse;
 }
 .graph-ai-field-table th, .graph-ai-field-table td {
-  border-bottom: 1px solid var(--border-mix-48);
+  border-bottom: 1px solid var(--glass-divider);
   padding: 6px 8px;
   font-size: 12px;
-  color: var(--text);
+  color: var(--ui-text-primary);
   text-align: left;
   vertical-align: top;
 }
 .graph-ai-field-table th {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -1933,13 +1945,13 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid var(--border-mix-52);
+  border-bottom: 1px solid var(--glass-divider);
 }
 
 .graph-ai-template-canvas {
   min-height: 230px;
   padding: 10px;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
 
@@ -1951,14 +1963,14 @@ select[multiple]:not(:disabled) option:checked {
 
 .graph-ai-note {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px;
 }
 
 #editor-anki html,
 #editor-anki body {
-  background: var(--panel-bg) !important;
-  color: var(--text) !important;
+  background: var(--ui-surface-base) !important;
+  color: var(--ui-text-primary) !important;
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -1970,22 +1982,22 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki .editing-area,
 #editor-anki .label-container {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
 }
 #editor-anki button {
-  border-radius: var(--radius) !important;
-  border: 1px solid var(--btn-border) !important;
-  background: var(--btn-bg) !important;
-  color: var(--text) !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--control-border) !important;
+  background: var(--control-bg) !important;
+  color: var(--ui-text-primary) !important;
   padding: 8px 10px;
   font-size: 13px;
-  box-shadow: var(--shadow) !important;
+  box-shadow: var(--shadow-elevation-1) !important;
   cursor: pointer;
   font-weight: 600;
 }
 #editor-anki button:hover, #editor-anki button:active, #editor-anki button:focus-visible {
   border: 1px solid var(--btn-border-hover) !important;
-  background: var(--btn-bg-hover) !important;
+  background: var(--button-bg-hover) !important;
 }
 #editor-anki .field-state .ajt-play-icon {
   padding-right: 22px;
@@ -2001,20 +2013,22 @@ select[multiple]:not(:disabled) option:checked {
   display: none !important;
 }
 #editor-anki .collapse-label .label-name {
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px !important;
   margin-left: 5px !important;
   grid-area: select;
 }
 #editor-anki .collapse-label::after {
   content: "";
-  grid-area: select;
-  justify-self: end;
   width: 0.8em;
   height: 0.5em;
-  background: var(--accent-bg-soft);
+  background: var(--accent-base);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  transform: rotate(0deg);
+  transform-origin: 50% 50%;
   transition: transform 0.16s ease;
+  grid-area: select;
+  justify-self: end;
 }
 #editor-anki .collapse-label[aria-expanded=false]::after {
   transform: rotate(90deg);
@@ -2023,7 +2037,7 @@ select[multiple]:not(:disabled) option:checked {
 #editor-anki .cloze,
 #editor-anki mark {
   background: var(--cloze-bg) !important;
-  color: var(--text) !important;
+  color: var(--ui-text-primary) !important;
 }
 #editor-anki .hidden {
   display: none !important;
@@ -2042,15 +2056,15 @@ select[multiple]:not(:disabled) option:checked {
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload {
-  border-color: var(--accent-border) !important;
-  background: var(--accent-bg-soft) !important;
-  box-shadow: var(--shadow) !important;
+  border-color: var(--dev-control-border) !important;
+  background: var(--dev-control-bg) !important;
+  box-shadow: var(--shadow-elevation-1) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:hover, #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools:active,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:hover,
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-css-reload:active {
-  border-color: var(--accent-border) !important;
-  background: var(--accent-bg-soft) !important;
+  border-color: var(--dev-control-border-hover) !important;
+  background: var(--dev-control-bg-hover) !important;
 }
 #editor-anki #ajpc-graph-editor-web-controls #ajpc-toolbar-debug #ajpc-graph-editor-devtools {
   margin-right: 0;
@@ -2067,8 +2081,8 @@ select[multiple]:not(:disabled) option:checked {
   height: calc(100% - 59px) !important;
 }
 #editor-anki .note-editor .editor-toolbar {
-  background: var(--panel-bg) !important;
-  border-color: var(--border-soft) !important;
+  background: var(--ui-surface-base) !important;
+  border-color: var(--ui-surface-base-border) !important;
   margin: 0 !important;
   padding: 3px 10px 3px 20px !important;
 }
@@ -2086,27 +2100,27 @@ select[multiple]:not(:disabled) option:checked {
   font-size: 12px !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button:hover, #editor-anki .note-editor .editor-toolbar .button-group button:active, #editor-anki .note-editor .editor-toolbar .button-group button:focus-visible {
-  background: var(--accent-bg-soft) !important;
+  background: var(--accent-base) !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-first {
-  border-top-left-radius: var(--radius-small) !important;
-  border-bottom-left-radius: var(--radius-small) !important;
+  border-top-left-radius: var(--radius-sm) !important;
+  border-bottom-left-radius: var(--radius-sm) !important;
 }
 #editor-anki .note-editor .editor-toolbar .button-group button.ajpc-edge-last {
-  border-top-right-radius: var(--radius-small) !important;
-  border-bottom-right-radius: var(--radius-small) !important;
+  border-top-right-radius: var(--radius-sm) !important;
+  border-bottom-right-radius: var(--radius-sm) !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 #editor-anki .note-editor .scroll-area-relative .scroll-area-wrapper .scroll-area::-webkit-scrollbar-button {
@@ -2123,9 +2137,9 @@ select[multiple]:not(:disabled) option:checked {
   direction: ltr;
 }
 #editor-anki .note-editor .fields {
-  border: 1px solid var(--border-soft) !important;
-  border-radius: var(--radius) !important;
-  background: var(--panel-bg-fade) !important;
+  border: 1px solid var(--ui-surface-base-border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--ui-surface-card) !important;
   padding: 10px !important;
 }
 #editor-anki .note-editor .fields .collapsible {
@@ -2136,14 +2150,14 @@ select[multiple]:not(:disabled) option:checked {
   grid-template-columns: 1fr;
   gap: 0px;
   align-items: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--panel-bg-soft);
+  border: 1px solid var(--ui-surface-card-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface-base);
   padding: 5px 6px;
   font-size: 12px;
 }
 #editor-anki .note-editor .fields .field-container .label-container {
-  background: var(--color-transparent);
+  background: var(--ui-color-transparent);
 }
 #editor-anki .note-editor .fields .field-container .label-container .collapse-badge {
   display: none !important;
@@ -2157,24 +2171,24 @@ select[multiple]:not(:disabled) option:checked {
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area {
-  background: var(--chip-bg);
-  border: 1px solid var(--chip-bg-border-soft);
-  border-radius: var(--radius);
+  background: var(--field-surface);
+  border: 1px solid var(--ui-surface-base-border);
+  border-radius: var(--radius-md);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:hover, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:active, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus, #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area:focus-visible {
   border: 1px solid var(--accent-border);
   outline: none;
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area .CodeMirror-gutters {
-  background-color: var(--color-transparent);
+  background-color: var(--ui-color-transparent);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
-  border-radius: var(--radius);
-  background: var(--chip-bg);
+  border-radius: var(--radius-md);
+  background: var(--field-surface);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area > .collapsible.full-hide:not(.hidden) > .rich-text-input {
-  border-radius: var(--radius);
-  background: var(--chip-bg-raised);
+  border-radius: var(--radius-md);
+  background: var(--field-surface-alt);
 }
 #editor-anki .note-editor .fields .field-container .collapsible .editor-field .editing-area.ajpc-pair-plain-rich > .collapsible.full-hide:not(.hidden) > .plain-text-input > .code-mirror > .CodeMirror {
   border-bottom-left-radius: 0 !important;
@@ -2196,55 +2210,55 @@ select[multiple]:not(:disabled) option:checked {
   padding: 5px 20px !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border: none !important;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 12px !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor {
-  background: var(--chip-bg) !important;
-  border-radius: var(--radius) !important;
-  border: 1px solid var(--border-soft) !important;
+  background: var(--field-surface) !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--glass-divider) !important;
   padding: 5px 6px !important;
   margin: 0 0 10px 0 !important;
-  color: var(--text) !important;
+  color: var(--ui-text-primary) !important;
   font-size: 12px !important;
   font-weight: 400 !important;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag {
-  background: var(--panel-bg) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--panel-bg-border) !important;
+  background: var(--ui-surface-base) !important;
+  color: var(--ui-text-primary) !important;
+  border: 1px solid var(--ui-surface-base-border) !important;
   padding: 0px 3px 0px 3px;
   font-size: 12px !important;
-  border-radius: var(--radius) !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: none !important;
   cursor: pointer;
 }
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:hover, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:active, #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor .tag:focus-visible {
-  background: var(--btn-bg-hover) !important;
+  background: var(--button-bg-hover) !important;
 }
 #editor-anki .floating {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
 }
 #editor-anki .floating .popover {
   padding: 0 !important;
   border: 1px solid var(--popup-border) !important;
-  background: var(--popup-bg) !important;
-  color: var(--text) !important;
-  border-radius: var(--radius);
+  background: var(--menu-surface-bg) !important;
+  color: var(--ui-text-primary) !important;
+  border-radius: var(--radius-md);
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar {
   width: 10px !important;
-  background: var(--color-transparent) !important;
-  margin: var(--radius) 0 !important;
+  background: var(--ui-color-transparent) !important;
+  margin: var(--radius-md) 0 !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-track {
-  background: var(--color-transparent) !important;
+  background: var(--ui-color-transparent) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-thumb {
-  background: var(--accent-border-soft) !important;
+  background: var(--accent-border) !important;
   border-radius: 999px !important;
 }
 #editor-anki .floating .popover .autocomplete-menu::-webkit-scrollbar-button {
@@ -2253,7 +2267,7 @@ select[multiple]:not(:disabled) option:checked {
   height: 0 !important;
 }
 #editor-anki .floating .popover .autocomplete-menu {
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item {
   border: none !important;
@@ -2261,21 +2275,23 @@ select[multiple]:not(:disabled) option:checked {
   padding: 7px 9px;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item:hover {
-  background: var(--chip-bg-raised-soft-alpha) !important;
+  background: var(--ui-surface-card) !important;
   border: none !important;
-  border-bottom: 1px solid var(--accent-bg-soft) !important;
+  border-bottom: 1px solid var(--accent-base) !important;
 }
 #editor-anki .floating .popover .autocomplete-menu .autocomplete-item.selected {
-  background: var(--accent-bg-soft) !important;
+  background: var(--accent-base) !important;
   border: none !important;
-  border-bottom: 1px solid var(--accent-bg-soft) !important;
+  border-bottom: 1px solid var(--accent-base) !important;
 }
 #editor-anki .floating .floating-arrow .arrow {
-  background: var(--popup-bg) !important;
+  background: var(--menu-surface-bg) !important;
 }
 #editor-anki .tooltip .tooltip-arrow,
 #editor-anki .tooltip .tooltip-inner {
   border: 1px solid var(--popup-border) !important;
-  background: var(--popup-bg) !important;
-  color: var(--text) !important;
+  background: var(--menu-surface-bg) !important;
+  color: var(--ui-text-primary) !important;
 }
+
+/*# sourceMappingURL=graph.css.map */

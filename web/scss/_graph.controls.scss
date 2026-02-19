@@ -6,8 +6,8 @@
 .swatch {
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-small);
-  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-divider);
 }
 
 .layer-pill {
@@ -23,7 +23,9 @@
 }
 
 button {
-  @include mixins.interactive-control();
+  @include mixins.interactive-control(
+    $background: var(--control-bg)
+  );
   font-weight: 600;
 }
 
@@ -39,20 +41,20 @@ input[type="checkbox"] {
 
   margin: 0;
   font: inherit;
-  width: var(--text-size);
-  height: var(--text-size);
+  width: var(--font-size-md);
+  height: var(--font-size-md);
   border-radius: 2px;
   display: grid;
   place-content: center;
 
   &::before {
     content: "";
-    width: calc( var(--text-size) * 0.6);
-    height: calc( var(--text-size) * 0.6);
+    width: calc( var(--font-size-md) * 0.6);
+    height: calc( var(--font-size-md) * 0.6);
     border-radius: 1px;
     transform: scale(0);
     transition: 120ms transform ease-in-out;
-    box-shadow: inset var(--text-size) var(--text-size) var(--accent);
+    box-shadow: inset var(--font-size-md) var(--font-size-md) var(--accent-base);
   }
 
   &:checked::before {
@@ -69,25 +71,22 @@ input[type="checkbox"] {
 }
 input[type="color"] {
   @include mixins.form-input(
-    $background: var(--color-transparent),
+    $background: var(--ui-color-transparent),
     $padding: 0px,
     $radius: 9999px,
-    $focus-background: var(--color-transparent)
+    $focus-border: var(--accent-base),
+    $focus-border-width: 2px,
+    $focus-background: var(--ui-color-transparent)
   );
   width: 100%;
   height: 100%;
   margin-top: -2px;
   cursor: pointer;
   overflow: hidden;
-
-  &:hover,
-    &:focus {
-      border: 2px solid var(--accent);
-    }
   &::-webkit-color-swatch-wrapper {
     padding: 0;
     border-radius: 9999px;
-    border: var(--color-transparent);
+    border: var(--ui-color-transparent);
   }
   &::-webkit-color-swatch {
     border: 0;
@@ -96,30 +95,21 @@ input[type="color"] {
 }
 
 .select {
-  @include mixins.form-input();
+  @include mixins.form-input(
+    $focus-border: var(--ui-color-transparent)
+  );
   position: relative;
   display: grid;
   grid-template-areas: "select";
   align-items: center;
   cursor: pointer;
   line-height: 1.1;
-  
-  &::after {
-    grid-area: select;
-  }
-  &:hover,
-  &.active,
-  &:focus {
-    border: 1px solid var(--color-transparent);
-  }
   &:not(.select--multiple)::after {
-    content: "";
-    grid-area: select;
-    justify-self: end;
-    width: 0.8em;
-    height: 0.5em;
-    background: var(--accent);
-    clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+    @include mixins.caret-indicator(
+      $color: var(--accent-base),
+      $grid-area: select,
+      $justify-self: end
+    );
   }
   &:not(.select--multiple) option {
     @include mixins.form-input();
@@ -131,7 +121,7 @@ input[type="color"] {
 select {
   @include mixins.scrollbar();
   appearance: none;
-  background-color: var(--color-transparent);
+  background-color: var(--ui-color-transparent);
   border: none;
   padding: 0 1em 0 0;
   margin: 0;
@@ -142,7 +132,7 @@ select {
   line-height: inherit;
   outline: none;
   z-index: 1;
-  color: var(--text);
+  color: var(--ui-text-primary);
   grid-area: select;
 
   &::-ms-expand {
@@ -162,31 +152,27 @@ select {
 .select--multiple {
   padding: 0;
   outline: none;
-  border: 1px solid var(--color-transparent);
+  border: 1px solid var(--field-border-base);
 
   &:hover,
   &:focus {
-    border: 1px solid var(--color-transparent);
+    border: 1px solid var(--field-border-base);
     outline: none;
   }
 }
 select[multiple] {
   @include mixins.scrollbar();
   @include mixins.form-input(
-    $background: var(--color-transparent),
-    $focus-background: var(--color-transparent)
+    $border: var(--ui-color-transparent),
+    $background: var(--ui-color-transparent),
+    $focus-border: var(--ui-color-transparent),
+    $focus-background: var(--ui-color-transparent)
   );
   height: 5rem;
-
-  &:hover,
-  &:focus {
-    border: 1px solid var(--color-transparent);
-    outline: none;
-  }
   option {
     white-space: normal;
     padding-left: 0.5em;
-    color: var(--text-muted) !important;
+    color: var(--ui-text-secondary) !important;
   }
   &:not(:disabled) option {
     border-radius: 2px;
@@ -194,9 +180,9 @@ select[multiple] {
     transition: 120ms all ease-in;
 
     &:checked {
-      background: var(--accent-bg-strong);
+      background: var(--accent-surface-active);
       padding-left: 0.5em;
-      color: var(--text) !important;
+      color: var(--ui-text-primary) !important;
     }
   }
 }
@@ -217,7 +203,7 @@ select[multiple] {
     display: grid;
     gap: 4px;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
   }
 }
 
@@ -226,8 +212,8 @@ select[multiple] {
   align-items: center;
   gap: 8px;
   @include mixins.row-chip(
-    $border: var(--panel-bg-raised),
-    $background: var(--panel-bg-raised)
+    $border: var(--ui-surface-base),
+    $background: var(--ui-surface-base)
   );
   font-size: 12px;
 }
@@ -238,13 +224,13 @@ select[multiple] {
   gap: 8px;
   align-items: center;
   @include mixins.row-chip(
-    $border: var(--panel-bg-raised),
-    $background: var(--panel-bg-raised)
+    $border: var(--ui-surface-base),
+    $background: var(--ui-surface-base)
   );
   font-size: 12px;
 
   label {
-    color: var(--text-muted);
+    color: var(--ui-text-secondary);
     font-size: 11px;
   }
 }
@@ -263,7 +249,7 @@ select[multiple] {
 
 .hint {
   margin: 0 0 8px 0;
-  color: var(--text-muted);
+  color: var(--ui-text-secondary);
   font-size: 11px;
 
 }

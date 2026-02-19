@@ -5,8 +5,8 @@
   // general style
   html,
   body {
-    background: var(--panel-bg) !important;
-    color: var(--text) !important;
+    background: var(--ui-surface-base) !important;
+    color: var(--ui-text-primary) !important;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -21,17 +21,17 @@
 
   .editing-area,
   .label-container {
-    background: var(--color-transparent) !important;
+    background: var(--ui-color-transparent) !important;
   }
 
   button {
-    border-radius: var(--radius) !important;
-    border: 1px solid var(--btn-border) !important;
-    background: var(--btn-bg) !important;
-    color: var(--text) !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--control-border) !important;
+    background: var(--control-bg) !important;
+    color: var(--ui-text-primary) !important;
     padding: 8px 10px;
     font-size: 13px;
-    box-shadow: var(--shadow) !important;
+    box-shadow: var(--shadow-elevation-1) !important;
     cursor: pointer;
     font-weight: 600;
 
@@ -39,7 +39,7 @@
     &:active,
     &:focus-visible {
       border: 1px solid var(--btn-border-hover) !important;
-      background: var(--btn-bg-hover) !important;
+      background: var(--button-bg-hover) !important;
     }
   }
 
@@ -60,21 +60,18 @@
     }
 
     .label-name {
-      color: var(--text-muted);
+      color: var(--ui-text-secondary);
       font-size: 11px !important;
       margin-left: 5px !important;
       grid-area: select;
     }
 
     &::after {
-      content: "";
-      grid-area: select;
-      justify-self: end;
-      width: 0.8em;
-      height: 0.5em;
-      background: var(--accent-bg-soft);
-      clip-path: polygon(100% 0%, 0 0%, 50% 100%);
-      transition: transform .16s ease;
+      @include mixins.caret-indicator(
+        $color: var(--accent-base),
+        $grid-area: select,
+        $justify-self: end
+      );
     }
 
     &[aria-expanded="false"]::after {
@@ -87,7 +84,7 @@
   .cloze,
   mark {
     background: var(--cloze-bg) !important;
-    color: var(--text) !important;
+    color: var(--ui-text-primary) !important;
   }
 
   .hidden {
@@ -108,14 +105,14 @@
 
       #ajpc-graph-editor-devtools,
       #ajpc-graph-editor-css-reload {
-        border-color: var(--accent-border) !important;
-        background: var(--accent-bg-soft) !important;
-        box-shadow: var(--shadow) !important;
+        border-color: var(--dev-control-border) !important;
+        background: var(--dev-control-bg) !important;
+        box-shadow: var(--shadow-elevation-1) !important;
 
         &:hover,
         &:active {
-          border-color: var(--accent-border) !important;
-          background: var(--accent-bg-soft) !important;
+          border-color: var(--dev-control-border-hover) !important;
+          background: var(--dev-control-bg-hover) !important;
         }
       }
 
@@ -138,8 +135,8 @@
     height: calc(100% - 59px) !important;
 
     .editor-toolbar {
-      background: var(--panel-bg) !important;
-      border-color: var(--border-soft) !important;
+      background: var(--ui-surface-base) !important;
+      border-color: var(--ui-surface-base-border) !important;
       margin: 0 !important;
       padding: 3px 10px 3px 20px !important;
 
@@ -162,17 +159,17 @@
           &:hover,
           &:active,
           &:focus-visible {
-            background: var(--accent-bg-soft) !important;
+            background: var(--accent-base) !important;
           }
 
           &.ajpc-edge-first {
-            border-top-left-radius: var(--radius-small) !important;
-            border-bottom-left-radius: var(--radius-small) !important;
+            border-top-left-radius: var(--radius-sm) !important;
+            border-bottom-left-radius: var(--radius-sm) !important;
           }
 
           &.ajpc-edge-last {
-            border-top-right-radius: var(--radius-small) !important;
-            border-bottom-right-radius: var(--radius-small) !important;
+            border-top-right-radius: var(--radius-sm) !important;
+            border-bottom-right-radius: var(--radius-sm) !important;
           }
         }
       }
@@ -194,9 +191,9 @@
     }
 
     .fields {
-      border: 1px solid var(--border-soft) !important;
-      border-radius: var(--radius) !important;
-      background: var(--panel-bg-fade) !important;
+      border: 1px solid var(--ui-surface-base-border) !important;
+      border-radius: var(--radius-md) !important;
+      background: var(--ui-surface-card) !important;
       padding: 10px !important;
 
       .collapsible {
@@ -208,14 +205,14 @@
         grid-template-columns: 1fr;
         gap: 0px;
         align-items: center;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--panel-bg-soft);
+        border: 1px solid var(--ui-surface-card-border);
+        border-radius: var(--radius-md);
+        background: var(--ui-surface-base);
         padding: 5px 6px;
         font-size: 12px;
 
         .label-container {
-          background: var(--color-transparent);
+          background: var(--ui-color-transparent);
 
           .collapse-badge {
             display: none !important;
@@ -233,9 +230,9 @@
             outline: none;
 
             .editing-area {
-              background: var(--chip-bg);
-              border: 1px solid var(--chip-bg-border-soft);
-              border-radius: var(--radius);
+              background: var(--field-surface);
+              border: 1px solid var(--ui-surface-base-border);
+              border-radius: var(--radius-md);
 
               &:hover,
               &:active,
@@ -247,17 +244,17 @@
               }
 
               .CodeMirror-gutters {
-                background-color: var(--color-transparent);
+                background-color: var(--ui-color-transparent);
               }
 
               &>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
-                border-radius: var(--radius);
-                background: var(--chip-bg);
+                border-radius: var(--radius-md);
+                background: var(--field-surface);
               }
 
               &>.collapsible.full-hide:not(.hidden)>.rich-text-input {
-                border-radius: var(--radius);
-                background: var(--chip-bg-raised);
+                border-radius: var(--radius-md);
+                background: var(--field-surface-alt);
               }
 
               &.ajpc-pair-plain-rich>.collapsible.full-hide:not(.hidden)>.plain-text-input>.code-mirror>.CodeMirror {
@@ -295,35 +292,35 @@
     padding: 5px 20px !important;
 
     .collapsible {
-      background: var(--color-transparent) !important;
+      background: var(--ui-color-transparent) !important;
       border: none !important;
-      color: var(--text-muted);
+      color: var(--ui-text-secondary);
       font-size: 12px !important;
 
       .tag-editor {
-        background: var(--chip-bg) !important;
-        border-radius: var(--radius) !important;
-        border: 1px solid var(--border-soft) !important;
+        background: var(--field-surface) !important;
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--glass-divider) !important;
         padding: 5px 6px !important;
         margin: 0 0 10px 0 !important;
-        color: var(--text) !important;
+        color: var(--ui-text-primary) !important;
         font-size: 12px !important;
         font-weight: 400 !important;
 
         .tag {
-          background: var(--panel-bg) !important;
-          color: var(--text) !important;
-          border: 1px solid var(--panel-bg-border) !important;
+          background: var(--ui-surface-base) !important;
+          color: var(--ui-text-primary) !important;
+          border: 1px solid var(--ui-surface-base-border) !important;
           padding: 0px 3px 0px 3px;
           font-size: 12px !important;
-          border-radius: var(--radius) !important;
+          border-radius: var(--radius-md) !important;
           box-shadow: none !important;
           cursor: pointer;
 
           &:hover,
           &:active,
           &:focus-visible {
-            background: var(--btn-bg-hover) !important;
+            background: var(--button-bg-hover) !important;
           }
 
         }
@@ -332,18 +329,18 @@
   }
 
   .floating {
-    border-radius: var(--radius);
+    border-radius: var(--radius-md);
 
     .popover {
       padding: 0 !important;
       border: 1px solid var(--popup-border) !important;
-      background: var(--popup-bg) !important;
-      color: var(--text) !important;
-      border-radius: var(--radius);
+      background: var(--menu-surface-bg) !important;
+      color: var(--ui-text-primary) !important;
+      border-radius: var(--radius-md);
 
       .autocomplete-menu {
         @include mixins.scrollbar();
-        border-radius: var(--radius);
+        border-radius: var(--radius-md);
 
         .autocomplete-item {
           border: none !important;
@@ -351,15 +348,15 @@
           padding: 7px 9px;
 
           &:hover {
-            background: var(--chip-bg-raised-soft-alpha) !important;
+            background: var(--ui-surface-card) !important;
             border: none !important;
-            border-bottom: 1px solid var(--accent-bg-soft) !important;
+            border-bottom: 1px solid var(--accent-base) !important;
           }
 
           &.selected {
-            background: var(--accent-bg-soft) !important;
+            background: var(--accent-base) !important;
             border: none !important;
-            border-bottom: 1px solid var(--accent-bg-soft) !important;
+            border-bottom: 1px solid var(--accent-base) !important;
           }
         }
       }
@@ -367,7 +364,7 @@
 
     .floating-arrow {
       .arrow {
-        background: var(--popup-bg) !important;
+        background: var(--menu-surface-bg) !important;
       }
     }
   }
@@ -377,11 +374,12 @@
     .tooltip-arrow,
     .tooltip-inner {
       border: 1px solid var(--popup-border) !important;
-      background: var(--popup-bg) !important;
-      color: var(--text) !important;
+      background: var(--menu-surface-bg) !important;
+      color: var(--ui-text-primary) !important;
     }
   }
 
 }
+
 
 
