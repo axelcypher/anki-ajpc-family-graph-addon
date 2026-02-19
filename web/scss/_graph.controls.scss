@@ -7,7 +7,7 @@
   width: 10px;
   height: 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
 }
 
 .layer-pill {
@@ -180,7 +180,7 @@ select[multiple] {
     transition: 120ms all ease-in;
 
     &:checked {
-      background: var(--accent-surface-active);
+      background: var(--accent-active);
       padding-left: 0.5em;
       color: var(--ui-text-primary) !important;
     }

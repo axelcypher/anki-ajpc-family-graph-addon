@@ -37,9 +37,9 @@
   /* naming suggestion: --control-border-interactive */
   --control-border-interactive: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --control-bg-accent-inverted */
-  --brand-control-bg-inverted: oklch(68.586% 0.20309 24.187);
+  --control-bg-accent-inverted: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --control-border-accent-inverted */
-  --brand-control-border-inverted: oklch(68.586% 0.20309 24.187);
+  --control-border-accent-inverted: oklch(68.586% 0.20309 24.187);
   --control-bg-accent-glass: oklch(68.586% 0.20309 24.187);
   --control-border-accent-glass: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --accent-base */
@@ -47,25 +47,25 @@
   /* naming suggestion: --accent-border */
   --accent-border: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --accent-active */
-  --accent-surface-active: oklch(68.586% 0.20309 24.187);
+  --accent-active: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-bg */
   --glass-surface-bg: oklch(62.793% 0.25768 29.223 / 0.507);
   /* naming suggestion: --glass-surface-border */
   --glass-surface-border: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-divider */
-  --glass-divider: oklch(68.586% 0.20309 24.187);
+  --glass-surface-divider: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card */
-  --glass-card-surface: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card-border */
-  --glass-card-surface-border: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card-border: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card-input-disabled-bg */
-  --glass-input-disabled-bg: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card-input-disabled-bg: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card-select-bg */
-  --glass-select-bg: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card-select-bg: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card-input-bg */
-  --glass-input-bg: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card-input-bg: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --glass-surface-card-input-border */
-  --glass-input-border: oklch(68.586% 0.20309 24.187);
+  --glass-surface-card-input-border: oklch(68.586% 0.20309 24.187);
   /* naming suggestion: --modal-backdrop-bg */
   --modal-backdrop-bg: oklch(12.8802% 0.040603 264.70 / 45%);
   /* naming suggestion: --menu-surface-bg */
@@ -190,7 +190,7 @@ a:hover {
   width: 10px;
   height: 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
 }
 
 .layer-pill {
@@ -520,7 +520,7 @@ select[multiple]:not(:disabled) option {
   transition: 120ms all ease-in;
 }
 select[multiple]:not(:disabled) option:checked {
-  background: var(--accent-surface-active);
+  background: var(--accent-active);
   padding-left: 0.5em;
   color: var(--ui-text-primary) !important;
 }
@@ -631,8 +631,8 @@ select[multiple]:not(:disabled) option:checked {
 #btn-refresh,
 #btn-ai-create {
   border-radius: var(--radius-md);
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
   color: var(--ui-text-primary);
   padding: 8px 10px;
   font-size: var(--font-size-md);
@@ -644,13 +644,13 @@ select[multiple]:not(:disabled) option:checked {
 #btn-refresh:hover, #btn-refresh:focus,
 #btn-ai-create:hover,
 #btn-ai-create:focus {
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
 }
 #btn-refresh.active,
 #btn-ai-create.active {
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
 }
 
 #toolbar-debug {
@@ -775,7 +775,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #search-wrap #search-suggest.is-visible {
   display: block;
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
 }
 #search-wrap #search-suggest .suggest-item {
   padding: 7px 9px;
@@ -886,7 +886,7 @@ select[multiple]:not(:disabled) option:checked {
 }
 #settings-panel #settings-head #settings-tabs .settings-tab.active {
   border: 1px solid var(--control-border);
-  background: var(--accent-surface-active);
+  background: var(--accent-active);
 }
 #settings-panel #settings-head #settings-tabs .settings-tab {
   font-weight: 600;
@@ -1312,7 +1312,7 @@ select[multiple]:not(:disabled) option:checked {
   width: min(360px, 92vw);
   max-height: min(72vh, 520px);
   border-radius: 14px;
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
   background: var(--glass-surface-bg);
   box-shadow: var(--shadow-elevation-1);
   color: var(--ui-text-primary);
@@ -1338,12 +1338,12 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px 12px 12px 12px;
-  border-top: 1px solid var(--glass-divider);
+  border-top: 1px solid var(--glass-surface-divider);
 }
 #ctx-picker .btn {
   flex: 1 1 auto;
   border-radius: 9px;
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
   background: var(--glass-surface-bg);
   color: var(--ui-text-primary);
   padding: 7px 10px;
@@ -1669,7 +1669,7 @@ select[multiple]:not(:disabled) option:checked {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--glass-divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
 }
 .graph-ai-dialog .graph-ai-dialog__head h2 {
   margin: 0;
@@ -1704,9 +1704,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-block {
-  border: 1px solid var(--glass-card-surface-border);
+  border: 1px solid var(--glass-surface-card-border);
   border-radius: 12px;
-  background: var(--glass-card-surface);
+  background: var(--glass-surface-card);
   padding: 10px 12px;
 }
 .graph-ai-block h3 {
@@ -1730,18 +1730,18 @@ select[multiple]:not(:disabled) option:checked {
 .graph-ai-form-row select, .graph-ai-form-row input, .graph-ai-form-row textarea {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--glass-divider);
+  border: 1px solid var(--glass-surface-divider);
   background: var(--field-surface);
   color: var(--ui-text-primary);
   padding: 7px 9px;
   font: inherit;
 }
 .graph-ai-form-row select {
-  border: 1px solid var(--glass-input-border);
+  border: 1px solid var(--glass-surface-card-input-border);
 }
 .graph-ai-form-row textarea {
-  border: 1px solid var(--glass-input-border);
-  background: var(--glass-input-bg);
+  border: 1px solid var(--glass-surface-card-input-border);
+  background: var(--glass-surface-card-input-bg);
   resize: vertical;
   min-height: 70px;
 }
@@ -1767,8 +1767,8 @@ select[multiple]:not(:disabled) option:checked {
 
 .graph-ai-btn {
   border-radius: var(--radius-md);
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
   color: var(--ui-text-primary);
   padding: 6px 10px;
   font-size: var(--font-size-md);
@@ -1778,12 +1778,12 @@ select[multiple]:not(:disabled) option:checked {
   user-select: none;
 }
 .graph-ai-btn:hover, .graph-ai-btn:focus {
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
 }
 .graph-ai-btn.active {
-  border: 1px solid var(--brand-control-border-inverted);
-  background: var(--brand-control-bg-inverted);
+  border: 1px solid var(--control-border-accent-inverted);
+  background: var(--control-bg-accent-inverted);
 }
 
 .graph-ai-btn--ghost {
@@ -1808,8 +1808,8 @@ select[multiple]:not(:disabled) option:checked {
 }
 .graph-ai-nav select {
   border-radius: 8px;
-  border: 1px solid var(--glass-input-border);
-  background: var(--glass-select-bg);
+  border: 1px solid var(--glass-surface-card-input-border);
+  background: var(--glass-surface-card-select-bg);
   color: var(--ui-text-primary);
   padding: 6px 8px;
 }
@@ -1832,9 +1832,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-pane {
-  border: 1px solid var(--glass-card-surface-border);
+  border: 1px solid var(--glass-surface-card-border);
   border-radius: 12px;
-  background: var(--glass-card-surface);
+  background: var(--glass-surface-card);
   padding: 10px;
   min-height: 0;
   display: flex;
@@ -1847,9 +1847,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-list {
-  border: 1px solid var(--glass-input-border);
+  border: 1px solid var(--glass-surface-card-input-border);
   border-radius: 8px;
-  background: var(--glass-select-bg);
+  background: var(--glass-surface-card-select-bg);
   padding: 0;
   margin: 0;
   padding: 0;
@@ -1878,7 +1878,7 @@ select[multiple]:not(:disabled) option:checked {
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--glass-input-border);
+  border-bottom: 1px solid var(--glass-surface-card-input-border);
   color: var(--ui-text-primary);
   font-size: 12px;
 }
@@ -1888,9 +1888,9 @@ select[multiple]:not(:disabled) option:checked {
 }
 
 .graph-ai-preview-box {
-  border: 1px solid var(--glass-input-border);
+  border: 1px solid var(--glass-surface-card-input-border);
   border-radius: 8px;
-  background: var(--glass-input-disabled-bg);
+  background: var(--glass-surface-card-input-disabled-bg);
   padding: 0;
   min-height: 250px;
   overflow: auto;
@@ -1927,7 +1927,7 @@ select[multiple]:not(:disabled) option:checked {
   border-collapse: collapse;
 }
 .graph-ai-field-table th, .graph-ai-field-table td {
-  border-bottom: 1px solid var(--glass-divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
   padding: 6px 8px;
   font-size: 12px;
   color: var(--ui-text-primary);
@@ -1945,7 +1945,7 @@ select[multiple]:not(:disabled) option:checked {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid var(--glass-divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
 }
 
 .graph-ai-template-canvas {
@@ -2218,7 +2218,7 @@ select[multiple]:not(:disabled) option:checked {
 #editor-anki #ajpc-tag-wrapper .collapsible .tag-editor {
   background: var(--field-surface) !important;
   border-radius: var(--radius-md) !important;
-  border: 1px solid var(--glass-divider) !important;
+  border: 1px solid var(--glass-surface-divider) !important;
   padding: 5px 6px !important;
   margin: 0 0 10px 0 !important;
   color: var(--ui-text-primary) !important;

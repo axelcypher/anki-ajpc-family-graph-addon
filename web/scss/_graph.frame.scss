@@ -27,8 +27,8 @@
 #btn-refresh,
 #btn-ai-create {
   @include mixins.interactive-control-inverted(
-    $border: var(--brand-control-border-inverted),
-    $background: var(--brand-control-bg-inverted)
+    $border: var(--control-border-accent-inverted),
+    $background: var(--control-bg-accent-inverted)
   );
 }
 
@@ -92,7 +92,7 @@
 
     &.is-visible {
       display: block;
-      border: 1px solid var(--glass-divider);
+      border: 1px solid var(--glass-surface-divider);
 
     }
     .suggest-item {
@@ -162,7 +162,7 @@
         @include mixins.interactive-control(
           $radius: 0,
           $active-border: var(--control-border),
-          $active-background: var(--accent-surface-active)
+          $active-background: var(--accent-active)
         );
         font-weight: 600;
       }

@@ -130,7 +130,7 @@
     width: min(360px, 92vw);
     max-height: min(72vh, 520px);
     border-radius: 14px;
-    border: 1px solid var(--glass-divider);
+    border: 1px solid var(--glass-surface-divider);
     background: var(--glass-surface-bg);
     box-shadow: var(--shadow-elevation-1);
     color: var(--ui-text-primary);
@@ -160,13 +160,13 @@
     display: flex;
     gap: 8px;
     padding: 10px 12px 12px 12px;
-    border-top: 1px solid var(--glass-divider);
+    border-top: 1px solid var(--glass-surface-divider);
   }
 
   & .btn {
     flex: 1 1 auto;
     border-radius: 9px;
-    border: 1px solid var(--glass-divider);
+    border: 1px solid var(--glass-surface-divider);
     background: var(--glass-surface-bg);
     color: var(--ui-text-primary);
     padding: 7px 10px;
@@ -520,8 +520,8 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--glass-divider);
-    //background: var(--glass-select-bg);
+    border-bottom: 1px solid var(--glass-surface-divider);
+    //background: var(--glass-surface-card-select-bg);
   }
 
   & .graph-ai-dialog__head h2 {
@@ -543,8 +543,8 @@
 
 .graph-ai-block {
   @include mixins.ai-surface(
-    $border: var(--glass-card-surface-border),
-    $background: var(--glass-card-surface),
+    $border: var(--glass-surface-card-border),
+    $background: var(--glass-surface-card),
     $radius: 12px,
     $padding: 10px 12px
   );
@@ -574,7 +574,7 @@
   & textarea {
     width: 100%;
     border-radius: 8px;
-    border: 1px solid var(--glass-divider);
+    border: 1px solid var(--glass-surface-divider);
     background: var(--field-surface);
     color: var(--ui-text-primary);
     padding: 7px 9px;
@@ -582,12 +582,12 @@
   }
 
   & select {
-    border: 1px solid var(--glass-input-border);
+    border: 1px solid var(--glass-surface-card-input-border);
   }
 
   & textarea {
-    border: 1px solid var(--glass-input-border);
-    background: var(--glass-input-bg);
+    border: 1px solid var(--glass-surface-card-input-border);
+    background: var(--glass-surface-card-input-bg);
     resize: vertical;
     min-height: 70px;
   }
@@ -614,8 +614,8 @@
 
 .graph-ai-btn {
   @include mixins.interactive-control-inverted(
-    $border: var(--brand-control-border-inverted),
-    $background: var(--brand-control-bg-inverted),
+    $border: var(--control-border-accent-inverted),
+    $background: var(--control-bg-accent-inverted),
     $padding: 6px 10px
   );
 }
@@ -646,8 +646,8 @@
 
   & select {
     border-radius: 8px;
-    border: 1px solid var(--glass-input-border);
-    background: var(--glass-select-bg);
+    border: 1px solid var(--glass-surface-card-input-border);
+    background: var(--glass-surface-card-select-bg);
     color: var(--ui-text-primary);
     padding: 6px 8px;
   }
@@ -672,8 +672,8 @@
 
 .graph-ai-pane {
   @include mixins.ai-surface(
-    $border: var(--glass-card-surface-border),
-    $background: var(--glass-card-surface),
+    $border: var(--glass-surface-card-border),
+    $background: var(--glass-surface-card),
     $radius: 12px,
     $padding: 10px
   );
@@ -690,8 +690,8 @@
 
 .graph-ai-list {
   @include mixins.ai-surface(
-    $border: var(--glass-input-border),
-    $background: var(--glass-select-bg),
+    $border: var(--glass-surface-card-input-border),
+    $background: var(--glass-surface-card-select-bg),
     $radius: 8px,
     $padding: 0
   );
@@ -705,7 +705,7 @@
 
 .graph-ai-list li {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--glass-input-border);
+  border-bottom: 1px solid var(--glass-surface-card-input-border);
   color: var(--ui-text-primary);
   font-size: 12px;
 }
@@ -716,8 +716,8 @@
 
 .graph-ai-preview-box {
   @include mixins.ai-surface(
-    $border: var(--glass-input-border),
-    $background: var(--glass-input-disabled-bg),
+    $border: var(--glass-surface-card-input-border),
+    $background: var(--glass-surface-card-input-disabled-bg),
     $radius: 8px,
     $padding: 0
   );
@@ -741,7 +741,7 @@
 
   & th,
   & td {
-    border-bottom: 1px solid var(--glass-divider);
+    border-bottom: 1px solid var(--glass-surface-divider);
     padding: 6px 8px;
     font-size: 12px;
     color: var(--ui-text-primary);
@@ -761,7 +761,7 @@
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-bottom: 1px solid var(--glass-divider);
+  border-bottom: 1px solid var(--glass-surface-divider);
 }
 
 .graph-ai-template-canvas {

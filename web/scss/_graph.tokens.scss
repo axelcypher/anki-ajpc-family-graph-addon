@@ -50,9 +50,9 @@
   /* naming suggestion: --control-border-interactive */
   --control-border-interactive: oklch(68.586% 0.20309 24.187); //button maindesign border: focus + active + hover
   /* naming suggestion: --control-bg-accent-inverted */
-  --brand-control-bg-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons bg
+  --control-bg-accent-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons bg
   /* naming suggestion: --control-border-accent-inverted */
-  --brand-control-border-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons border
+  --control-border-accent-inverted: oklch(68.586% 0.20309 24.187); //inverted accent buttons border
   --control-bg-accent-glass: oklch(68.586% 0.20309 24.187);
   --control-border-accent-glass: oklch(68.586% 0.20309 24.187);
   
@@ -62,7 +62,7 @@
   /* naming suggestion: --accent-border */
   --accent-border: oklch(68.586% 0.20309 24.187); //accent: hover + focus 
   /* naming suggestion: --accent-active */
-  --accent-surface-active: oklch(68.586% 0.20309 24.187); //accent: active  
+  --accent-active: oklch(68.586% 0.20309 24.187); //accent: active  
 
   //Glass overlays + ctx + modal dialog
   /* naming suggestion: --glass-surface-bg */
@@ -70,19 +70,19 @@
   /* naming suggestion: --glass-surface-border */
   --glass-surface-border: oklch(68.586% 0.20309 24.187); //glass panel border
   /* naming suggestion: --glass-surface-divider */
-  --glass-divider: oklch(68.586% 0.20309 24.187); //glass panel divider
+  --glass-surface-divider: oklch(68.586% 0.20309 24.187); //glass panel divider
   /* naming suggestion: --glass-surface-card */
-  --glass-card-surface: oklch(68.586% 0.20309 24.187); //glass card bg
+  --glass-surface-card: oklch(68.586% 0.20309 24.187); //glass card bg
   /* naming suggestion: --glass-surface-card-border */
-  --glass-card-surface-border: oklch(68.586% 0.20309 24.187); //glass card border
+  --glass-surface-card-border: oklch(68.586% 0.20309 24.187); //glass card border
   /* naming suggestion: --glass-surface-card-input-disabled-bg */
-  --glass-input-disabled-bg: oklch(68.586% 0.20309 24.187); //glass card disabled input bg
+  --glass-surface-card-input-disabled-bg: oklch(68.586% 0.20309 24.187); //glass card disabled input bg
   /* naming suggestion: --glass-surface-card-select-bg */
-  --glass-select-bg: oklch(68.586% 0.20309 24.187); //glass card selection bg
+  --glass-surface-card-select-bg: oklch(68.586% 0.20309 24.187); //glass card selection bg
   /* naming suggestion: --glass-surface-card-input-bg */
-  --glass-input-bg: oklch(68.586% 0.20309 24.187); //glass card input bg
+  --glass-surface-card-input-bg: oklch(68.586% 0.20309 24.187); //glass card input bg
   /* naming suggestion: --glass-surface-card-input-border */
-  --glass-input-border: oklch(68.586% 0.20309 24.187); //glass card selection + input border
+  --glass-surface-card-input-border: oklch(68.586% 0.20309 24.187); //glass card selection + input border
   /* naming suggestion: --modal-backdrop-bg */
   --modal-backdrop-bg: oklch(12.8802% 0.040603 264.70 / 45%); //modal backdrop
 

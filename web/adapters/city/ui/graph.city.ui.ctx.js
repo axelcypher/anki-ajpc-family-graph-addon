@@ -434,7 +434,7 @@ function showFamilyIdEditDialogForCtx(oldFid, pycmd, showToast) {
   newInput.style.minWidth = "0";
   newInput.style.padding = "6px 8px";
   newInput.style.borderRadius = "8px";
-  newInput.style.border = "1px solid var(--glass-divider)";
+  newInput.style.border = "1px solid var(--glass-surface-divider)";
   newInput.style.background = "var(--bg-chip-200)";
   newInput.style.color = "var(--ui-text-primary)";
   newRow.appendChild(newLabel);

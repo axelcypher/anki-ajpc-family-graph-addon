@@ -45,6 +45,7 @@
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
+- Completed missed token-rename mappings so all General-UI vars now match their `naming suggestion` comments (including inverted accent controls and glass-surface/input token names) across SCSS/CSS/JS/PY.
 - Embedded editor runtime now strips injected `webview.css` links from editor webviews (`web` + `toolbarWeb`) to avoid default style overrides.
 - Embedded editor runtime now normalizes empty/default page titles to `AJpC Embedded Editor` for remote-devtools target clarity.
 - Added per-row apply status indicator in Graph AI create result list:
