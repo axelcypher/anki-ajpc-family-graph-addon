@@ -154,6 +154,8 @@ Vocab notes that contain kanji will connect to the Kanji notes for those charact
 - Embedded editor theming source:
   - `web/scss/_graph.editor.scss` (scoped under `#editor-anki`).
   - `graph_editor_embedded.py` injects compiled scoped rules from `web/graph.css` into embedded editor webviews.
+  - `graph_editor_embedded.py` removes Anki-injected `webview.css` links in embedded editor webviews to prevent default stylesheet overrides.
+  - Embedded editor webview title is normalized to `AJpC Embedded Editor` when empty/default (remote-devtools target clarity).
 - Styling source can be maintained in SCSS:
   - Entry file: `web/graph.scss`
   - Partials: `web/scss/_graph.*.scss`

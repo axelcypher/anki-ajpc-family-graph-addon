@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import math
@@ -419,6 +419,55 @@ class EmbeddedEditorMixin:
 // js
 (function(){
 try{
+if(document){
+ var t=String(document.title||'').trim().toLowerCase();
+ if(!t||t==='default'){
+  document.title='AJpC Embedded Editor';
+ }
+}
+var installWebviewCssGuard=function(){
+ try{
+  if(window.__ajpcEmbedWebviewCssGuardInstalled){ return; }
+  window.__ajpcEmbedWebviewCssGuardInstalled=1;
+  var re=/(?:^|\/)webview\.css(?:[?#].*)?$/i;
+  var disableLink=function(node){
+   if(!node||node.tagName!=='LINK'){ return; }
+   var rel=String(node.getAttribute('rel')||'').toLowerCase();
+   if(rel&&rel!=='stylesheet'){ return; }
+   var href=String(node.getAttribute('href')||'');
+   if(!re.test(href)){ return; }
+   try{ node.disabled=true; }catch(_e0){}
+   try{ node.setAttribute('data-ajpc-disabled','webview-css'); }catch(_e1){}
+   try{ if(node.parentNode){ node.parentNode.removeChild(node); } }catch(_e2){}
+  };
+  var scan=function(){
+   try{
+    var links=document.querySelectorAll('link[rel=\"stylesheet\"],link[href*=\"webview.css\"]');
+    for(var i=0;i<links.length;i++){ disableLink(links[i]); }
+   }catch(_e3){}
+  };
+  scan();
+  try{
+   var obs=new MutationObserver(function(muts){
+    for(var i=0;i<muts.length;i++){
+     var added=muts[i].addedNodes||[];
+     for(var j=0;j<added.length;j++){
+      var n=added[j];
+      disableLink(n);
+      try{
+       if(n&&n.querySelectorAll){
+        var nested=n.querySelectorAll('link[rel=\"stylesheet\"],link[href*=\"webview.css\"]');
+        for(var k=0;k<nested.length;k++){ disableLink(nested[k]); }
+       }
+      }catch(_e4){}
+     }
+    }
+   });
+   obs.observe(document.documentElement||document,{childList:true,subtree:true});
+  }catch(_e5){}
+ }catch(_e){}
+};
+installWebviewCssGuard();
 var id='ajpc-graph-editor-theme';
 var css=__CSS_JSON__;
 var st=document.getElementById(id);
@@ -835,15 +884,15 @@ setTimeout(bindChromeObserver,120);
 
     def _get_embedded_editor_panel_bg_color(self) -> str:
         # Match Qt panel background to the editor body theme variable when available.
-        color = self._resolve_embedded_css_value("var(--bg-panel)")
+        color = self._resolve_embedded_css_value("var(--surface-panel)")
         if color:
             return color
         return "#00000000"
 
     def _embedded_editor_qmenu_qss(self) -> str:
-        popup_bg = self._resolve_embedded_css_value("var(--bg-popup)") or self._resolve_embedded_css_value("var(--bg-chip-200)") or "#111827"
-        popup_fg = self._resolve_embedded_css_value("var(--text-main)") or "#e2e8f0"
-        popup_border = self._resolve_embedded_css_value("var(--border-100)") or "#334155"
+        popup_bg = self._resolve_embedded_css_value("var(--popup-bg)") or self._resolve_embedded_css_value("var(--bg-chip-200)") or "#111827"
+        popup_fg = self._resolve_embedded_css_value("var(--text)") or "#e2e8f0"
+        popup_border = self._resolve_embedded_css_value("var(--border-soft)") or "#334155"
         popup_hover = self._resolve_embedded_css_value("var(--bg-chip-100)") or "#1f2937"
         return (
             "QMenu{"
@@ -1281,7 +1330,7 @@ setTimeout(bindChromeObserver,120);
                 return self._rgba_to_qt_color(rgba)
             if "color-mix(" in s:
                 # Last fallback when a mix expression cannot be parsed.
-                return vars_map.get("--bg-chip-100", vars_map.get("--bg-chip", "#3e4350"))
+                return vars_map.get("--bg-chip-100", vars_map.get("--surface-card", "#3e4350"))
             return s
 
         return _resolve(str(value or "").strip())

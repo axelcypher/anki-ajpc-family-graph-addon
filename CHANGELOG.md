@@ -44,6 +44,8 @@
 - Added monotonic delta revision snapshots in full payload meta (`meta.delta_rev`) and JS stale/gap handling with controlled full-refresh recovery.
 
 ### Fixes
+- Embedded editor runtime now strips injected `webview.css` links from editor webviews (`web` + `toolbarWeb`) to avoid default style overrides.
+- Embedded editor runtime now normalizes empty/default page titles to `AJpC Embedded Editor` for remote-devtools target clarity.
 - Added per-row apply status indicator in Graph AI create result list:
   - `✓` after successful create
   - `•` after duplicate-enrich apply
